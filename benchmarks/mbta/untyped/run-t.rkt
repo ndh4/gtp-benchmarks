@@ -3,14 +3,14 @@
 ;; ===================================================================================================
 
 (require
- (only-in "t-view.rkt" manage-c/types-ctc manage-c/max/sub1-ctc manage-c/max-ctc t-graph)
+ (only-in "t-view.rkt" manage-c/types-ctc manage-c/max-ctc)
  "../../../ctcs/precision-config.rkt"
  "../../../ctcs/common.rkt"
  "../../../ctcs/configurable.rkt"
  "helpers.rkt"
  ;; "t-graph.rkt"
  )
-(require/configurable-contract "t-graph.rkt" mbta% lines->hash read-t-line-from-file read-t-graph line-specification? COLORS SOURCE-DIRECTORY in-neighbors* attach-edge-property* unweighted-graph/directed* )
+(require/configurable-contract "t-graph.rkt" mbta% read-t-graph )
 (require/configurable-contract "t-view.rkt" manage% SWITCH ENSURE ENABLED-0 DISABLED-0 ENABLED DISABLED NO-PATH DESTINATION-0 DESTINATION CURRENT-LOCATION-0 CURRENT-LOCATION INTERNAL selector )
 
 (provide/configurable-contract
@@ -31,75 +31,46 @@
    #;[max/sub1 (instanceof/c manage-c/max/sub1-ctc)]
    [types (instanceof/c manage-c/types-ctc)])]
  [run-t ([max (->i ([next string?])
-             #:pre (next)
-             (when (not (regexp-match PATH next))
-               (set-box! stash-len (length (get-field disabled manage))))
-             [result (next)
-                     (λ (res)
-                       (cond
-                         [(regexp-match PATH next)
-                          => (lambda (x)
-                               (let ([x2 (second x)]
-                                     [x3 (third x)])
-                                 (if (substring? "\n" res)
-                                     (and (substring? x2 res)
-                                          (substring? x3 res))
-                                     (or (substring? x2 res)
-                                         (substring? x3 res)))))]
-                         [(regexp-match DISABLE next)
-                          => (lambda (x)
-                               (let* ([x2 (second x)]
-                                      [station (send (t-graph) station x2)])
-                                 (cond
-                                   [(string? station) "done"]
-                                   [(empty? station) (substring? x2 res)]
-                                   [else (substring? (string-join station) res)])))]
-                         [(regexp-match ENABLE next)
-                          => (lambda (x)
-                               (let* ([x2 (second x)]
-                                      [station (send (t-graph) station x2)])
-                                 (cond
-                                   [(string? station) "done"]
-                                   [(empty? station) (substring? x2 res)]
-                                   [else (substring? (string-join station) res)])))]
-                         [else "message not understood"]))]
-             #:post (next)
-             (cond
-               [(regexp-match DISABLE next)
-                (let ([x2 (second (regexp-match DISABLE next))])
-                  (> (length (get-field disabled manage))
-                     (unbox stash-len)))]
-               [(regexp-match ENABLE next)
-                (<= (length (get-field disabled manage))
-                    (unbox stash-len))]
-               [else #t]))]                           
-   #;[max/sub1 (->i ([next string?])
-                  [result (next)
-                          (λ (res)
-                            (cond
-                              [(regexp-match PATH next)
-                               => (lambda (x)
-                                    (let ([x2 (second x)]
-                                          [x3 (third x)])
-                                      (and (substring? x2 res)
-                                           (substring? x3 res))))]
-                              [(regexp-match DISABLE next)
-                               => (lambda (x)
-                                    (let* ([x2 (second x)]
-                                           [station (send (t-graph) station x2)])
-                                      (cond
-                                        [(string? station) "done"]
-                                        [(empty? station) (substring? x2 res)]
-                                        [else (substring? (string-join station) res)])))]
-                              [(regexp-match ENABLE next)
-                               => (lambda (x)
-                                    (let* ([x2 (second x)]
-                                           [station (send (t-graph) station x2)])
-                                      (cond
-                                        [(string? station) "done"]
-                                        [(empty? station) (substring? x2 res)]
-                                        [else (substring? (string-join station res))])))]
-                              [else "message not understood"]))])]
+                   #:pre (next)
+                   (begin
+                     (when (not (regexp-match PATH next))
+                       (set-box! stash-len (length (get-field disabled manage))))
+                     (cond
+                       [(regexp-match PATH next) => (lambda (x) (and (second x) (third x)))]
+                       [(regexp-match DISABLE next) => second]
+                       [(regexp-match ENABLE next) => second]
+                       [else "message not understood"]))
+
+                   [result (next)
+                           (λ (res)
+                             (cond
+                               [(regexp-match PATH next)
+                                => (lambda (x)
+                                     (let ([x2 (second x)]
+                                           [x3 (third x)])
+                                       ;; this really shouldn't be being checked here, it's describing the behavior of mbta%...
+                                       (if (substring? "\n" res)
+                                           (and (substring? x2 res)
+                                                (substring? x3 res))
+                                           (or (substring? x2 res)
+                                               (substring? x3 res)))))]
+                               [(or (regexp-match DISABLE next)
+                                    (regexp-match ENABLE next))
+                                => (lambda (x)
+                                     (or (equal? res "done")
+                                         (string-contains? res (second x))))]
+                               [else "message not understood"]))]
+                   #:post (next)
+                   ;; similar comment to above. Here I suppose this is a proxy for "did the appropriate method of `manage` actually get called".
+                   (cond
+                     [(regexp-match DISABLE next)
+                      (let ([x2 (second (regexp-match DISABLE next))])
+                        (> (length (get-field disabled manage))
+                           (unbox stash-len)))]
+                     [(regexp-match ENABLE next)
+                      (<= (length (get-field disabled manage))
+                          (unbox stash-len))]
+                     [else #t]))]
    [types (-> string? string?)])])
 
 ;; (provide

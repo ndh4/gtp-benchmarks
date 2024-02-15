@@ -13,7 +13,8 @@
          count-strs-in-lst
          sublist?
          check-station-pairs?
-         lines-in-color-file?)
+         lines-in-color-file?
+         valid-pair?)
 
 
 (define/ctc-helper (substring? maybe-substr str)

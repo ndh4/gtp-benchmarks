@@ -20,8 +20,10 @@
  "../../../ctcs/common.rkt"
  "../../../ctcs/configurable.rkt"
  "helpers.rkt"
+ (only-in "data.rkt" expected-stations station? line-families)
+ (only-in "t-graph.rkt" mbta%/c)
  racket/contract)
-(require/configurable-contract "t-graph.rkt" mbta% lines->hash read-t-line-from-file read-t-graph line-specification? COLORS SOURCE-DIRECTORY in-neighbors* attach-edge-property* unweighted-graph/directed* )
+(require/configurable-contract "t-graph.rkt" mbta% read-t-graph)
 
 (provide/configurable-contract
  [selector ([max (->i ([inp-lst (listof (listof any/c))])
@@ -67,13 +69,6 @@
  [manage% ([max manage-c/max-ctc]
            #;[max/sub1 manage-c/max/sub1-ctc]
            [types manage-c/types-ctc])])
-
-(define/ctc-helper t-graph-val (box #f))
-(define/ctc-helper (t-graph)
-  (cond [(unbox t-graph-val) => values]
-        [else
-         (set-box! t-graph-val (read-t-graph))
-         (unbox t-graph-val)]))
 
 ;; ===================================================================================================
 ;; [X -> Real] [Listof X] -> X
@@ -122,112 +117,138 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 
+(define/ctc-helper (expected-stations-matching s)
+  (filter (λ (other-s) (string-contains? other-s s))
+          expected-stations))
+(define/ctc-helper (num-expected-stations-matching s)
+  (length (expected-stations-matching s)))
+
 (define/ctc-helper stash1 (box #f))
 (define/ctc-helper stash2 (box #f))
-(define/ctc-helper stash3 (box #f))
 (define/ctc-helper manage-c/max-ctc
   (class/c
-   (add-to-disabled
-    (->i ([this any/c]
+   [add-to-disabled
+    (->i ([self any/c]
           [s string?])
-         #:pre (this)
-         (set-box! stash1 (length (get-field disabled this)))
+         #:pre (self)
+         (set-box! stash1 (length (get-field disabled self)))
          [result (s)
-                 (let ([station (send (t-graph) station s)])
-                   (cond
-                     [(string? station) #f]
-                     [(empty? station) (λ (res) (substring? res s))]
-                     [else (λ (res) (substring? res (string-join station)))]))]
-         #:post (this s)
-         (let ([station (send (t-graph) station s)]
-               [disabled (get-field disabled this)])
+                 (cond
+                   [(= (num-expected-stations-matching s) 1) #f]
+                   [else (and/c string? (λ (res) (substring? res s)))])]
+         #:post (self s result)
+         (let ([disabled (get-field disabled self)])
            (and (list? disabled)
-                (> (length disabled)
-                   (unbox stash1))
-                (when (string? station)
-                  (member station (get-field disabled this)))))))
-   (remove-from-disabled
-    (->i ([this any/c]
+                (if (string? result)
+                    (= (length disabled)
+                       (unbox stash1))
+                    (and (> (length disabled)
+                            (unbox stash1))
+                         (for/or ([other-s disabled])
+                           (string-contains? other-s s)))))))]
+   [remove-from-disabled
+    (->i ([self any/c]
           [s string?])
-         #:pre (this)
-         (set-box! stash2 (length (get-field disabled this)))
+         #:pre (self)
+         (set-box! stash2 (length (get-field disabled self)))
          [result (s)
-                 (let ([station (send (t-graph) station s)])
-                   (cond
-                     [(string? station) #f]
-                     [(empty? station) (λ (res) (substring? res s))]
-                     [else (λ (res) (substring? res (string-join station)))]))]
-         #:post (this s)
-         (let ([station (send (t-graph) station s)]
-               [disabled (get-field disabled this)])
+                 (cond
+                   [(= (num-expected-stations-matching s) 1) #f]
+                   [else (and/c string? (λ (res) (substring? res s)))])]
+         #:post (self s result)
+         (let ([disabled (get-field disabled self)])
            (and (list? disabled)
-                (<= (length disabled)
-                    (unbox stash2))
-                (when (string? station)
-                  (not (member station (get-field disabled this))))))))
-   (find (->i ([this any/c]
+                (if (string? result)
+                    (= (length disabled)
+                       (unbox stash1))
+                    (and (<= (length disabled) ; may not have been disabled in first place, so = OK
+                             (unbox stash1))
+                         (for/and ([other-s disabled])
+                           (not (string-contains? other-s s))))))))]
+   [find (->i ([self any/c]
                [from string?]
                [to string?])
-              [result (from to)
+              [result (self from to)
                       (λ (res)
-                        (correct-find-result? from to res))]))
-   (field [mbta-subways (is-a?/c mbta%)]
-          [disabled list?])))
+                        (correct-find-result? self from to res))])]
+   (field [mbta-subways (instanceof/c mbta%/c)]
+          [disabled (listof station?)])))
 
-(define/ctc-helper find-result-memo (make-hash))
-(define/ctc-helper (correct-find-result? from to res)
-  (cond [(hash-ref find-result-memo (list from to res) #f) => values]
-        [else
-         (define r
-           (let ([from-station (send (t-graph) station from)]
-                 [to-station (send (t-graph) station to)])
-             (cond
-               [(string=? from to) (substring? to res)]
-               [(cons? from-station) (substring? (string-join from-station) res)]
-               [(cons? to-station) (substring? (string-join to-station) res)]
-               [(empty? from-station) (substring? from res)]
-               [(empty? to-station) (substring? to res)]
-               [else (and (substring? from res)
-                          (substring? to res))])))
-         (hash-set! find-result-memo (list from to res) r)
-         r]))
+(define/ctc-helper (correct-find-result? self from to res)
+  (define from-count (num-expected-stations-matching from))
+  (define to-count (num-expected-stations-matching from))
+  (define any-disabled? (> (length (get-field disabled self)) 0))
+  (and
+   ;; base properties of all valid results
+   (string? res)
+   (or (string-contains? res from)
+       (string-contains? res to))
+   (cond
+     [(and (= from-count 1)
+           (= to-count 1)
+           (string-contains? res "impossible")
+           any-disabled?)
+      #t] ;; without reimplementing pathing logic, we'll have to assume the lack of path is OK
+     [(or (not (= from-count 1))
+          (not (= to-count 1)))
+      (or (string-contains? res "clarify")
+          (string-contains? res "no such"))]
+     [else
+      (define underlying-graph (get-field G (get-field mbta-subways self)))
+      (define path-parts
+        (map (λ (line) (if (regexp-match? "---|impossible|tap your heels" line)
+                           line
+                           (string-split line ", take ")))
+             (string-split res "\n")))
+      (and (string-contains? res from)
+           (string-contains? res to)
+           (valid-path? path-parts underlying-graph)
+           (sufficient-path? path-parts
+                             underlying-graph
+                             (first (expected-stations-matching from))
+                             (first (expected-stations-matching to))))])))
 
-(define/ctc-helper manage-c/max/sub1-ctc
-  (class/c
-   (add-to-disabled
-    (->i ([this any/c]
-          [s string?])
-         [result (s)
-                 (let ([station (send (t-graph) station s)])
-                   (cond
-                     [(string? station) #f]
-                     [(empty? station) (λ (res) (substring? res s))]
-                     [else (λ (res) (substring? res (string-join station)))]))]
-         #:post (this)
-         (not (empty? (get-field disabled this)))))
-   (remove-from-disabled
-    (->i ([this any/c]
-          [s string?])
-         #:pre (this)
-         (set-box! stash3 (length (get-field disabled this)))
-         [result (s)
-                 (let ([station (send (t-graph) station s)])
-                   (cond
-                     [(string? station) #f]
-                     [(empty? station) (λ (res) (substring? s res))]
-                     [else (λ (res) (substring? (string-join station) res))]))]
 
-         #:post (this)
-         (let ([disabled (get-field disabled this)])
-           (and (list? disabled)
-                (<= (length disabled) (unbox stash3))))))
-   (find
-    (->i ([this any/c]
-          [from string?]
-          [to string?])
-         [result (from to)
-                 (λ (res)
-                   (correct-find-result? from to res))]))))
+(define/ctc-helper (valid-path? parts underlying-graph)
+  (local-require "../base/my-graph.rkt")
+  ;; (listof (or/c "---.*" (list station? line-type?)))
+  (for/and ([prev-station (in-list parts)]
+            [next-station (in-list (rest parts))])
+    (match* {prev-station next-station}
+      [{(list p pline)
+        (list n nline)}
+       (has-edge? underlying-graph p n)]
+      ;; lltodo ideally would want to check that lines & switch/ensure messages
+      ;; are reasonable (e.g. match up with the prior and next line, that for
+      ;; every change of line there is a switch, ...) but switch/ensure messages
+      ;; are buggy, so we can only check some small things
+      [{(list p pline)
+        (? string?)}
+       #t]
+      [{(regexp #rx"---switch from ([^ ]+) to ([^ ]+)" (list _ from to))
+        (list n nline)}
+       (not (equal? from to))]
+      [{(? string?)
+        (list p pline)}
+       #t]
+      [{_ _}
+       #f])))
+
+(define/ctc-helper (sufficient-path? path-parts underlying-graph from to)
+  (local-require "../base/my-graph.rkt")
+  (define underlying-graph-path (fewest-vertices-path underlying-graph from to))
+  (define no-path? (and (= (length path-parts) 1)
+                        (string-contains? (first path-parts) "impossible")))
+  (define self-path? (and (= (length path-parts) 1)
+                          (string-contains? (first path-parts) "tap your heels")))
+  (and (or no-path?
+           self-path?
+           (and (equal? (first (first path-parts)) from)
+                (equal? (first (last path-parts)) to)))
+       (implies no-path?
+                (not underlying-graph-path))
+       (implies underlying-graph-path
+                (not no-path?))))
 
 (define/ctc-helper manage-c/types-ctc
   (class/c
@@ -346,6 +367,4 @@
 
 
 (provide manage-c/max-ctc
-         manage-c/max/sub1-ctc
-         manage-c/types-ctc
-         t-graph)
+         manage-c/types-ctc)
