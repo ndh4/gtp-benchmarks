@@ -25,15 +25,15 @@
                                posn=?)
 
 (provide/configurable-contract
- [GRID-SIZE ([max (=/c 30)]
+ [GRID-SIZE ([max (and/c natural? (=/c 30))]
              [types natural?])]
- [BOARD-HEIGHT ([max (=/c 20)]
+ [BOARD-HEIGHT ([max (and/c natural? (=/c 20))]
                 [types natural?])]
  [BOARD-WIDTH ([max (=/c 30)]
                [types natural?])]
- [BOARD-HEIGHT-PIXELS ([max (-> (=/c (* GRID-SIZE BOARD-HEIGHT)))]
+ [BOARD-HEIGHT-PIXELS ([max (-> (and/c natural? (=/c (* GRID-SIZE BOARD-HEIGHT))))]
                        [types (-> natural?)])]
- [BOARD-WIDTH-PIXELS ([max (-> (=/c (* GRID-SIZE BOARD-WIDTH)))]
+ [BOARD-WIDTH-PIXELS ([max (-> (=/c (and/c natural? (* GRID-SIZE BOARD-WIDTH))))]
                       [types (-> natural?)])]
  [SEGMENT-RADIUS ([max (-> (=/c (/ GRID-SIZE 2)))]
                   [types (-> number?)])]
