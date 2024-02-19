@@ -33,7 +33,7 @@
                [types natural?])]
  [BOARD-HEIGHT-PIXELS ([max (-> (and/c natural? (=/c (* GRID-SIZE BOARD-HEIGHT))))]
                        [types (-> natural?)])]
- [BOARD-WIDTH-PIXELS ([max (-> (=/c (and/c natural? (* GRID-SIZE BOARD-WIDTH))))]
+ [BOARD-WIDTH-PIXELS ([max (-> (and/c natural? (=/c (* GRID-SIZE BOARD-WIDTH))))]
                       [types (-> natural?)])]
  [SEGMENT-RADIUS ([max (-> (=/c (/ GRID-SIZE 2)))]
                   [types (-> number?)])]
