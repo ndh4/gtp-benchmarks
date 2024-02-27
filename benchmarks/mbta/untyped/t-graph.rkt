@@ -165,9 +165,17 @@
                   [name string?])
                  [result (or/c station? (listof station?))]
                  #:post {name result}
-                 (or (not (empty? result))
-                     (for/and ([s (in-list expected-stations)])
-                       (not (string-contains? s name))))))
+                 (cond [(and (list? result)
+                             (> (length result) 1))
+                        (for/and ([s (in-list result)])
+                            (and (string-contains? s name)
+                                 (member s expected-stations)))]
+                       [(list? result)
+                        (and (empty? result)
+                             (for/and ([s (in-list expected-stations)])
+                               (not (string-contains? s name))))]
+                       [else
+                        (string-contains? result name)])))
    (find-path (->i ([self any/c]
                     [from station?]
                     [to station?])
@@ -184,7 +192,9 @@
                                  (equal? (first (last path)) to)
                                  (for/and ([prev-station (in-list path)]
                                            [next-station (in-list (rest path))])
-                                   (has-edge? raw-graph (first prev-station) (first next-station)))))))))
+                                   (and (has-edge? raw-graph (first prev-station) (first next-station))
+                                        (not (set-empty? (second prev-station)))
+                                        (not (set-empty? (second next-station)))))))))))
    (field [G T-graph/c]
           [stations (and/c (listof station?) (λ (s) (set=? s expected-stations)))]
           [connection-on (-> station? station? (set/c line?))]
