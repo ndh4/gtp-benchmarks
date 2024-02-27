@@ -29,7 +29,7 @@
              [types natural?])]
  [BOARD-HEIGHT ([max (and/c natural? (=/c 20))]
                 [types natural?])]
- [BOARD-WIDTH ([max (=/c 30)]
+ [BOARD-WIDTH ([max (and/c natural? (=/c 30))]
                [types natural?])]
  [BOARD-HEIGHT-PIXELS ([max (-> (and/c natural? (=/c (* GRID-SIZE BOARD-HEIGHT))))]
                        [types (-> natural?)])]
