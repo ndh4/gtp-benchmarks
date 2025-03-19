@@ -143,7 +143,10 @@
      (values (car E+S) (cdr E+S))]))
 
 (define (forth-tokenize str)
-  (parameterize ([read-case-sensitive #f]) ;; Converts symbols to lowercase
+   (for/list ([word (in-list (string-split str))])
+       (define n (string->number word))
+       (or n (string->symbol (string-downcase word))))
+  #;(parameterize ([read-case-sensitive #f]) ;; Converts symbols to lowercase
     (with-input-from-string str
       (lambda ()
         (de-nest
