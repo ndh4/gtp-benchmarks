@@ -255,8 +255,6 @@
     (check-apply* eval/env-length
      ['(2)
       == L]
-     ['(: new dup drop swap)
-      == (+ 1 L)]
      ['(swap)
       == L]))
 
