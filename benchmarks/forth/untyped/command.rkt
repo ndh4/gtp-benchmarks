@@ -361,8 +361,8 @@
 ;; Search the environment for a command with `id` equal to `sym`
 (define (find-command E sym)
   (for/or ([c (in-list E)])
-    (get-field id c) (error 'no)))
-    ;(if (eq? sym (get-field id c)) c #f)))
+    ;(get-field id c) (error 'no)))
+    (if (eq? sym (get-field id c)) c #f)))
 
 (define (help? sym)
   (and (memq sym '(help ? ??? -help --help h)) #t))
