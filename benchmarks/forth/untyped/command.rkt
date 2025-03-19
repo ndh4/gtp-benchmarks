@@ -324,7 +324,7 @@
      (descr "Subtract the top item of the stack from the second item."))
    (instantiate binop-command% (*)
      (descr "Multiply the top two item on the stack."))
-   #;(instantiate binop-command% (/)
+   (instantiate binop-command% (/)
        (descr "Divide the top item of the stack by the second item."))
    (make-stack-command drop
                        "Drop the top item from the stack")
