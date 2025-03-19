@@ -388,3 +388,159 @@
     [x
      (format "Cannot help with '~a'" x)]))
 
+;; TESTS
+
+(module+ test
+  (require
+   rackunit
+   rackunit-abbrevs
+   (only-in racket/format ~a))
+
+  ;; -- exit?
+  (check-true* (lambda (x) (if (exit? x) #t #f))
+   ['exit]
+   ['quit]
+   ['q])
+
+  (check-false* exit?
+   ['()]
+   [#f]
+   [53]
+   ['hello])
+
+  ;; -- find-command
+  (check-true* (lambda (sym) (eq? sym (command-id (find-command CMD* sym))))
+   ['exit]
+   ['dup]
+   ['+])
+
+  (check-false* (lambda (sym) (if (find-command CMD* sym) #t #f))
+   ['hi]
+   ['hi]
+   ["yes"]
+   [00])
+
+  ;; -- help?
+  (check-true* (lambda (v) (if (help? v) #t #f))
+   ['help]
+   ['?]
+   ['--help])
+
+  (check-false* help?
+   ['exit]
+   [#f]
+   ['q]
+   [21])
+
+  ;; -- show?
+  (check-true* (lambda (v) (if (show? v) #t #f))
+   ['show]
+   ['ls]
+   ['print])
+
+  (check-false* help?
+   ['exit]
+   [#f]
+   ['q]
+   [12])
+
+  ;; -- show-help
+  (check-equal? (length (string-split (show-help CMD*) "\n")) (+ 1 (length CMD*)))
+  (check-equal? (length (string-split (show-help CMD* #f) "\n")) (+ 1 (length CMD*)))
+  (check-regexp-match #rx"^Cannot help" (show-help CMD* "booo"))
+  (check-regexp-match #rx"^Unknown command" (show-help CMD* 'booo))
+  (check-regexp-match #rx"^Print help" (show-help CMD* 'help))
+
+  ;; -- forth-eval*
+  (let* ([eval* (lambda (v*)
+                  (with-input-from-string (string-join (map ~a v*) "\n")
+                    (lambda () (forth-eval* (current-input-port)))))]
+         [eval/stack (lambda (v*) (let-values ([(e s) (eval* v*)]) s))])
+    (check-apply* eval/stack
+     ['(1 2 3)
+      == '(3 2 1)]
+     ['(1 1 +)
+      == '(2)]
+     ['(2 1 -)
+      == '(1)]
+     ['(8 8 8 * *)
+      == '(512)]
+     ['(2 1 3 /)
+      == '(1/3 2)]
+     ['(1 0 EXIT /)
+      == '(0 1)]
+     ['(": dup3 dup dup dup" 1 2 dup3)
+      == '(2 2 2 2 1)]
+     ['(1 2 drop)
+      == '(1)]
+     ['(1 2 3 over)
+      == '(3 2 3 1)]
+     ['(1 0 swap)
+      == '(1 0)]
+     ['(": switcheroo swap swap" 5 6 switcheroo switcheroo)
+      == '(6 5)]
+     ['("push 1" "push 2" +)
+      == '(3)]))
+
+  ;; -- forth-eval
+  (let* ([S '(2 4 8)]
+         [E CMD*]
+         [eval/stack (lambda (token*)
+                       (let-values ([(e s) (forth-eval E S token*)]) s))])
+  (check-apply* eval/stack
+   [#f
+    == S]
+   ['nada
+    == S]
+   ['(exit)
+    == S]
+   ['(help)
+    == S]
+   ['(: hi 3 2 1)
+    == S]
+   ['(+)
+    == '(6 8)]
+   ['(-)
+    == '(2 8)]
+   ['(*)
+    == '(8 8)]
+   ['(/)
+    == '(2 8)]
+   ['(drop)
+    == (stack-drop S)]
+   ['(dup)
+    == (stack-dup S)]
+   ['(over)
+    == (stack-over S)]
+   ['(swap)
+    == (stack-swap S)]
+   ['(1)
+    == (stack-push S 1)]
+   ['(push 8)
+    == (stack-push S 8)]
+   ['(show)
+    == S]))
+
+  (let* ([S '(6 6 6)]
+         [E CMD*]
+         [L (length E)]
+         [eval/env-length (lambda (token*)
+                     (let-values ([(e s) (forth-eval E S token*)]) (length e)))])
+    (check-apply* eval/env-length
+     ['(2)
+      == L]
+     ['(: new dup drop swap)
+      == (+ 1 L)]
+     ['(swap)
+      == L]))
+
+  ;; -- forth-tokenize
+  (check-apply* forth-tokenize
+   ["hello world" == '(hello world)]
+   ["Hello WORLD" == '(hello world)]
+   [": key val val val;" == '(: key val val |val;|)]
+   [": key val val val ;" == '(: key val val val |;|)]
+   [": DOUBLE 2 *;" == '(: double 2 |*;|)]
+   ["1 2 3" == '(1 2 3)])
+
+)
