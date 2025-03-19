@@ -177,8 +177,7 @@
 
   ;; -- forth-eval*
   (let* ([eval* (lambda (v*)
-                  (with-input-from-string (string-join (map ~a v*) "\n")
-                    (lambda () (forth-eval* (current-input-port)))))]
+                    (forth-eval* (string-split (string-join (map ~a v*) "\n") "\n")))]
          [eval/stack (lambda (v*) (let-values ([(e s) (eval* v*)]) s))])
     (check-apply* eval/stack
      ['(1 2 3)
