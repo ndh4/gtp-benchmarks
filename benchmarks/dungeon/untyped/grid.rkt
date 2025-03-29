@@ -206,46 +206,46 @@
           (vector-ref pos 1)))
 
 
-;(module+ test
-;  (require typed/rackunit)
-;
-;  (: parse-and-show (-> (Listof String) String))
-;  (define (parse-and-show los) (show-grid (parse-grid los)))
-;  (: render-grid (-> (Listof String) String))
-;  (define (render-grid g) (string-join g "\n" #:after-last "\n"))
-;
-;  (define g1
-;    '(" "))
-;  (check-equal? (parse-and-show g1) " \n")
-;
-;  (define g2
-;    '("**********"
-;      "*        *"
-;      "*        *"
-;      "*        *"
-;      "**********"))
-;  (check-equal? (parse-and-show g2) (render-grid g2))
-;
-;  (define g3 ; padding should work
-;    '("**********"
-;      "*        *"
-;      "*        *"
-;      "*        *"
-;      "*****"))
-;  (define g3*
-;    '("**********"
-;      "*        *"
-;      "*        *"
-;      "*        *"
-;      "*****....."))
-;  (check-equal? (parse-and-show g3) (render-grid g3*))
-;
-;  (define g2* (parse-grid g2))
-;  (check-true (within-grid? g2* '#(0 0)))
-;  (check-true (within-grid? g2* '#(0 1)))
-;  (check-true (within-grid? g2* '#(1 0)))
-;  (check-true (within-grid? g2* '#(4 4)))
-;  (check-false (within-grid? g2* '#(0 10)))
-;  (check-false (within-grid? g2* '#(5 0)))
-;  (check-false (within-grid? g2* '#(5 10)))
-;  )
+(module+ test
+  (require rackunit)
+
+
+  (define (parse-and-show los) (show-grid (parse-grid los)))
+
+  (define (render-grid g) (string-join g "\n" #:after-last "\n"))
+
+  (define g1
+    '(" "))
+  (check-equal? (parse-and-show g1) " \n")
+
+  (define g2
+    '("**********"
+      "*        *"
+      "*        *"
+      "*        *"
+      "**********"))
+  (check-equal? (parse-and-show g2) (render-grid g2))
+
+  (define g3 ; padding should work
+    '("**********"
+      "*        *"
+      "*        *"
+      "*        *"
+      "*****"))
+  (define g3*
+    '("**********"
+      "*        *"
+      "*        *"
+      "*        *"
+      "*****....."))
+  (check-equal? (parse-and-show g3) (render-grid g3*))
+
+  (define g2* (parse-grid g2))
+  (check-true (within-grid? g2* '#(0 0)))
+  (check-true (within-grid? g2* '#(0 1)))
+  (check-true (within-grid? g2* '#(1 0)))
+  (check-true (within-grid? g2* '#(4 4)))
+  (check-false (within-grid? g2* '#(0 10)))
+  (check-false (within-grid? g2* '#(5 0)))
+  (check-false (within-grid? g2* '#(5 10)))
+  )
