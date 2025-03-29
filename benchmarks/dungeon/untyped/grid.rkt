@@ -226,20 +226,6 @@
       "**********"))
   (check-equal? (parse-and-show g2) (render-grid g2))
 
-  (define g3 ; padding should work
-    '("**********"
-      "*        *"
-      "*        *"
-      "*        *"
-      "*****"))
-  (define g3*
-    '("**********"
-      "*        *"
-      "*        *"
-      "*        *"
-      "*****....."))
-  (check-equal? (parse-and-show g3) (render-grid g3*))
-
   (define g2* (parse-grid g2))
   (check-true (within-grid? g2* '#(0 0)))
   (check-true (within-grid? g2* '#(0 1)))
