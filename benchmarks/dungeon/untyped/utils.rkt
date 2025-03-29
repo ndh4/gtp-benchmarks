@@ -20,7 +20,7 @@
                     void?
                     #:post (equal? (unbox r*) orig))]
           [types (-> void?)])]
- [random ([max (->i ([n exact-nonnegative-integer?])
+ #;[random ([max (->i ([n exact-nonnegative-integer?])
                     [result (n) (and/c exact-nonnegative-integer?
                                        (</c n))])]
           [types (any/c . -> . exact-nonnegative-integer?)])]

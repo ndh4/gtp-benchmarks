@@ -68,7 +68,7 @@
 ;;   reset!
   random-result-between/c
 ))
-(require/configurable-contract "utils.rkt" reset! random random-from random-between )
+(require/configurable-contract "utils.rkt" reset! #;random random-from random-between )
 
 ;; (provide/configurable-contract
 ;;  [N exact-nonnegative-integer?]
@@ -342,38 +342,42 @@
   (define (render-grid g) (string-join g "\n" #:after-last "\n"))
 
   (define (empty-grid)
-     (build-array #(5 5) (lambda _ (new void-cell%))))
+     (build-array #(6 6) (lambda _ (new void-cell%))))
   (define g1 (empty-grid))
   (check-equal? (show-grid g1)
-                (render-grid '("....."
-                               "....."
-                               "....."
-                               "....."
-                               ".....")))
+                (render-grid '("......"
+                               "......"
+                               "......"
+                               "......"
+                               "......"
+                               "......")))
   (check-false (try-add-rectangle g1 #(10 10) 3 3 right)) ; out of bounds
   (commit-room g1 (or (try-add-rectangle g1 #(2 1) 3 3 right) (error 'commit)))
   (check-equal? (show-grid g1)
-                (render-grid '("....."
-                               ".XXX."
-                               ".X X."
-                               ".XXX."
-                               ".....")))
-  (check-false (or (try-add-rectangle g1 #(2 2) 2 2 up) (error 'commit)))
-  (commit-room g1 (or (try-add-rectangle g1 #(3 3) 2 2 down) (error 'commit)))
+                (render-grid '("......"
+                               ".XXX.."
+                               ".X X.."
+                               ".XXX.."
+                               "......"
+                               "......")))
+  (check-false (try-add-rectangle g1 #(2 2) 3 3 up))
+  (commit-room g1 (or (try-add-rectangle g1 #(3 3) 3 3 down) (error 'commit)))
   (check-equal? (show-grid g1)
-                (render-grid '("....."
-                               ".XXX."
-                               ".X X."
-                               ".XXX."
-                               "..XX.")))
+                (render-grid '("......"
+                               ".XXX.."
+                               ".X X.."
+                               ".XXXX."
+                               "..X X."
+                               "..XXX.")))
   (define g2 (empty-grid))
-  (commit-room g2 (or (try-add-rectangle g2 #(1 1) 2 4 right) (error 'commit)))
+  (commit-room g2 (or (try-add-rectangle g2 #(1 1) 3 4 right) (error 'commit)))
   (check-equal? (show-grid g2)
-                (render-grid '(".XXXX"
-                               ".XXXX"
-                               "....."
-                               "....."
-                               ".....")))
+                (render-grid '(".XXXX."
+                               ".X  X."
+                               ".XXXX."
+                               "......"
+                               "......"
+                               "......")))
   )
 
 
