@@ -336,50 +336,6 @@
     (match-define (cons pos cell%) pos+cell%)
     (array-set! grid pos (new cell%))))
 
-(module+ test
-  (require typed/rackunit)
-
-  (define (render-grid g) (string-join g "\n" #:after-last "\n"))
-
-  (define (empty-grid)
-     (build-array #(6 6) (lambda _ (new void-cell%))))
-  (define g1 (empty-grid))
-  (check-equal? (show-grid g1)
-                (render-grid '("......"
-                               "......"
-                               "......"
-                               "......"
-                               "......"
-                               "......")))
-  (check-false (try-add-rectangle g1 #(10 10) 3 3 right)) ; out of bounds
-  (commit-room g1 (or (try-add-rectangle g1 #(2 1) 3 3 right) (error 'commit)))
-  (check-equal? (show-grid g1)
-                (render-grid '("......"
-                               ".XXX.."
-                               ".X X.."
-                               ".XXX.."
-                               "......"
-                               "......")))
-  (check-false (try-add-rectangle g1 #(2 2) 3 3 up))
-  (commit-room g1 (or (try-add-rectangle g1 #(3 3) 3 3 down) (error 'commit)))
-  (check-equal? (show-grid g1)
-                (render-grid '("......"
-                               ".XXX.."
-                               ".X X.."
-                               ".XXXX."
-                               "..X X."
-                               "..XXX.")))
-  (define g2 (empty-grid))
-  (commit-room g2 (or (try-add-rectangle g2 #(1 1) 3 4 right) (error 'commit)))
-  (check-equal? (show-grid g2)
-                (render-grid '(".XXXX."
-                               ".X  X."
-                               ".XXXX."
-                               "......"
-                               "......"
-                               "......")))
-  )
-
 
 (define (random-direction)
   (random-from (list left right up down)))
@@ -689,3 +645,48 @@
 ;;............................................................
 ;;............................................................
 ;;cpu time: 8177 real time: 8175 gc time: 3379
+
+
+(module+ test
+  (require typed/rackunit)
+
+  (define (render-grid g) (string-join g "\n" #:after-last "\n"))
+
+  (define (empty-grid)
+     (build-array #(6 6) (lambda _ (new void-cell%))))
+  (define g1 (empty-grid))
+  (check-equal? (show-grid g1)
+                (render-grid '("......"
+                               "......"
+                               "......"
+                               "......"
+                               "......"
+                               "......")))
+  (check-false (try-add-rectangle g1 #(10 10) 3 3 right)) ; out of bounds
+  (commit-room g1 (or (try-add-rectangle g1 #(2 1) 3 3 right) (error 'commit)))
+  (check-equal? (show-grid g1)
+                (render-grid '("......"
+                               ".XXX.."
+                               ".X X.."
+                               ".XXX.."
+                               "......"
+                               "......")))
+  (check-false (try-add-rectangle g1 #(2 2) 3 3 up))
+  (commit-room g1 (or (try-add-rectangle g1 #(3 3) 3 3 down) (error 'commit)))
+  (check-equal? (show-grid g1)
+                (render-grid '("......"
+                               ".XXX.."
+                               ".X X.."
+                               ".XXXX."
+                               "..X X."
+                               "..XXX.")))
+  (define g2 (empty-grid))
+  (commit-room g2 (or (try-add-rectangle g2 #(1 1) 3 4 right) (error 'commit)))
+  (check-equal? (show-grid g2)
+                (render-grid '(".XXXX."
+                               ".X  X."
+                               ".XXXX."
+                               "......"
+                               "......"
+                               "......")))
+  )
