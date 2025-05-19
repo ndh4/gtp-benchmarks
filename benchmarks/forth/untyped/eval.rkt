@@ -173,98 +173,67 @@
 
 (module+ test
   (require
-   rackunit
-   rackunit-abbrevs
-   "stack.rkt"
-   (only-in racket/format ~a))
+    rackunit
+    "stack.rkt"
+    (only-in racket/format ~a))
 
   ;; -- forth-eval*
-  (let* ([eval* (lambda (v*)
-                    (forth-eval* (string-split (string-join (map ~a v*) "\n") "\n")))]
-         [eval/stack (lambda (v*) (let-values ([(e s) (eval* v*)]) s))])
-    (check-apply* eval/stack
-     ['(1 2 3)
-      == '(3 2 1)]
-     ['(1 1 +)
-      == '(2)]
-     ['(2 1 -)
-      == '(1)]
-     ['(8 8 8 * *)
-      == '(512)]
-     ['(2 1 3 /)
-      == '(1/3 2)]
-     ['(1 0 EXIT /)
-      == '(0 1)]
-     ['(": dup3 dup dup dup" 1 2 dup3)
-      == '(2 2 2 2 1)]
-     ['(1 2 drop)
-      == '(1)]
-     ['(1 2 3 over)
-      == '(3 2 3 1)]
-     ['(1 0 swap)
-      == '(1 0)]
-     ['(": switcheroo swap swap" 5 6 switcheroo switcheroo)
-      == '(6 5)]
-     ['("push 1" "push 2" +)
-      == '(3)]))
+  (define eval* (lambda (v*)
+                  (forth-eval* (string-split (string-join (map ~a v*) "\n") "\n"))))
+  (define eval/stack* (lambda (v*) (let-values ([(e s) (eval* v*)]) s)))
+
+  (check-equal? (eval/stack* '(1 2 3)) '(3 2 1))
+  (check-equal? (eval/stack* '(1 1 +)) '(2))
+  (check-equal? (eval/stack* '(2 1 -)) '(1))
+  (check-equal? (eval/stack* '(8 8 8 * *)) '(512))
+  (check-equal? (eval/stack* '(2 1 3 /)) '(1/3 2))
+  (check-equal? (eval/stack* '(1 0 EXIT /)) '(0 1))
+  (check-equal? (eval/stack* '(": dup3 dup dup dup" 1 2 dup3)) '(2 2 2 2 1))
+  (check-equal? (eval/stack* '(1 2 drop)) '(1))
+  (check-equal? (eval/stack* '(1 2 3 over)) '(3 2 3 1))
+  (check-equal? (eval/stack* '(1 0 swap)) '(1 0))
+  (check-equal? (eval/stack* '(": switcheroo swap swap" 5 6 switcheroo switcheroo)) '(6 5))
+  (check-equal? (eval/stack* '("push 1" "push 2" +)) '(3))
 
   ;; -- forth-eval
-  (let* ([S '(2 4 8)]
-         [E CMD*]
-         [eval/stack (lambda (token*)
-                       (let-values ([(e s) (forth-eval E S token*)]) s))])
-  (check-apply* eval/stack
-   [#f
-    == S]
-   ['nada
-    == S]
-   ['(exit)
-    == S]
-   ['(help)
-    == S]
-   ['(: hi 3 2 1)
-    == S]
-   ['(+)
-    == '(6 8)]
-   ['(-)
-    == '(2 8)]
-   ['(*)
-    == '(8 8)]
-   ['(/)
-    == '(2 8)]
-   ['(drop)
-    == (stack-drop S)]
-   ['(dup)
-    == (stack-dup S)]
-   ['(over)
-    == (stack-over S)]
-   ['(swap)
-    == (stack-swap S)]
-   ['(1)
-    == (stack-push S 1)]
-   ['(push 8)
-    == (stack-push S 8)]
-   ['(show)
-    == S]))
+  (define S1 '(2 4 8))
+  (define E1 CMD*)
+  (define eval/stack (lambda (token*)
+                       (let-values ([(e s) (forth-eval E1 S1 token*)]) s)))
 
-  (let* ([S '(6 6 6)]
-         [E CMD*]
-         [L (length E)]
-         [eval/env-length (lambda (token*)
-                     (let-values ([(e s) (forth-eval E S token*)]) (length e)))])
-    (check-apply* eval/env-length
-     ['(2)
-      == L]
-     ['(swap)
-      == L]))
+  (check-equal? (eval/stack #f) S1)
+  (check-equal? (eval/stack 'nada) S1)
+  (check-equal? (eval/stack '(exit)) S1)
+  (check-equal? (eval/stack '(help)) S1)
+  (check-equal? (eval/stack '(: hi 3 2 1)) S1)
+  (check-equal? (eval/stack '(+)) '(6 8))
+  (check-equal? (eval/stack '(-)) '(2 8))
+  (check-equal? (eval/stack '(*)) '(8 8))
+  (check-equal? (eval/stack '(/)) '(2 8))
+  (check-equal? (eval/stack '(drop)) (stack-drop S1))
+  (check-equal? (eval/stack '(dup)) (stack-dup S1))
+  (check-equal? (eval/stack '(over)) (stack-over S1))
+  (check-equal? (eval/stack '(swap)) (stack-swap S1))
+  (check-equal? (eval/stack '(1)) (stack-push S1 1))
+  (check-equal? (eval/stack '(push 8)) (stack-push S1 8))
+  (check-equal? (eval/stack '(show)) S1)
+
+  (define S2 '(6 6 6))
+  (define E2 CMD*)
+  (define L2 (length E2))
+  (define eval/env-length (lambda (token*)
+                            (let-values ([(e s) (forth-eval E2 S2 token*)]) (length e))))
+
+  (check-equal? (eval/env-length '(2)) L2)
+  (check-equal? (eval/env-length '(swap)) L2)
 
   ;; -- forth-tokenize
-  (check-apply* forth-tokenize
-   ["hello world" == '(hello world)]
-   ["Hello WORLD" == '(hello world)]
-   [": key val val val;" == '(: key val val |val;|)]
-   [": key val val val ;" == '(: key val val val |;|)]
-   [": DOUBLE 2 *;" == '(: double 2 |*;|)]
-   ["1 2 3" == '(1 2 3)])
 
-)
+  (check-equal? (forth-tokenize "hello world") '(hello world))
+  (check-equal? (forth-tokenize "Hello WORLD") '(hello world))
+  (check-equal? (forth-tokenize ": key val val val;") '(: key val val |val;|))
+  (check-equal? (forth-tokenize ": key val val val ;") '(: key val val val |;|))
+  (check-equal? (forth-tokenize ": DOUBLE 2 *;") '(: double 2 |*;|))
+  (check-equal? (forth-tokenize "1 2 3") '(1 2 3))
+
+  )

@@ -392,57 +392,47 @@
 
 (module+ test
   (require
-   rackunit
-   rackunit-abbrevs
-   (only-in racket/format ~a))
+    rackunit
+    (only-in racket/format ~a))
 
   ;; -- exit?
-  (check-true* (lambda (x) (if (exit? x) #t #f))
-   ['exit]
-   ['quit]
-   ['q])
+  (check-true (if (exit? 'exit) #t #f))
+  (check-true (if (exit? 'quit) #t #f))
+  (check-true (if (exit? 'q) #t #f))
 
-  (check-false* exit?
-   ['()]
-   [#f]
-   [53]
-   ['hello])
+  (check-false (exit? '()))
+  (check-false (exit? #f))
+  (check-false (exit? 53))
+  (check-false (exit? 'hello))
 
   ;; -- find-command
-  (check-true* (lambda (sym) (eq? sym (get-field id (find-command CMD* sym))))
-   ['exit]
-   ['dup]
-   ['+])
+  (check-true (eq? 'exit (get-field id (find-command CMD* 'exit))))
+  (check-true (eq? 'dup (get-field id (find-command CMD* 'dup))))
+  (check-true (eq? '+ (get-field id (find-command CMD* '+))))
 
-  (check-false* (lambda (sym) (if (find-command CMD* sym) #t #f))
-   ['hi]
-   ['hi]
-   ["yes"]
-   [00])
+  (check-false (if (find-command CMD* 'hi) #t #f))
+  (check-false (if (find-command CMD* "yes") #t #f))
+  (check-false (if (find-command CMD* 00) #t #f))
 
   ;; -- help?
-  (check-true* (lambda (v) (if (help? v) #t #f))
-   ['help]
-   ['?]
-   ['--help])
+  (check-true (if (help? 'help) #t #f))
+  (check-true (if (help? '?) #t #f))
+  (check-true (if (help? '--help) #t #f))
 
-  (check-false* help?
-   ['exit]
-   [#f]
-   ['q]
-   [21])
+  (check-false (help? 'exit))
+  (check-false (help? #f))
+  (check-false (help? 'q))
+  (check-false (help? 21))
 
   ;; -- show?
-  (check-true* (lambda (v) (if (show? v) #t #f))
-   ['show]
-   ['ls]
-   ['print])
+  (check-true (if (show? 'show) #t #f))
+  (check-true (if (show? 'ls) #t #f))
+  (check-true (if (show? 'print) #t #f))
 
-  (check-false* help?
-   ['exit]
-   [#f]
-   ['q]
-   [12])
+  (check-false (show? 'exit))
+  (check-false (show? #f))
+  (check-false (show? 'q))
+  (check-false (show? 12))
 
   ;; -- show-help
   (check-equal? (length (string-split (show-help CMD*) "\n")) (+ 1 (length CMD*)))
@@ -451,4 +441,4 @@
   (check-regexp-match #rx"^Unknown command" (show-help CMD* 'booo))
   (check-regexp-match #rx"^Print help" (show-help CMD* 'help))
 
-)
+  )

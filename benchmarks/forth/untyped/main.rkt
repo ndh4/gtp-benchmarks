@@ -31,5 +31,3 @@
 
 (define lines
   (file->lines "../base/history-100.txt"))
-
-(time (main lines))
