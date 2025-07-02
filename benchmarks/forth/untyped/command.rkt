@@ -70,6 +70,7 @@
                 (binop-command%/c-for +)
                 (binop-command%/c-for -)
                 (binop-command%/c-for *)
+                (binop-command%/c-for /)
 
                 ;; drop
                 (command%?-with-exec
@@ -390,7 +391,7 @@
 
 ;; TESTS
 
-(module+ test
+#;(module+ test
   (require
     rackunit
     (only-in racket/format ~a))

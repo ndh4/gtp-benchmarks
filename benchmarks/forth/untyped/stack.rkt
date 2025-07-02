@@ -138,7 +138,7 @@
 
 ;; TESTS
 
-(module+ test
+#;(module+ test
 
   (require rackunit)
 

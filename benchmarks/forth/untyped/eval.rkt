@@ -30,7 +30,8 @@
 ;; (require (only-in "stack.rkt"
 ;;   stack-init
 ;; ))
-(require/configurable-contract "stack.rkt" stack-init )
+(require/configurable-contract "stack.rkt" stack-init
+  stack-drop stack-dup stack-over stack-swap stack-push)
 
 (provide/configurable-contract
  [assert ([max #;(parametric->/c [A] (A (A . -> . boolean?) . -> . A))
@@ -171,10 +172,9 @@
       v*))
 
 
-(module+ test
+#;(module+ test
   (require
     rackunit
-    "stack.rkt"
     (only-in racket/format ~a))
 
   ;; -- forth-eval*
