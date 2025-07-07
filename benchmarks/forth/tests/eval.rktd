@@ -18,10 +18,8 @@
           ()))
       (2 . #s(test 1 (check-equal? (eval/stack* '(1 2 3)) '(3 2 1)) ()))
       (3 . #s(test 1 (check-equal? (eval/stack* '(1 1 +)) '(2)) ()))
-;      (4 . #s(test 1 (check-equal? (eval/stack* '(2 1 -)) '(1)) ()))
-;      (5 . #s(test 1 (check-equal? (eval/stack* '(8 8 8 * *)) '(512)) ()))
-      (4 . #s(test 1 (check-equal? 7 7) ()))
-      (5 . #s(test 1 (check-equal? 5 6) ()))
+      (4 . #s(test 1 (check-equal? (eval/stack* '(2 1 -)) '(1)) ()))
+      (5 . #s(test 1 (check-equal? (eval/stack* '(8 8 8 * *)) '(512)) ()))
       (6 . #s(test 1 (check-equal? (eval/stack* '(2 1 3 /)) '(1/3 2)) ()))
       (7 . #s(test 1 (check-equal? (eval/stack* '(1 0 EXIT /)) '(0 1)) ()))
       (8
