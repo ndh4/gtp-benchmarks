@@ -285,9 +285,14 @@
 ;;; @code{equal?}.  @code{vector-levenshtein} is an alias for
 ;;; @code{vector-levenshtein/equal}.
 ;;;
-;;; @lisp
-;;; (vector-levenshtein '#(6 6 6) '#(6 35 6 24 6 32)) @result{} 3
-;;; @end lisp
+
+(module+ test
+
+(require rackunit)
+
+(check-equal? (vector-levenshtein '#(6 6 6) '#(6 35 6 24 6 32)) 3)
+
+)
 
 (define/ctc-helper (levenshtein-variant/pred/c #:at level
                                                #:sequence-type [seq? vector?])
@@ -345,9 +350,14 @@
 ;;; @code{list-levenshtein/equal}.  Note that comparison of lists is less
 ;;; efficient than comparison of vectors.
 ;;;
-;;; @lisp
-;;; (list-levenshtein/eq '(b c e x f y) '(a b c d e f)) @result{} 4
-;;; @end lisp
+
+(module+ test
+
+(require rackunit)
+
+(check-equal? (list-levenshtein/eq '(b c e x f y) '(a b c d e f)) 4)
+
+)
 
 (define (list-levenshtein/predicate a b pred)
   (cond ((null? a) (length b))
@@ -373,9 +383,14 @@
 ;;;
 ;;; Calculate the Levenshtein Distance of strings @var{a} and @var{b}.
 ;;;
-;;; @lisp
-;;; (string-levenshtein "adresse" "address") @result{} 2
-;;; @end lisp
+
+(module+ test
+
+(require rackunit)
+
+(check-equal? (string-levenshtein "adresse" "address") 2)
+
+)
 
 (define (string-levenshtein a b)
   ;; TODO: Maybe make a version that doesn't convert to vectors but also
@@ -407,11 +422,17 @@
 ;;; the same type.  @var{pred} is the element equivalence predicate used.
 ;;;
 ;;; @lisp
-;;; (levenshtein/predicate '#(#\A #\B #\C #\D)
-;;;                        "aBXcD"
-;;;                        char-ci=?)
-;;; @result{} 1
-;;; @end lisp
+
+(module+ test
+
+(require rackunit)
+
+(check-equal? (levenshtein/predicate '#(#\A #\B #\C #\D)
+                        "aBXcD"
+                        char-ci=?)
+ 1)
+
+)
 
 ;;;bg too hard
 ;(define levenshtein/predicate
@@ -458,12 +479,18 @@
 ;;; predicate.
 ;;;
 ;;; @lisp
-;;; (define g '#(#\g #\u #\m #\b #\o))
-;;;
-;;; (levenshtein g "gambol")  @result{} 2
-;;; (levenshtein g "dumbo")   @result{} 1
-;;; (levenshtein g "umbrage") @result{} 5
-;;; @end lisp
+
+(module+ test
+
+(require rackunit)
+
+ (define g '#(#\g #\u #\m #\b #\o))
+
+ (check-equal? (levenshtein g "gambol") 2)
+ (check-equal? (levenshtein g "dumbo") 1)
+ (check-equal? (levenshtein g "umbrage") 5)
+
+)
 
 ;;;bg
 ;(define (levenshtein a b)
