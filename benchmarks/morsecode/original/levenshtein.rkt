@@ -427,7 +427,8 @@
 
 (require rackunit)
 
-(check-equal? (levenshtein/predicate '#(#\A #\B #\C #\D)
+(check-equal? (%string-levenshtein/predicate
+                        "ABCD"
                         "aBXcD"
                         char-ci=?)
  1)
@@ -484,7 +485,8 @@
 
 (require rackunit)
 
- (define g '#(#\g #\u #\m #\b #\o))
+ #;(define g '#(#\g #\u #\m #\b #\o))
+ (define g "gumbo")
 
  (check-equal? (levenshtein g "gambol") 2)
  (check-equal? (levenshtein g "dumbo") 1)
