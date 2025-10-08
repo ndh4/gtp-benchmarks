@@ -433,6 +433,18 @@
                         char-ci=?)
  1)
 
+(check-equal? (vector-levenshtein/predicate
+                        #(#\A #\B #\C #\D)
+                        #(#\a #\B #\X #\c #\D)
+                        char-ci=?)
+ 1)
+
+(check-equal? (list-levenshtein/predicate
+                        '(#\A #\B #\C #\D)
+                        '(#\a #\B #\X #\c #\D)
+                        char-ci=?)
+ 1)
+
 )
 
 ;;;bg too hard
@@ -485,7 +497,6 @@
 
 (require rackunit)
 
- #;(define g '#(#\g #\u #\m #\b #\o))
  (define g "gumbo")
 
  (check-equal? (levenshtein g "gambol") 2)

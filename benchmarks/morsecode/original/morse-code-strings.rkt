@@ -61,3 +61,22 @@
   (define morse-list (for/list ([c str])
       (char->dit-dah-string c)))
   (apply string-append morse-list))
+
+
+(module+ test
+
+  (require rackunit)
+
+  (check-equal? (char->dit-dah-string #\a) ".-")
+
+  (check-equal? (char->dit-dah-string #\b) "-...")
+
+  (check-equal? (char->dit-dah-string #\s) "...")
+
+  (check-equal? (char->dit-dah-string #\S) "...")
+
+  (check-equal? (string->morse "sos") "...---...")
+
+  (check-equal? (string->morse "wrought?") ".--.-.---..---.....-..--..")
+
+  (check-equal? (string->morse "WROUGHT?") ".--.-.---..---.....-..--.."))
