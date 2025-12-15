@@ -65,5 +65,3 @@
     ;; ll: this gets done by the loop anyway: no need to double it
     ;; (string-levenshtein w2 w1)
     (void)))
-
-(time (main words-smaller))

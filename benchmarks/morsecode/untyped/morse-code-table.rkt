@@ -164,3 +164,19 @@
        (cond [(and letter pattern)
               (cons (char-downcase (car (string->list letter))) (clean-pattern pattern))]
              [else (error 'char-table "broken regexp 2")])]))))
+
+#;(module+ test
+
+  (require rackunit)
+
+  (check-equal? (clean-pattern "·.·.·.·") ".......")
+
+  (check-equal? (clean-pattern ".......") ".......")
+
+  (check-equal? (clean-pattern "––––––") "------")
+
+  (check-equal? (clean-pattern "-–––") "----")
+
+  (check-equal? (clean-pattern "·––––––·") ".------.")
+
+  (check-equal? (clean-pattern "abc&nbsp;de&nbsp;fg") "abcdefg"))
