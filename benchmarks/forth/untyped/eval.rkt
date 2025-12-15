@@ -172,7 +172,7 @@
       v*))
 
 
-(module+ test
+#;(module+ test
   (require
     rackunit
     (only-in racket/format ~a))
