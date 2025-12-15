@@ -646,7 +646,7 @@
 ;;cpu time: 8177 real time: 8175 gc time: 3379
 
 
-#;(module+ test
+(module+ test
   (require rackunit)
 
   (define (render-grid g) (string-join g "\n" #:after-last "\n"))
