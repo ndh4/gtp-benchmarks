@@ -110,9 +110,13 @@
 ;(: analyze (-> Exp MonoStore))
 (define (analyze exp)
   (define init-state (State exp empty-benv empty-store time-zero))
+  (printf "~ninit-state: ~v~n" init-state)
   (define states (explore (set) (list init-state)))
+  (printf "~n_states: ~v~n" states)
   (define summary (summarize states))
+  (printf "~nsummary: ~v~n" summary)
   (define mono-store (monovariant-store summary))
+  (printf "~nmono-store: ~v~n" mono-store)
   mono-store)
 
 ;(: format-mono-store (-> MonoStore String))
@@ -123,8 +127,60 @@
       (format "~a:\n~a"
               i
               (string-join
-                (for/list ([v (in-set vs)])
-                  (format "\t~S" v))
-                "\n"))))
+               (for/list ([v (in-set vs)])
+                 (format "\t~S" v))
+               "\n"))))
   (string-join res "\n"))
 
+(module+ test
+  (require
+    rackunit
+    (only-in racket/format ~a))
+
+  (check-equal? (format-mono-store empty-mono-store) "")
+
+  (define init-state__smallest (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '()))
+
+  (define states__smallest (explore (set) (list init-state__smallest)))
+
+  (check-equal? states__smallest (set (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '())))
+
+  (define summary__smallest (summarize states__smallest))
+
+  (check-equal? summary__smallest '#hash())
+
+  (define mono-store__smallest (monovariant-store summary__smallest))
+
+  (check-equal? mono-store__smallest '#hash())
+
+
+  (define init-state__tiny (State (Call 'g6 (Lam 'g3 '(a) (Ref 'g2 'a)) (list (Lam 'g5 '(b) (Ref 'g4 'b)))) '#hash() '#hash() '()))
+
+  (define states__tiny (explore (set) (list init-state__tiny)))
+
+  (check-equal? states__tiny (set (State (Call 'g6 (Lam 'g3 '(a) (Ref 'g2 'a)) (list (Lam 'g5 '(b) (Ref 'g4 'b)))) '#hash() '#hash() '()) (State (Ref 'g2 'a) (hash 'a (Binding 'a '(g6))) (hash (Binding 'a '(g6)) (set (Closure (Lam 'g5 '(b) (Ref 'g4 'b)) '#hash()))) '(g6))))
+
+  (define summary__tiny (summarize states__tiny))
+
+  (check-equal? summary__tiny (hash (Binding 'a '(g6)) (set (Closure (Lam 'g5 '(b) (Ref 'g4 'b)) '#hash()))))
+
+  (define mono-store__tiny (monovariant-store summary__tiny))
+
+  (check-equal? mono-store__tiny (hash 'a (set (Lam 'g5 '(b) (Ref 'g4 'b)))))
+
+
+  (define init-state__standard (State (Call 'g23 (Lam 'g22 '(id) (Call 'g21 (Ref 'g11 'id) (list (Lam 'g13 '(z) (Ref 'g12 'z)) (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))))))) (list (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))))) '#hash() '#hash() '()))
+
+  (define states__standard (explore (set) (list init-state__standard)))
+
+  (check-equal? states__standard (set (State (Call 'g21 (Ref 'g11 'id) (list (Lam 'g13 '(z) (Ref 'g12 'z)) (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))))) (hash 'id (Binding 'id '(g23))) (hash (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash()))) '(g23)) (State (Ref 'g17 'b) (hash 'a (Binding 'a '(g9)) 'b (Binding 'b '(g9)) 'id (Binding 'id '(g23))) (hash (Binding 'a '(g9)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'b '(g9)) (set (Closure (Lam 'g16 '(y) (Ref 'g15 'y)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))) (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash())) (Binding 'k '(g21)) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))) (Binding 'x '(g19)) (set (Closure (Lam 'g16 '(y) (Ref 'g15 'y)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))) (Binding 'x '(g21)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'k '(g19)) (set (Closure (Lam 'g18 '(b) (Ref 'g17 'b)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))))) '(g9)) (State (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))) (hash (Binding 'a '(g9)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash())) (Binding 'k '(g21)) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))) (Binding 'x '(g21)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))) '(g9)) (State (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))) (hash 'k (Binding 'k '(g19)) 'x (Binding 'x '(g19))) (hash (Binding 'a '(g9)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash())) (Binding 'k '(g21)) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))) (Binding 'x '(g19)) (set (Closure (Lam 'g16 '(y) (Ref 'g15 'y)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))) (Binding 'x '(g21)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'k '(g19)) (set (Closure (Lam 'g18 '(b) (Ref 'g17 'b)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))))) '(g19)) (State (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))) (hash 'k (Binding 'k '(g21)) 'x (Binding 'x '(g21))) (hash (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash())) (Binding 'k '(g21)) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))) (Binding 'x '(g21)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))) '(g21)) (State (Call 'g23 (Lam 'g22 '(id) (Call 'g21 (Ref 'g11 'id) (list (Lam 'g13 '(z) (Ref 'g12 'z)) (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))))))) (list (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))))) '#hash() '#hash() '())))
+
+  (define summary__standard (summarize states__standard))
+
+  (check-equal? summary__standard (hash (Binding 'a '(g9)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'b '(g9)) (set (Closure (Lam 'g16 '(y) (Ref 'g15 'y)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))) (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash())) (Binding 'k '(g21)) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))) (Binding 'x '(g19)) (set (Closure (Lam 'g16 '(y) (Ref 'g15 'y)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))) (Binding 'x '(g21)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'k '(g19)) (set (Closure (Lam 'g18 '(b) (Ref 'g17 'b)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))))))
+
+  (define mono-store__standard (monovariant-store summary__standard))
+
+  (check-equal? mono-store__standard (hash 'a (set (Lam 'g13 '(z) (Ref 'g12 'z))) 'b (set (Lam 'g16 '(y) (Ref 'g15 'y))) 'id (set (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))))) 'k (set (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (Lam 'g18 '(b) (Ref 'g17 'b))) 'x (set (Lam 'g13 '(z) (Ref 'g12 'z)) (Lam 'g16 '(y) (Ref 'g15 'y)))))
+
+)
