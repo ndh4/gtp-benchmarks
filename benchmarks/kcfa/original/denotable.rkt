@@ -23,59 +23,59 @@
  [d-bot ([max Denotable/c]
          [types Denotable/c])]
  [d-join ([max (->i ([a Denotable/c]
-              [b Denotable/c])
-             [result Denotable/c]
-             #:post (a b result)
-             (for/and ([el (in-sequences (in-set a) (in-set b))])
-               (set-member? result el)))]
-   [types (Denotable/c Denotable/c . -> . Denotable/c)])]
+                     [b Denotable/c])
+                    [result Denotable/c]
+                    #:post (a b result)
+                    (for/and ([el (in-sequences (in-set a) (in-set b))])
+                      (set-member? result el)))]
+          [types (Denotable/c Denotable/c . -> . Denotable/c)])]
  [empty-store ([max Store/c]
                [types Store/c])]
  [store-lookup ([max (->i ([s Store/c]
-              [a Addr?])
-             [result (s a)
-                     (equal?/c (if (hash-has-key? s a)
-                                   (hash-ref s a)
-                                   d-bot))])]
-   [types (Store/c Addr? . -> . Denotable/c)])]
+                           [a Addr?])
+                          [result (s a)
+                                  (equal?/c (if (hash-has-key? s a)
+                                                (hash-ref s a)
+                                                d-bot))])]
+                [types (Store/c Addr? . -> . Denotable/c)])]
  [store-update ([max (->i ([s Store/c]
-              [addr Addr?]
-              [value Denotable/c])
-             [result (s addr value)
-                     (and/c
-                      Store/c
-                      (hash-with/c addr
-                                   (equal?/c
-                                    (set-union value
-                                               (hash-ref s addr set)))))])]
-   [types (Store/c Addr? Denotable/c . -> . Store/c)])]
+                           [addr Addr?]
+                           [value Denotable/c])
+                          [result (s addr value)
+                                  (and/c
+                                   Store/c
+                                   (hash-with/c addr
+                                                (equal?/c
+                                                 (set-union value
+                                                            (hash-ref s addr set)))))])]
+                [types (Store/c Addr? Denotable/c . -> . Store/c)])]
  [store-update* ([max (->i ([s Store/c]
-              [as (listof Addr?)]
-              [vs (listof Denotable/c)])
-             [result Store/c]
-             #:post (s as vs result)
-             (for/and ([a (in-list as)]
-                       [v (in-list vs)])
-               (and (hash-has-key? result a)
-                    (subset? v (hash-ref result a)))))]
-   [types (Store/c (listof Addr?) (listof Denotable/c) . -> . Store/c)])]
+                            [as (listof Addr?)]
+                            [vs (listof Denotable/c)])
+                           [result Store/c]
+                           #:post (s as vs result)
+                           (for/and ([a (in-list as)]
+                                     [v (in-list vs)])
+                             (and (hash-has-key? result a)
+                                  (subset? v (hash-ref result a)))))]
+                 [types (Store/c (listof Addr?) (listof Denotable/c) . -> . Store/c)])]
  [store-join ([max (->i ([s1 Store/c]
-              [s2 Store/c])
-             [result Store/c]
-             #:post (s1 s2 result)
-             (for/and ([(k v) (in-hash result)])
-               (equal? v (set-union (hash-ref s1 k set)
+                         [s2 Store/c])
+                        [result Store/c]
+                        #:post (s1 s2 result)
+                        (for/and ([(k v) (in-hash result)])
+                          (equal? v (set-union (hash-ref s1 k set)
                                     (hash-ref s2 k set)))))]
-   [types (Store/c Store/c . -> . Store/c)])])
+              [types (Store/c Store/c . -> . Store/c)])])
 (provide
-  (struct-out State)
-;;   d-bot
-;;   d-join
-;;   empty-store
-;;   store-lookup
-;;   store-update
-;;   store-update*
-;;   store-join
+ (struct-out State)
+ ;;   d-bot
+ ;;   d-join
+ ;;   empty-store
+ ;;   store-lookup
+ ;;   store-update
+  ;;   store-update*
+  ;;   store-join
 
   Denotable/c
   Store/c
@@ -85,7 +85,7 @@
   State-benv
   State-store
   State-time
-)
+  )
 
 ;; =============================================================================
 
@@ -99,11 +99,11 @@
 ;; -- structs
 
 (struct State
- (call ;: Exp]
-  benv ;: BEnv]
-  store ;: Store]
-  time ;: Time]))
-  )
+  (call ;: Exp]
+   benv ;: BEnv]
+   store ;: Store]
+   time ;: Time]))
+   )
   #:mutable
   #:transparent)
 
@@ -144,12 +144,38 @@
 ;(: store-update* (-> Store (Listof Addr) (Listof Denotable) Store))
 (define (store-update* s as vs)
   (for/fold ([store s])
-    ([a (in-list as)]
-     [v (in-list vs)])
+            ([a (in-list as)]
+             [v (in-list vs)])
     (store-update store a v)))
 
 ;(: store-join (-> Store Store Store))
 (define (store-join s1 s2)
   (for/fold ([new-store s1])
-    ([(k v) (in-hash s2)])
+            ([(k v) (in-hash s2)])
     (store-update new-store k v)))
+
+(module+ test
+  (require
+    rackunit
+    (only-in racket/format ~a))
+
+  (check-equal? (store-join empty-store empty-store) empty-store)
+
+  (define s1 (store-update empty-store (Binding 'a '(g6)) (set (Closure (Lam 'g5 '(b) (Ref 'g4 'b)) '#hash()))))
+  (check-equal? (store-lookup s1 (Binding 'a '(g6))) (set (Closure (Lam 'g5 '(b) (Ref 'g4 'b)) '#hash())))
+
+  (define s2 (store-update* empty-store (list (Binding 'x '(g21)) (Binding 'k '(g21))) (list (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))))))
+  (check-equal? (store-lookup s2 (Binding 'x '(g21))) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))))
+  (check-equal? (store-lookup s2 (Binding 'k '(g21))) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))))
+
+
+  (define s3 (store-join s1 s2))
+  (check-equal? (store-lookup s3 (Binding 'a '(g6))) (set (Closure (Lam 'g5 '(b) (Ref 'g4 'b)) '#hash())))
+  (check-equal? (store-lookup s3 (Binding 'x '(g21))) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))))
+  (check-equal? (store-lookup s3 (Binding 'k '(g21))) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))))
+
+  (define s4 (store-update s3 (Binding 'a '(g6)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))))
+  (check-equal? (store-lookup s4 (Binding 'a '(g6))) (set
+                                                      (Closure (Lam 'g5 '(b) (Ref 'g4 'b)) '#hash())
+                                                      (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))))
+  )
