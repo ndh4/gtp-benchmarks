@@ -123,3 +123,16 @@
      [a (in-list addrs)])
     (benv-extend benv v a)))
 
+(module+ test
+  (require
+    rackunit
+    (only-in racket/format ~a))
+
+    (define benv1 (benv-extend empty-benv 'x (Binding 'x '(g123))))
+    (check-equal? (benv-lookup benv1 'x) (Binding 'x '(g123)))
+
+    (define benv2 (benv-extend* benv1 '(x k) (list (Binding 'x '(g19)) (Binding 'k '(g19)))))
+    (check-equal? (benv-lookup benv2 'k) (Binding 'k '(g19)))
+    (check-equal? (benv-lookup benv2 'x) (Binding 'x '(g19)))
+
+)
