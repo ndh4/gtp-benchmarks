@@ -91,3 +91,21 @@
   (λ (var)
     (Binding var time)))
 
+(module+ test
+  (require
+    rackunit
+    (only-in racket/format ~a))
+
+  (check-equal? (take* '(a b c d e f) 2) '(a b))
+
+  (check-equal? (take* '(a b c d e) 3) '(a b c))
+
+  (check-equal? time-zero '())
+
+  (check-equal? (tick (Stx 'g123) time-zero) '(g123))
+
+  (check-equal? (tick (Stx 'g123) '(g123)) '(g123))
+
+  (check-equal? ((alloc '(g123)) 'x)
+                (Binding 'x '(g123)))
+  )

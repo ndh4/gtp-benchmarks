@@ -110,13 +110,9 @@
 ;(: analyze (-> Exp MonoStore))
 (define (analyze exp)
   (define init-state (State exp empty-benv empty-store time-zero))
-  (printf "~ninit-state: ~v~n" init-state)
   (define states (explore (set) (list init-state)))
-  (printf "~n_states: ~v~n" states)
   (define summary (summarize states))
-  (printf "~nsummary: ~v~n" summary)
   (define mono-store (monovariant-store summary))
-  (printf "~nmono-store: ~v~n" mono-store)
   mono-store)
 
 ;(: format-mono-store (-> MonoStore String))
