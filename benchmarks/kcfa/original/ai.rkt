@@ -15,7 +15,7 @@
   "../../../ctcs/configurable.rkt"
   "../../../ctcs/precision-config.rkt"
   "../../../ctcs/common.rkt"
-)
+  )
 (require/configurable-contract "denotable.rkt" store-join store-update* store-update store-lookup empty-store d-join d-bot )
 (require/configurable-contract "time.rkt" time-zero take* tick alloc)
 (require/configurable-contract "benv.rkt" benv-extend* benv-extend benv-lookup empty-benv )
@@ -62,11 +62,11 @@
 
 
 (provide
-;;   atom-eval
-;;   next
-;;   explore
-  closed-term?
-)
+ ;;   atom-eval
+ ;;   next
+ ;;   explore
+ closed-term?
+ )
 
 ;; =============================================================================
 
@@ -144,9 +144,260 @@
      ;; Already seen current todo, move along
      (explore seen (cdr todo))]
     [else
-      (define st0 (car todo))
-      ;(: succs (Setof State))
-      (define succs (next st0))
-      (explore (set-add seen st0)
-               (append (set->list succs) (cdr todo)))]))
+     (define st0 (car todo))
+     ;(: succs (Setof State))
+     (define succs (next st0))
+     (explore (set-add seen st0)
+              (append (set->list succs) (cdr todo)))]))
 
+(module+ test
+  (require
+    rackunit
+    (only-in racket/format ~a))
+
+  (check-equal? ((atom-eval (hash 'id (Binding 'id '(g23))) (hash (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash())))) (Lam 'g13 '(z) (Ref 'g12 'z))) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))))
+
+  (check-exn #rx"atom-eval got a plain Exp" (λ () ((atom-eval (hash 'id (Binding 'id '(g23))) (hash (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash())))) (Call 'g21 (Ref 'g11 'id) (list (Lam 'g13 '(z) (Ref 'g12 'z)) (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))))))))
+
+  (check-equal? ((atom-eval (hash 'k (Binding 'k '(g19)) 'x (Binding 'x '(g19))) (hash (Binding 'a '(g9)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash())) (Binding 'k '(g21)) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))) (Binding 'x '(g19)) (set (Closure (Lam 'g16 '(y) (Ref 'g15 'y)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))) (Binding 'x '(g21)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'k '(g19)) (set (Closure (Lam 'g18 '(b) (Ref 'g17 'b)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))))) (Ref 'g7 'k))
+                (set
+                 (Closure
+                  (Lam 'g18 '(b) (Ref 'g17 'b))
+                  (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))))
+
+  (check-equal? (next (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '())) (set))
+
+  (check-equal? (next (State (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))) (hash 'k (Binding 'k '(g19)) 'x (Binding 'x '(g19))) (hash (Binding 'a '(g9)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'id '(g23)) (set (Closure (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))) '#hash())) (Binding 'k '(g21)) (set (Closure (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))) (hash 'id (Binding 'id '(g23))))) (Binding 'x '(g19)) (set (Closure (Lam 'g16 '(y) (Ref 'g15 'y)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))) (Binding 'x '(g21)) (set (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))) (Binding 'k '(g19)) (set (Closure (Lam 'g18 '(b) (Ref 'g17 'b)) (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))))) '(g19)))
+                (set
+                 (State
+                  (Ref 'g17 'b)
+                  (hash 'a (Binding 'a '(g9)) 'b (Binding 'b '(g9)) 'id (Binding 'id '(g23)))
+                  (hash
+                   (Binding 'a '(g9))
+                   (set
+                    (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'b '(g9))
+                   (set
+                    (Closure
+                     (Lam 'g16 '(y) (Ref 'g15 'y))
+                     (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))))
+                   (Binding 'id '(g23))
+                   (set
+                    (Closure
+                     (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))))
+                     '#hash()))
+                   (Binding 'k '(g21))
+                   (set
+                    (Closure
+                     (Lam
+                      'g20
+                      '(a)
+                      (Call
+                       'g19
+                       (Ref 'g14 'id)
+                       (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))))
+                     (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'x '(g19))
+                   (set
+                    (Closure
+                     (Lam 'g16 '(y) (Ref 'g15 'y))
+                     (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))))
+                   (Binding 'x '(g21))
+                   (set
+                    (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'k '(g19))
+                   (set
+                    (Closure
+                     (Lam 'g18 '(b) (Ref 'g17 'b))
+                     (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))))
+                  '(g9))))
+
+  (check-equal? (explore (set (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '())) '())
+                (set (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '())))
+
+  (check-equal? (explore (set) (list (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '())))
+                (set (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '())))
+
+  (check-equal? (explore (set) (list (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '())
+                                     (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '())))
+                (set (State (Lam 'g1 '(a) (Ref 'g0 'a)) '#hash() '#hash() '())))
+
+  (check-equal? (explore (set) (list (State (Call 'g23 (Lam 'g22 '(id) (Call 'g21 (Ref 'g11 'id) (list (Lam 'g13 '(z) (Ref 'g12 'z)) (Lam 'g20 '(a) (Call 'g19 (Ref 'g14 'id) (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))))))) (list (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))))) '#hash() '#hash() '())))
+                (set
+                 (State
+                  (Call
+                   'g21
+                   (Ref 'g11 'id)
+                   (list
+                    (Lam 'g13 '(z) (Ref 'g12 'z))
+                    (Lam
+                     'g20
+                     '(a)
+                     (Call
+                      'g19
+                      (Ref 'g14 'id)
+                      (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))))))
+                  (hash 'id (Binding 'id '(g23)))
+                  (hash
+                   (Binding 'id '(g23))
+                   (set
+                    (Closure
+                     (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))))
+                     '#hash())))
+                  '(g23))
+                 (State
+                  (Ref 'g17 'b)
+                  (hash 'a (Binding 'a '(g9)) 'b (Binding 'b '(g9)) 'id (Binding 'id '(g23)))
+                  (hash
+                   (Binding 'a '(g9))
+                   (set
+                    (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'b '(g9))
+                   (set
+                    (Closure
+                     (Lam 'g16 '(y) (Ref 'g15 'y))
+                     (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))))
+                   (Binding 'id '(g23))
+                   (set
+                    (Closure
+                     (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))))
+                     '#hash()))
+                   (Binding 'k '(g21))
+                   (set
+                    (Closure
+                     (Lam
+                      'g20
+                      '(a)
+                      (Call
+                       'g19
+                       (Ref 'g14 'id)
+                       (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))))
+                     (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'x '(g19))
+                   (set
+                    (Closure
+                     (Lam 'g16 '(y) (Ref 'g15 'y))
+                     (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))))
+                   (Binding 'x '(g21))
+                   (set
+                    (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'k '(g19))
+                   (set
+                    (Closure
+                     (Lam 'g18 '(b) (Ref 'g17 'b))
+                     (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))))
+                  '(g9))
+                 (State
+                  (Call
+                   'g19
+                   (Ref 'g14 'id)
+                   (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))
+                  (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))
+                  (hash
+                   (Binding 'a '(g9))
+                   (set
+                    (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'id '(g23))
+                   (set
+                    (Closure
+                     (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))))
+                     '#hash()))
+                   (Binding 'k '(g21))
+                   (set
+                    (Closure
+                     (Lam
+                      'g20
+                      '(a)
+                      (Call
+                       'g19
+                       (Ref 'g14 'id)
+                       (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))))
+                     (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'x '(g21))
+                   (set
+                    (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))))
+                  '(g9))
+                 (State
+                  (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))
+                  (hash 'k (Binding 'k '(g19)) 'x (Binding 'x '(g19)))
+                  (hash
+                   (Binding 'a '(g9))
+                   (set
+                    (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'id '(g23))
+                   (set
+                    (Closure
+                     (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))))
+                     '#hash()))
+                   (Binding 'k '(g21))
+                   (set
+                    (Closure
+                     (Lam
+                      'g20
+                      '(a)
+                      (Call
+                       'g19
+                       (Ref 'g14 'id)
+                       (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))))
+                     (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'x '(g19))
+                   (set
+                    (Closure
+                     (Lam 'g16 '(y) (Ref 'g15 'y))
+                     (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23)))))
+                   (Binding 'x '(g21))
+                   (set
+                    (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'k '(g19))
+                   (set
+                    (Closure
+                     (Lam 'g18 '(b) (Ref 'g17 'b))
+                     (hash 'a (Binding 'a '(g9)) 'id (Binding 'id '(g23))))))
+                  '(g19))
+                 (State
+                  (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x)))
+                  (hash 'k (Binding 'k '(g21)) 'x (Binding 'x '(g21)))
+                  (hash
+                   (Binding 'id '(g23))
+                   (set
+                    (Closure
+                     (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))))
+                     '#hash()))
+                   (Binding 'k '(g21))
+                   (set
+                    (Closure
+                     (Lam
+                      'g20
+                      '(a)
+                      (Call
+                       'g19
+                       (Ref 'g14 'id)
+                       (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b)))))
+                     (hash 'id (Binding 'id '(g23)))))
+                   (Binding 'x '(g21))
+                   (set
+                    (Closure (Lam 'g13 '(z) (Ref 'g12 'z)) (hash 'id (Binding 'id '(g23))))))
+                  '(g21))
+                 (State
+                  (Call
+                   'g23
+                   (Lam
+                    'g22
+                    '(id)
+                    (Call
+                     'g21
+                     (Ref 'g11 'id)
+                     (list
+                      (Lam 'g13 '(z) (Ref 'g12 'z))
+                      (Lam
+                       'g20
+                       '(a)
+                       (Call
+                        'g19
+                        (Ref 'g14 'id)
+                        (list (Lam 'g16 '(y) (Ref 'g15 'y)) (Lam 'g18 '(b) (Ref 'g17 'b))))))))
+                   (list (Lam 'g10 '(x k) (Call 'g9 (Ref 'g7 'k) (list (Ref 'g8 'x))))))
+                  '#hash()
+                  '#hash()
+                  '())))
+  )
