@@ -373,3 +373,146 @@
              (define paths-from-from-to-to
                (map (lambda (p) (cons from p)) (search n visited*)))
              (append all-paths paths-from-from-to-to))])))))
+
+(module+ test
+  ;; Parsing functions ---------------------------------------------------------
+
+  ;; LINE-SPECIFICATION?
+  (check-equal? (line-specification? "---- blue") '("blue"))
+  (check-equal? (line-specification? "----blue") #f)
+  (check-equal? (line-specification? "- blue") '("blue"))
+  (check-equal? (line-specification? "- A B C") '("A" "B" "C"))
+
+  ;; LINES->HASH
+  ;; no stops should cause an exception
+  (check-exn exn:fail? (λ () (lines->hash '("---- line "))))
+  ;; one line with one stop
+  (check-equal?
+   '#hash(("line" . ("Davis Station")))
+   (lines->hash '("-- line "
+                  "Davis Station")))
+  ;; one line with two stops
+  (check-equal?
+   '#hash(("line" . ("Davis Station"
+                     ("Alewife Station" "Davis Station")
+                     ("Davis Station" "Alewife Station"))))
+   (lines->hash '("---- line "
+                  "Alewife Station"
+                  "Davis Station")))
+  ;; two identical lines
+  (check-equal?
+   '#hash(("line1" . ("Davis Station"
+                     ("Alewife Station" "Davis Station")
+                     ("Davis Station" "Alewife Station")))
+          ("line2" . ("Davis Station"
+                     ("Alewife Station" "Davis Station")
+                     ("Davis Station" "Alewife Station"))))
+   (lines->hash '("---- line1 line2 "
+                  "Alewife Station"
+                  "Davis Station")))
+  ;; referencing a line that doesn't exist
+  (check-exn exn:fail?
+             (λ () (lines->hash '("-- line1 line2 "
+                                  "Alewife Station"
+                                  "---- line3 "
+                                  "Government Center Station"))))
+  ;; two lines that start at the same point and then split
+  (check-equal?
+   '#hash(("line1" . ("Government Center Station"
+                     ("Alewife Station" "Government Center Station")
+                     ("Government Center Station" "Alewife Station")))
+          ("line2" . ("Davis Station"
+                     ("Alewife Station" "Davis Station")
+                     ("Davis Station" "Alewife Station"))))
+   (lines->hash '("-- line1 line2 "
+                  "Alewife Station"
+                  "---- line1 "
+                  "Government Center Station"
+                  "---- line2 "
+                  "Davis Station")))
+  
+  ;; READ-T-LINE-FROM-FILE
+  (check-equal?
+   '(("blue"
+      (("Government Center Station" "Bowdoin Station")
+       ("Bowdoin Station" "Government Center Station")
+       ("State Station" "Government Center Station")
+       ("Government Center Station" "State Station")
+       ("Aquarium Station" "State Station")
+       ("State Station" "Aquarium Station")
+       ("Maverick Station" "Aquarium Station")
+       ("Aquarium Station" "Maverick Station")
+       ("Airport Station" "Maverick Station")
+       ("Maverick Station" "Airport Station")
+       ("Wood Island Station" "Airport Station")
+       ("Airport Station" "Wood Island Station")
+       ("Orient Heights Station" "Wood Island Station")
+       ("Wood Island Station" "Orient Heights Station")
+       ("Suffolk Downs Station" "Orient Heights Station")
+       ("Orient Heights Station" "Suffolk Downs Station")
+       ("Beachmont Station" "Suffolk Downs Station")
+       ("Suffolk Downs Station" "Beachmont Station")
+       ("Revere Beach Station" "Beachmont Station")
+       ("Beachmont Station" "Revere Beach Station")
+       ("Wonderland Station" "Revere Beach Station")
+       ("Revere Beach Station" "Wonderland Station"))))
+   (read-t-line-from-file "blue"))
+
+  ;; Graph methods -------------------------------------------------------------
+
+  (require rackunit)
+  (define graph (read-t-graph))
+
+  ;; STATION
+  (check-equal? (send graph station "Oops") '())
+  (check-equal? (send graph station "Northeastern University Station")
+                "Northeastern University Station")
+  (check-equal? (send graph station "Northeastern")
+                "Northeastern University Station")
+  (check-equal? (send graph station "Center")
+                '("Hynes Convention Center"
+                  "Government Center Station"
+                  "Quincy Center Station"
+                  "Malden Center Station"
+                  "Tufts Medical Center Station"))
+
+  ;; STATION?
+  (check-equal? (send graph station? "Northeastern") #f)
+  (check-equal? (send graph station? "Northeastern University Station") #t)
+
+  ;; FIND-PATH
+  ;; path with one stop
+  (check-equal?
+   `(("Government Center Station" ,(set)))
+   (send graph find-path "Government Center Station" "Government Center Station"))
+  ;; path with two stops, only one route
+  (check-equal?
+   `((("Northeastern University Station" ,(set "E"))
+      ("Symphony Station" ,(set "E"))))
+   (send graph find-path "Northeastern University Station" "Symphony Station"))
+  ;; path with three stops, only one route
+  (check-equal?
+   `((("Northeastern University Station" ,(set "E"))
+      ("Symphony Station" ,(set "E"))
+      ("Prudential Station" ,(set "E"))))
+   (send graph find-path "Northeastern University Station" "Prudential Station"))
+  ;; path with two stops, multiple routes
+  (define multiple-routes
+    (send graph find-path "Government Center Station" "Haymarket Station"))
+  (check-not-false
+   (member `(("Government Center Station" ,(set "D" "E" "B" "C"))
+             ("Park Street Station" ,(set "D" "E" "B" "C"))
+             ("Downtown Crossing Station" ,(set "Mattapan" "Braintree"))
+             ("State Station" ,(set "orange"))
+             ("Haymarket Station" ,(set "orange")))
+           multiple-routes))
+  (check-not-false
+   (member `(("Government Center Station" ,(set "D" "E" "B" "C"))
+             ("Haymarket Station" ,(set "D" "E" "B" "C")))
+           multiple-routes))
+  (check-not-false
+   (member `(("Government Center Station" ,(set "blue"))
+             ("State Station" ,(set "blue"))
+             ("Haymarket Station" ,(set "orange")))
+           multiple-routes))
+  )
