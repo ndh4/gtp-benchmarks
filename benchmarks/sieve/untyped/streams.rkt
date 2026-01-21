@@ -115,3 +115,41 @@
   (cond [(= n 0) '()]
         [else (define-values (hd tl) (simple-stream-unfold st))
               (cons hd (simple-stream-take tl (sub1 n)))]))
+
+(module+ test
+  (require rackunit)
+  ;; the simplest stream, which always produces 1
+  (define (ones)
+    (make-simple-stream 1 ones))
+  ;; `simple-stream-unfold`
+  (define-values (first-ones rest-ones) (simple-stream-unfold (ones)))
+  (check-equal? 1 first-ones)
+  (define-values (first-ones-2 _rest-ones-2) (simple-stream-unfold rest-ones))
+  (check-equal? 1 first-ones-2)
+  ;; `simple-stream-get`
+  (check-equal? 1 (simple-stream-get (ones) 0))
+  (check-equal? 1 (simple-stream-get (ones) 4))
+  ;; `simple-stream-take`
+  (check-equal? '() (simple-stream-take (ones) 0))
+  (check-equal? '(1 1 1 1 1) (simple-stream-take (ones) 5))
+
+  ;; a slightly more complicated stream, which produces powers of 2
+  (define powers-of-2
+    (let next ([n 1])
+      (make-simple-stream n (λ () (next (* n 2))))))
+  ;; `simple-stream-unfold`
+  (define-values (first-pow rest-pow) (simple-stream-unfold powers-of-2))
+  (check-equal? 1 first-pow)
+  (define-values (first-pow-2 rest-pow-2) (simple-stream-unfold rest-pow))
+  (check-equal? 2 first-pow-2)
+  (define-values (first-pow-3 _rest-pow-3) (simple-stream-unfold rest-pow-2))
+  (check-equal? 4 first-pow-3)
+  ;; `simple-stream-get`
+  (check-equal? 1 (simple-stream-get powers-of-2 0))
+  (check-equal? 2 (simple-stream-get powers-of-2 1))
+  (check-equal? 1024 (simple-stream-get powers-of-2 10))
+  ;; `simple-stream-take`
+  (check-equal? '() (simple-stream-take powers-of-2 0))
+  (check-equal? '(1 2) (simple-stream-take powers-of-2 2))
+  (check-equal? '(1 2 4 8 16) (simple-stream-take powers-of-2 5))
+  (check-equal? '(4 8 16 32 64) (simple-stream-take rest-pow-2 5)))

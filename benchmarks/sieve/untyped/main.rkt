@@ -31,7 +31,7 @@
 (define/ctc-helper ((divisible-by/c divisor) x)
   (zero? (modulo x divisor)))
 
-;; `sift n st` Filter all elements in `st` that are equal to `n`.
+;; `sift n st` Filter all elements in `st` that are multiples of `n`.
 ;; Return a new simple-stream.
 (define (sift n st)
   #;(configurable-ctc
@@ -83,3 +83,25 @@
   (void (simple-stream-get primes N-1)))
 
 (time (main))
+
+(module+ test
+  (require rackunit)
+  ;; `count-from n` Build a stream of integers starting from `n` and iteratively adding 1
+  (define counter (count-from 2))
+  (check-equal? 2 (simple-stream-get counter 0))
+  (check-equal? 6 (simple-stream-get counter 4))
+  (check-equal? '(2 3 4 5 6) (simple-stream-take counter 5))
+  ;; `sift n st` Filter all elements in `st` that are multiples of `n`.
+  (check-equal? '(2 4) (simple-stream-take (sift 3 counter) 2))
+  (check-equal? '(2 4 5 7 8 10 11 13 14) (simple-stream-take (sift 3 counter) 9))
+  (check-equal? '(3 5 7 9 11) (simple-stream-take (sift 2 counter) 5))
+  (check-equal? '(2 3 4 6 7) (simple-stream-take (sift 5 counter) 5))
+  ;; `sieve st` Sieve of Eratosthenes
+  (check-equal? '(5 6 7 8 9 11 13) (simple-stream-take (sieve (count-from 5)) 7))
+  (define multiples-of-two
+    (let loop ([n 4])
+      (make-simple-stream n (lambda () (loop (+ n 2))))))
+  (check-equal? '(4 6 10 14 22 26 34) (simple-stream-take (sieve multiples-of-two) 7))
+  ;; `primes` simple-stream of prime numbers
+  (check-equal? '(2 3 5 7 11 13 17 19 23 29) (simple-stream-take primes 10))
+)
