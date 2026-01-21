@@ -14,8 +14,7 @@
  [make-simple-stream {[max (->i ([hd any/c]
                                  [thunk (-> simple-stream?)])
                                 [result (hd thunk)
-                                        (begin (displayln 'using-max!)
-                                        (simple-stream/c (equal?/c hd) (equal?/c thunk)))])]
+                                        (simple-stream/c (equal?/c hd) (equal?/c thunk))])]
                       [types (-> any/c (-> simple-stream?) simple-stream?)]}]
  [simple-stream-unfold {[max (->i ([st simple-stream?])
                                   (values [r1 (st) (equal?/c (simple-stream-first st))]
