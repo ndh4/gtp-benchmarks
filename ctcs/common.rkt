@@ -95,3 +95,6 @@
 
 (define ((equal?/c c/v) v)
   (equal? c/v v))
+
+(define ((thunked-equal?/c c/v) v)
+  (equal? (c/v) v))

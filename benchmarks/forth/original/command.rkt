@@ -27,7 +27,8 @@
           stack?
           env?
           list-with-min-size/c
-          equal?/c)
+          equal?/c
+          thunked-equal?/c)
 )
 ;; (require (only-in "stack.rkt"
 ;;   stack-drop
@@ -250,10 +251,11 @@
          (or-#f/c
           ;; lltodo: example of bad error reporting: add extra parens
           (if ((list-with-min-size/c 2) S)
-              (equal?/c
-               (cons E
-                     (cons (binop (second S) (first S))
-                           (rest (rest S)))))
+              (thunked-equal?/c
+               (thunk
+                (cons E
+                      (cons (binop (second S) (first S))
+                            (rest (rest S))))))
               #f))])]))
 
 (define binop-command%
