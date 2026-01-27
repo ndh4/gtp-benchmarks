@@ -59,10 +59,12 @@
            stack?
            any/c
            . -> .
-           (or-#f/c (cons/c (listof
+           (or/c (cons/c (listof
                              (instanceof/c
                               (recursive-contract command%/c)))
-                            stack?)))])))
+                            stack?)
+                  'EXIT
+                  #f))])))
 
 
 (define command%? (instanceof/c command%/c))
