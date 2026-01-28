@@ -65,3 +65,28 @@
   (cond [(empty? segs) #f]
         [else (or (posn=? (car segs) h)
                   (segs-self-collide? h (cdr segs)))]))
+
+(module+ test
+  (require rackunit)
+  ;; tests for `head-collide?`
+  (check-false (head-collide? (posn (/ BOARD-WIDTH 2) (/ BOARD-HEIGHT 2))))
+  ;; top left
+  (check-false (head-collide? (posn 1 1)))
+  (check-true (head-collide? (posn 1 0)))
+  (check-true (head-collide? (posn -1 1)))
+  ;; top right
+  (check-false (head-collide? (posn (- BOARD-WIDTH 1) 1)))
+  (check-true (head-collide? (posn BOARD-WIDTH 1)))
+  (check-true (head-collide? (posn (- BOARD-WIDTH 2) 0)))
+  ;; bottom left
+  (check-false (head-collide? (posn 1 (- BOARD-HEIGHT 1))))
+  (check-true (head-collide? (posn 1 BOARD-HEIGHT)))
+  (check-true (head-collide? (posn 0 (- BOARD-HEIGHT 1))))
+  ;; bottom right
+  (check-false (head-collide? (posn (- BOARD-WIDTH 1) (- BOARD-HEIGHT 1))))
+  (check-true (head-collide? (posn BOARD-WIDTH BOARD-HEIGHT)))
+  (check-true (head-collide? (posn (- BOARD-WIDTH 1) BOARD-HEIGHT)))
+  (check-true (head-collide? (posn BOARD-WIDTH (- BOARD-HEIGHT 1))))
+
+  ;; tests for `snake-wall-collide?`
+  )

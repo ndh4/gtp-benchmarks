@@ -26,3 +26,14 @@
 
 ;; (provide
 ;;  cut-tail)
+
+(module+ test
+  (require rackunit)
+  (check-equal? (cut-tail (list (posn 1 1)))
+                (list))
+  (check-equal? (cut-tail (list (posn 1 1) (posn 1 2)))
+                (list (posn 1 1)))
+  (check-equal? (cut-tail (list (posn 1 1) (posn 1 2) (posn 1 3) (posn 2 3)))
+                (list (posn 1 1) (posn 1 2) (posn 1 3)))
+  (check-equal? (cut-tail (list (posn 2 1) (posn 3 4) (posn 2 3)))
+                (list (posn 2 1) (posn 3 4))))

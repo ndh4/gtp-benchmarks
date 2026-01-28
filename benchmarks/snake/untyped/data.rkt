@@ -37,7 +37,7 @@
 
 
 
-(struct posn (x y))
+(struct posn (x y) #:transparent)
 (define/ctc-helper (posn-type? p)
   (match p
     [(posn (? integer?) (? integer?)) #t]
@@ -111,3 +111,8 @@
   (and (= (posn-x p1) (posn-x p2))
        (= (posn-y p1) (posn-y p2))))
 
+(module+ test
+  (require rackunit)
+  (check-equal? (posn=? (posn 1 2) (posn 1 2)) #t)
+  (check-equal? (posn=? (posn 1 2) (posn 2 2)) #f)
+  (check-equal? (posn=? (posn 2 1) (posn 2 2)) #f))
