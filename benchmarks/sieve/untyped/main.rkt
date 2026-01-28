@@ -82,7 +82,7 @@
   #;(-> void?)
   (void (simple-stream-get primes N-1)))
 
-(time (main))
+#;(time (main))
 
 (module+ test
   (require rackunit)

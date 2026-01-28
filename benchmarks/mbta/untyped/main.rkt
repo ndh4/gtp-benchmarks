@@ -117,5 +117,5 @@
   (for* ([s1 (in-list ORANGE-STATIONS)] [s2 (in-list BLUE-STATIONS)])
     (run-query (path s1 s2))))
 
-(time (main))
+#;(time (main))
 
