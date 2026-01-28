@@ -134,4 +134,39 @@
         DONE
         status)))
 
-;; TODO test this file
+(module+ test
+  (require rackunit)
+  (define (path-len p) (length (string-split p "\n")))
+  ;; tests from main
+  (check-equal? (path-len (run-t "from Airport to Northeastern")) 14)
+  (check-equal? (path-len (run-t "disable Government")) 1)
+  (check-equal? (path-len (run-t "from Airport to Northeastern")) 16)
+  (check-equal? (path-len (run-t "enable Government")) 1)
+  (check-equal? (path-len (run-t "from Airport to Harvard Square")) 12)
+  (check-equal? (path-len (run-t "disable Park Street")) 1)
+  (check-true (string-prefix? (run-t "from Northeastern to Harvard Square") "it is currently impossible"))
+  (check-equal? (path-len (run-t "enable Park Street")) 1)
+  (check-equal? (path-len (run-t "from Northeastern to Harvard Square")) 12)
+
+  ;; a couple other tests
+  ;; incorrectly formatted message
+  (check-equal? (run-t "blabla") "message not understood")
+  ;; space in station name 
+  (check-equal? (run-t "from abcd abcd to abcdeee") "no such station: abcd abcd")
+  ;; station that doesn't exist to station that does
+  (check-equal? (run-t "from blabla to Northeastern") "no such station: blabla")
+  ;; many matches (left)
+  (check-true (string-prefix? (run-t "from N to Northeastern") "disambiguate"))
+  ;; many matches (right)
+  (check-true (string-prefix? (run-t "from Northeastern to N") "disambiguate"))
+  ;; many matches (both)
+  (check-true (string-prefix? (run-t "from N to G") "disambiguate"))
+  ;; many matches (both, same)
+  (check-true (string-prefix? (run-t "from N to N") "disambiguate"))
+  ;; disabling station that doesn't exist
+  (check-equal? (run-t "disable blabla") "no such station to disable: blabla")
+  ;; station to itself
+  (check-true (string-prefix? (run-t "from Northeastern to Northeastern") "Close your eyes"))
+  ;; station to itself with different strings used to match (this one caught a bug!)
+  (check-true (string-prefix? (run-t "from Northeaster to Northeastern") "Close your eyes"))
+  )
