@@ -81,5 +81,3 @@
     [else (if (substring? (first lines) (first color-file))
               (lines-in-color-file? (rest lines) (rest color-file))
               (lines-in-color-file? lines (rest color-file)))]))
-
-;; TODO add tests
