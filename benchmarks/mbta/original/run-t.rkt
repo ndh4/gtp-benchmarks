@@ -134,7 +134,7 @@
         DONE
         status)))
 
-#;(module+ test
+(module+ test
   (require rackunit)
   (define (path-len p) (length (string-split p "\n")))
   ;; tests from main
