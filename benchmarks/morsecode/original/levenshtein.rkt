@@ -1,3 +1,5 @@
+#lang racket/base
+
 ;;; @Package     levenshtein
 ;;; @Subtitle    Levenshtein Distance Metric in Scheme
 ;;; @HomePage    http://www.neilvandyke.org/levenshtein-scheme/
@@ -20,7 +22,6 @@
 ;;; and consulting, please contact the author.
 ;;; @end legal
 
-#lang racket/base
 
 
 ;;; @section Introduction
