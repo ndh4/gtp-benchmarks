@@ -27,7 +27,7 @@
 ;; (provide
 ;;  cut-tail)
 
-#;(module+ test
+(module+ test
   (require rackunit)
   (check-equal? (cut-tail (list (posn 1 1)))
                 (list))

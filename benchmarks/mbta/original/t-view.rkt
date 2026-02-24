@@ -374,7 +374,7 @@
 
 ;; Testing ==============================================================================
 
-#;(module+ test
+(module+ test
   (require rackunit)
   (define manage1 (new manage%))
   (define manage1_disable (get-field disabled manage1))

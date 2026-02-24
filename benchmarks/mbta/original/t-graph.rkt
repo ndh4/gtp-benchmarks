@@ -374,7 +374,7 @@
                (map (lambda (p) (cons from p)) (search n visited*)))
              (append all-paths paths-from-from-to-to))])))))
 
-#;(module+ test
+(module+ test
   ;; Parsing functions ---------------------------------------------------------
 
   ;; LINE-SPECIFICATION?

@@ -115,7 +115,7 @@
         [else (define-values (hd tl) (simple-stream-unfold st))
               (cons hd (simple-stream-take tl (sub1 n)))]))
 
-#;(module+ test
+(module+ test
   (require rackunit)
   ;; the simplest stream, which always produces 1
   (define (ones)

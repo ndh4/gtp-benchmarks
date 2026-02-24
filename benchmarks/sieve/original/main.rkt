@@ -84,7 +84,7 @@
 
 #;(time (main))
 
-#;(module+ test
+(module+ test
   (require rackunit)
   ;; `count-from n` Build a stream of integers starting from `n` and iteratively adding 1
   (define counter (count-from 2))

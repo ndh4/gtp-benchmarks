@@ -66,7 +66,7 @@
         [else (or (posn=? (car segs) h)
                   (segs-self-collide? h (cdr segs)))]))
 
-#;(module+ test
+(module+ test
   (require rackunit)
   ;; tests for `head-collide?`
   (check-false (head-collide? (posn (/ BOARD-WIDTH 2) (/ BOARD-HEIGHT 2))))
