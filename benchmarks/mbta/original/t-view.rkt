@@ -1,7 +1,5 @@
 #lang racket
 
-(define-syntax ctc-level 'max)
-
 ;; implement the view (renderer) for the T path finder
 
 ;; (provide 

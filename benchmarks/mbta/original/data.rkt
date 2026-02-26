@@ -1,6 +1,5 @@
 #lang racket
 
-
 (require "../../../ctcs/precision-config.rkt"
          "../../../ctcs/common.rkt"
          "../../../ctcs/configurable.rkt")
