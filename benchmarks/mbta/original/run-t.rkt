@@ -156,13 +156,13 @@
   ;; station that doesn't exist to station that does
   (check-equal? (run-t "from blabla to Northeastern") "no such station: blabla")
   ;; many matches (left)
-  (check-true (string-prefix? (run-t "from N to Northeastern") "disambiguate"))
+  (check-true (string-prefix? (run-t "from N to Northeastern") "disambiguate your current location"))
   ;; many matches (right)
-  (check-true (string-prefix? (run-t "from Northeastern to N") "disambiguate"))
+  (check-true (string-prefix? (run-t "from Northeastern to N") "disambiguate your destination"))
   ;; many matches (both)
-  (check-true (string-prefix? (run-t "from N to G") "disambiguate"))
+  (check-true (string-prefix? (run-t "from N to G") "disambiguate your current location"))
   ;; many matches (both, same)
-  (check-true (string-prefix? (run-t "from N to N") "disambiguate"))
+  (check-true (string-prefix? (run-t "from N to N") "disambiguate your current location"))
   ;; disabling station that doesn't exist
   (check-equal? (run-t "disable blabla") "no such station to disable: blabla")
   ;; station to itself

@@ -1,5 +1,7 @@
 #lang racket
 
+(define-syntax ctc-level 'max)
+
 ;; implement the view (renderer) for the T path finder
 
 ;; (provide 
@@ -135,7 +137,8 @@
          [result (s)
                  (cond
                    [(= (num-expected-stations-matching s) 1) #f]
-                   [else (and/c string? (λ (res) (substring? res s)))])]
+                   [else
+                    (and/c string? (λ (res) (substring? s res)))])] ;; FIX: s and res swapped
          #:post (self s result)
          (let ([disabled (get-field disabled self)])
            (and (list? disabled)
@@ -176,7 +179,7 @@
 
 (define/ctc-helper (correct-find-result? self from to res)
   (define from-count (num-expected-stations-matching from))
-  (define to-count (num-expected-stations-matching from))
+  (define to-count (num-expected-stations-matching to))
   (define any-disabled? (> (length (get-field disabled self)) 0))
   (and
    ;; base properties of all valid results
@@ -191,7 +194,7 @@
       #t] ;; without reimplementing pathing logic, we'll have to assume the lack of path is OK
      [(or (not (= from-count 1))
           (not (= to-count 1)))
-      (or (string-contains? res "clarify")
+      (or (string-contains? res "disambiguate")
           (string-contains? res "no such"))]
      [else
       (define underlying-graph (get-field G (get-field mbta-subways self)))
@@ -451,8 +454,8 @@
   (define dis_rem_out5_3 (send manage1 add-to-disabled "Brookline Village"))
   (check-equal? (length (get-field disabled manage1)) 4)
   (check-equal? '("Brookline Village Station" "Stony Brook Station" "Brookline Hills Station" "Riverway Station") (get-field disabled manage1))
-  (check-equal? "Close your eyes and tap your heels three times. Open your eyes. You will be at brook." (send manage1 find "brook" "brook"))
-  (check-equal? "Close your eyes and tap your heels three times. Open your eyes. You will be at Brook." (send manage1 find "Brook" "Brook"))
+  (check-equal? "no such station: brook" (send manage1 find "brook" "brook"))
+  (check-equal? "disambiguate your current location: Brookline Hills Station Stony Brook Station Brookline Village Station" (send manage1 find "Brook" "Brook"))
   (check-equal? "Close your eyes and tap your heels three times. Open your eyes. You will be at Riverway." (send manage1 find "Riverway" "Riverway"))
   (check-equal? "no such destination: brookline hills" (send manage1 find "Stony Brook" "brookline hills"))
   (check-equal? "it is currently impossible to reach Brookline Hills Station from Stony Brook Station via subways" (send manage1 find "Stony Brook" "Brookline Hills"))
