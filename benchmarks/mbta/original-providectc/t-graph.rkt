@@ -485,7 +485,7 @@
   ;; FIND-PATH
   ;; path with one stop
   (check-equal?
-   `(("Government Center Station" ,(set)))
+   `((("Government Center Station" ,(set))))
    (send graph find-path "Government Center Station" "Government Center Station"))
   ;; path with two stops, only one route
   (check-equal?
@@ -509,7 +509,7 @@
              ("Haymarket Station" ,(set "orange")))
            multiple-routes))
   (check-not-false
-   (member `((("Government Center Station" ,(set "D" "E" "B" "C")))
+   (member `(("Government Center Station" ,(set "D" "E" "B" "C"))
              ("Haymarket Station" ,(set "D" "E" "B" "C")))
            multiple-routes))
   (check-not-false

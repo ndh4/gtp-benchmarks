@@ -421,7 +421,7 @@
  (check-equal? (send graph station? "Northeastern") #f)
  (check-equal? (send graph station? "Northeastern University Station") #t)
  (check-equal?
-  `(("Government Center Station" ,(set)))
+  `((("Government Center Station" ,(set))))
   (send graph find-path
     "Government Center Station"
     "Government Center Station"))
@@ -448,7 +448,7 @@
    multiple-routes))
  (check-not-false
   (member
-   `((("Government Center Station" ,(set "D" "E" "B" "C")))
+   `(("Government Center Station" ,(set "D" "E" "B" "C"))
      ("Haymarket Station" ,(set "D" "E" "B" "C")))
    multiple-routes))
  (check-not-false
