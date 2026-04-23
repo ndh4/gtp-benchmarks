@@ -98,7 +98,7 @@
     (cond
      ((regexp-match DISABLE next)
       (let ((x2 (second (regexp-match DISABLE next))))
-        (> (length (get-field disabled manage)) (unbox stash-len))))
+        (>= (length (get-field disabled manage)) (unbox stash-len))))
      ((regexp-match ENABLE next)
       (<= (length (get-field disabled manage)) (unbox stash-len)))
      (else #t))))

@@ -63,9 +63,12 @@
                    #:post (next)
                    ;; similar comment to above. Here I suppose this is a proxy for "did the appropriate method of `manage` actually get called".
                    (cond
+                     ;; nh: Both arms should use <= or >= because the station might be nonsense
+                     ;; ("ENABLE blahblahblah") in which case the number of disabled stations
+                     ;; does not actually change.
                      [(regexp-match DISABLE next)
                       (let ([x2 (second (regexp-match DISABLE next))])
-                        (> (length (get-field disabled manage))
+                        (>= (length (get-field disabled manage))
                            (unbox stash-len)))]
                      [(regexp-match ENABLE next)
                       (<= (length (get-field disabled manage))
