@@ -8,7 +8,16 @@
          "helpers.rkt"
          racket/contract)
 
-(provide read-t-graph mbta%)
+(provide unweighted-graph/directed*
+         attach-edge-property*
+         in-neighbors*
+         SOURCE-DIRECTORY
+         COLORS
+         line-specification?
+         read-t-graph
+         read-t-line-from-file
+         lines->hash
+         mbta%)
 
 (provide mbta%/c)
 
@@ -96,19 +105,60 @@
          (connection-on (-> string? string? (set/c string?)))
          (bundles (listof (list/c string? (set/c string?)))))))
 
-(define unweighted-graph/directed* unweighted-graph/directed)
+(define/contract
+ unweighted-graph/directed*
+ (configurable-ctc
+  (max (-> (listof (list/c any/c any/c)) any))
+  (types (-> (listof (list/c any/c any/c)) any)))
+ unweighted-graph/directed)
 
-(define attach-edge-property* attach-edge-property)
+(define/contract
+ attach-edge-property*
+ (configurable-ctc
+  (max (->* (graph?) (#:init any/c #:for-each any/c) any))
+  (types (->* (graph?) (#:init any/c #:for-each any/c) any)))
+ attach-edge-property)
 
-(define in-neighbors* in-neighbors)
+(define/contract
+ in-neighbors*
+ (configurable-ctc (max (-> graph? any/c any)) (types (-> graph? any/c any)))
+ in-neighbors)
 
-(define SOURCE-DIRECTORY "../base/~a.dat")
+(define/contract
+ SOURCE-DIRECTORY
+ (configurable-ctc
+  (max (λ (res) (string=? "../base/~a.dat" res)))
+  (types string?))
+ "../base/~a.dat")
 
-(define COLORS '("blue" "orange" "green" "red"))
+(define/contract
+ COLORS
+ (configurable-ctc
+  (max
+   (and/c
+    (listof color?)
+    (λ (lst)
+      (andmap
+       (λ (color-file) (file-exists? (format SOURCE-DIRECTORY color-file)))
+       lst))))
+  (types (listof string?)))
+ '("blue" "orange" "green" "red"))
 
-(define (line-specification? line)
-  (define r (regexp-match #px"--* (.*)" line))
-  (and r (string-split (second r))))
+(define/contract
+ (line-specification? line)
+ (configurable-ctc
+  (max
+   (->i
+    ((s string?))
+    (result
+     (s)
+     (λ (res)
+       (if res
+         (and (andmap line? res) (andmap (λ (l) (substring? l s)) res))
+         (not (substring? "--" s)))))))
+  (types (-> string? (or/c boolean? (listof string?)))))
+ (define r (regexp-match #px"--* (.*)" line))
+ (and r (string-split (second r))))
 
 (define/contract
  (read-t-graph)
@@ -149,41 +199,75 @@
   (bundles bundles)
   (connection-on connection-on)))
 
-(define (read-t-line-from-file line-file)
-  (define full-path (format SOURCE-DIRECTORY line-file))
-  (for/list
-   (((name line) (in-hash (lines->hash (file->lines full-path)))))
-   (list name (rest line))))
+(define/contract
+ (read-t-line-from-file line-file)
+ (configurable-ctc
+  (max
+   (->i
+    ((lf (λ (lf) (color? lf))))
+    (result
+     (lf)
+     (λ (res)
+       (andmap
+        (λ (pair)
+          (and (line? (first pair))
+               (= (remainder (length (second pair)) 2) 0)
+               (check-station-pairs? (second pair))))
+        res)))))
+  (types
+   (-> string? (listof (list/c string? (listof (list/c string? string?)))))))
+ (define full-path (format SOURCE-DIRECTORY line-file))
+ (for/list
+  (((name line) (in-hash (lines->hash (file->lines full-path)))))
+  (list name (rest line))))
 
-(define (lines->hash lines0)
-  (define names0 (line-specification? (first lines0)))
-  (define pred0 (second lines0))
-  (define Hlines0
-    (make-immutable-hash
-     (for/list ((name names0)) (cons name (cons pred0 '())))))
-  (let read-t-line ((lines (cddr lines0)) (names names0) (Hlines Hlines0))
-    (cond
-     ((empty? lines) Hlines)
-     (else
-      (define current-stop (string-trim (first lines)))
-      (cond
-       ((line-specification? current-stop)
-        =>
-        (lambda (names) (read-t-line (rest lines) names Hlines)))
-       (else
-        (define new-connections
-          (for/fold
-           ((Hlines1 Hlines))
-           ((name (in-list names)))
-           (define line (hash-ref Hlines1 name))
-           (define predecessor (first line))
-           (define connections
-             (list*
-              (list predecessor current-stop)
-              (list current-stop predecessor)
-              (rest line)))
-           (hash-set Hlines1 name (cons current-stop connections))))
-        (read-t-line (rest lines) names new-connections)))))))
+(define/contract
+ (lines->hash lines0)
+ (configurable-ctc
+  (max
+   (->i
+    ((lines (listof string?)))
+    (result
+     (lines)
+     (λ (h)
+       (and (andmap line? (hash-keys h))
+            (andmap
+             (cons/c string? (listof (list/c station? station?)))
+             (hash-values h))
+            (= (remainder (length (rest (first (hash-values h)))) 2) 0)
+            (check-station-pairs? (rest (first (hash-values h)))))))))
+  (types
+   (->
+    (listof string?)
+    (hash/c string? (cons/c string? (listof (list/c string? string?)))))))
+ (define names0 (line-specification? (first lines0)))
+ (define pred0 (second lines0))
+ (define Hlines0
+   (make-immutable-hash
+    (for/list ((name names0)) (cons name (cons pred0 '())))))
+ (let read-t-line ((lines (cddr lines0)) (names names0) (Hlines Hlines0))
+   (cond
+    ((empty? lines) Hlines)
+    (else
+     (define current-stop (string-trim (first lines)))
+     (cond
+      ((line-specification? current-stop)
+       =>
+       (lambda (names) (read-t-line (rest lines) names Hlines)))
+      (else
+       (define new-connections
+         (for/fold
+          ((Hlines1 Hlines))
+          ((name (in-list names)))
+          (define line (hash-ref Hlines1 name))
+          (define predecessor (first line))
+          (define connections
+            (list*
+             (list predecessor current-stop)
+             (list current-stop predecessor)
+             (rest line)))
+          (hash-set Hlines1 name (cons current-stop connections))))
+       (read-t-line (rest lines) names new-connections)))))))
 
 (define/contract
  mbta%

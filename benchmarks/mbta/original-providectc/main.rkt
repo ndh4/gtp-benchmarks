@@ -11,57 +11,57 @@
  (only-in racket/string string-join))
 (require/configurable-contract "run-t.rkt" run-t manage EOM DONE ENABLE DISABLE PATH )
 
-;; (provide/configurable-contract
-;;  [dat->station-names ([max (->i ([fname (and/c string? (λ (f) (file-exists? f)))])
-;;                                 [result (fname)
-;;                                         (and/c (listof station?)
-;;                                                (λ (lst)
-;;                                                  (sublist? lst (file->lines fname))))])]            
-;;                       #;[max/sub1 (-> (and/c string? (λ (f) (file-exists? f)))
-;;                                       (listof station?))]             
-;;                       [types (-> string? (listof string?))])]
-;;  [BLUE-STATIONS ([max (and/c (listof station?)
-;;                              (λ (lst)
-;;                                (sublist? lst (file->lines "../base/blue.dat"))))]
-;;                  #;[max/sub1 (listof station?)]
-;;                  [types (listof string?)])]
-;;  [ORANGE-STATIONS ([max (and/c (listof station?)
-;;                                (λ (lst)
-;;                                  (sublist? lst (file->lines "../base/orange.dat"))))]
-;;                    #;[max/sub1 (listof station?)]
-;;                    [types (listof string?)])]
-;;  [path ([max (->i ([from string?]
-;;                    [to string?])
-;;                   [result (from to)
-;;                           (λ (res)
-;;                             (ordered-substrings? (list "from" from "to" to) res))])]
-;;         #;[max/sub1 (->i ([from string?]
-;;                           [to string?])
-;;                          [result (from to)
-;;                                  (λ (res)
-;;                                    (and (substring? from res)
-;;                                         (substring? to res)))])]
-;;         [types (-> string? string? string?)])]
-;;  [enable ([max (->i ([s string?])
-;;                     [result (s)
-;;                             (λ (res)
-;;                               (ordered-substrings? (list "enable" s) res))])]
-;;           #;[max/sub1 (->i ([s string?])
-;;                            [result (s)
-;;                                    (λ (res)
-;;                                      (substring? s res))])]
-;;           [types (-> string? string?)])]
-;;  [disable ([max (->i ([s string?])
-;;                      [result (s)
-;;                              (λ (res)
-;;                                (ordered-substrings? (list "disable" s) res))])]
-;;            #;[max/sub1 (->i ([s string?])
-;;                             [result (s)
-;;                                     (λ (res)
-;;                                       (substring? s res))])]
-;;            [types (-> string? string?)])]
-;;  [assert (string? natural? . -> . void?)]
-;;  [main any/c])
+ (provide/configurable-contract
+  [dat->station-names ([max (->i ([fname (and/c string? (λ (f) (file-exists? f)))])
+                                 [result (fname)
+                                         (and/c (listof station?)
+                                                (λ (lst)
+                                                  (sublist? lst (file->lines fname))))])]
+                       #;[max/sub1 (-> (and/c string? (λ (f) (file-exists? f)))
+                                       (listof station?))]
+                       [types (-> string? (listof string?))])]
+  [BLUE-STATIONS ([max (and/c (listof station?)
+                              (λ (lst)
+                                (sublist? lst (file->lines "../base/blue.dat"))))]
+                  #;[max/sub1 (listof station?)]
+                  [types (listof string?)])]
+  [ORANGE-STATIONS ([max (and/c (listof station?)
+                                (λ (lst)
+                                  (sublist? lst (file->lines "../base/orange.dat"))))]
+                    #;[max/sub1 (listof station?)]
+                    [types (listof string?)])]
+  [path ([max (->i ([from string?]
+                    [to string?])
+                   [result (from to)
+                           (λ (res)
+                             (ordered-substrings? (list "from" from "to" to) res))])]
+         #;[max/sub1 (->i ([from string?]
+                           [to string?])
+                          [result (from to)
+                                  (λ (res)
+                                    (and (substring? from res)
+                                         (substring? to res)))])]
+         [types (-> string? string? string?)])]
+  [enable ([max (->i ([s string?])
+                     [result (s)
+                             (λ (res)
+                               (ordered-substrings? (list "enable" s) res))])]
+           #;[max/sub1 (->i ([s string?])
+                            [result (s)
+                                    (λ (res)
+                                      (substring? s res))])]
+           [types (-> string? string?)])]
+  [disable ([max (->i ([s string?])
+                      [result (s)
+                              (λ (res)
+                                (ordered-substrings? (list "disable" s) res))])]
+            #;[max/sub1 (->i ([s string?])
+                             [result (s)
+                                     (λ (res)
+                                       (substring? s res))])]
+            [types (-> string? string?)])]
+  [assert ([max (string? natural? . -> . void?)])]
+  [main ([max any/c])])
 
 
 ;; ===================================================================================================

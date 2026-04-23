@@ -40,9 +40,9 @@
          racket/contract)
 
 (provide/configurable-contract
- #;[unweighted-graph/directed* ([max ((listof (list/c any/c any/c)) . -> . any)]
+ [unweighted-graph/directed* ([max ((listof (list/c any/c any/c)) . -> . any)]
                               [types ((listof (list/c any/c any/c)) . -> . any)])]
- #;[attach-edge-property* ([max ([graph?]
+ [attach-edge-property* ([max ([graph?]
                                [#:init any/c
                                 #:for-each any/c]
                                . ->* .
@@ -52,9 +52,9 @@
                                   #:for-each any/c]
                                  . ->* .
                                  any)])]
- #;[in-neighbors* ([max (graph? any/c . -> . any)]
+ [in-neighbors* ([max (graph? any/c . -> . any)]
                  [types (graph? any/c . -> . any)])]
- #;[SOURCE-DIRECTORY ([max (λ (res)
+ [SOURCE-DIRECTORY ([max (λ (res)
                            (string=? "../base/~a.dat" res))]
                     #;[max/sub1 (and/c string?
                                        (λ (s)
@@ -62,14 +62,14 @@
                                            (string=? "dat"
                                                      (list-ref split (- (length split) 1))))))]                                           
                     [types string?])]
- #;[COLORS ([max (and/c (listof color?)
+ [COLORS ([max (and/c (listof color?)
                       (λ (lst)
                         (andmap (λ (color-file)
                                   (file-exists? (format SOURCE-DIRECTORY color-file)))
                                 lst)))]
           #;[max/sub1 (listof color?)]
           [types (listof string?)])]
- #;[line-specification? ([max (->i ([s string?])
+ [line-specification? ([max (->i ([s string?])
                                  [result (s)
                                          (λ (res)
                                            (if res
@@ -93,7 +93,7 @@
                                  (find-path (->m station? station?
                                                  (listof (listof (list/c station? (set/c line?))))))))]
                 [types (-> (instanceof/c mbta%/type))])]
- #;[read-t-line-from-file ([max (->i ([lf (λ (lf) (color? lf))])
+ [read-t-line-from-file ([max (->i ([lf (λ (lf) (color? lf))])
                                    [result (lf)
                                            (λ (res)
                                              (andmap (λ (pair)
@@ -111,7 +111,7 @@
                          [types (-> string?
                                     (listof (list/c string?
                                                     (listof (list/c string? string?)))))])]
- #;[lines->hash ([max (->i ([lines (listof string?)])
+ [lines->hash ([max (->i ([lines (listof string?)])
                          [result (lines)
                                  ;; ll: checked 4x per unique line
                                  (λ (h)
