@@ -1,10 +1,11 @@
 #lang racket
 
-(define (plus a b)
+(define (inverse a)
   (if (= a 0)
-      b
-      (+ a b)))
+      1000
+      (/ 1 a)))
 
 (module+ test
   (require rackunit)
-  (check-equal? (plus 1 2) 3))
+  (check-equal? (inverse 0) 1000)
+  (check-equal? (inverse 1) 1))

@@ -1,8 +1,4 @@
-#hash((0
-       .
-       #s(target-file
-          "/home/breitnw/Documents/research/parent-cat/gtp-benchmarks/benchmarks/sieve/original/main.rkt"
-          ()))
+#hash((0 . #s(target-file "./benchmarks/sieve/original/main.rkt" ()))
       (1
        .
        #s(context
