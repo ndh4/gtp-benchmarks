@@ -75,7 +75,7 @@
                                            (if res
                                                (and (andmap line? res)
                                                     (andmap (λ (l) (substring? l s)) res))
-                                               (not (substring? "--" s))))])]
+                                               (not (substring? "-- " s))))])]
                        #;[max/sub1 (->i ([s string?])
                                         [result (s)
                                                 (λ (res)
@@ -354,7 +354,7 @@
       (for/list ((path paths*))
         (define start (first path))
         (cond
-          [(empty? (rest path)) (list start (set))]
+          [(empty? (rest path)) (list (list start (set)))]
           [else             
            (define next (connection-on start (second path)))
            (define-values (_ result)
@@ -509,7 +509,7 @@
              ("Haymarket Station" ,(set "orange")))
            multiple-routes))
   (check-not-false
-   (member `(("Government Center Station" ,(set "D" "E" "B" "C"))
+   (member `((("Government Center Station" ,(set "D" "E" "B" "C")))
              ("Haymarket Station" ,(set "D" "E" "B" "C")))
            multiple-routes))
   (check-not-false

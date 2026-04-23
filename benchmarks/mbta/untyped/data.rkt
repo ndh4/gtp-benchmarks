@@ -23,7 +23,19 @@
 
 (define/ctc-helper
  (line? str)
- (member str '("E" "D" "C" "B" "Mattapan" "Braintree" "orange" "blue")))
+ (member
+  str
+  '("E"
+    "D"
+    "C"
+    "B"
+    "Mattapan"
+    "Braintree"
+    "orange"
+    "blue"
+    "line"
+    "line1"
+    "line2")))
 
 (define/ctc-helper
  expected-stations

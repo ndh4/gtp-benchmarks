@@ -229,7 +229,7 @@
           23
           (check-not-false
            (member
-            `(("Government Center Station" ,(set "D" "E" "B" "C"))
+            `((("Government Center Station" ,(set "D" "E" "B" "C")))
               ("Haymarket Station" ,(set "D" "E" "B" "C")))
             multiple-routes))
           ()))
