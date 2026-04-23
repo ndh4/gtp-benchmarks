@@ -139,13 +139,17 @@
   (define (path-len p) (length (string-split p "\n")))
   ;; tests from main
   (check-equal? (path-len (run-t "from Airport to Northeastern")) 14)
-  (check-equal? (path-len (run-t "disable Government")) 1)
+  (define r1 (run-t "disable Government"))
+  (check-equal? (path-len r1) 1)
   (check-equal? (path-len (run-t "from Airport to Northeastern")) 16)
-  (check-equal? (path-len (run-t "enable Government")) 1)
+  (define r2 (run-t "enable Government"))
+  (check-equal? (path-len r2) 1)
   (check-equal? (path-len (run-t "from Airport to Harvard Square")) 12)
-  (check-equal? (path-len (run-t "disable Park Street")) 1)
+  (define r3 (run-t "disable Park Street"))
+  (check-equal? (path-len r3) 1)
   (check-true (string-prefix? (run-t "from Northeastern to Harvard Square") "it is currently impossible"))
-  (check-equal? (path-len (run-t "enable Park Street")) 1)
+  (define r4 (run-t "enable Park Street"))
+  (check-equal? (path-len r4) 1)
   (check-equal? (path-len (run-t "from Northeastern to Harvard Square")) 12)
 
   ;; a couple other tests

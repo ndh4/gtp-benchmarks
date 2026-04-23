@@ -376,6 +376,7 @@
              (append all-paths paths-from-from-to-to))])))))
 
 (module+ test
+  (require rackunit)
   ;; Parsing functions ---------------------------------------------------------
 
   ;; LINE-SPECIFICATION?
@@ -461,7 +462,7 @@
 
   ;; Graph methods -------------------------------------------------------------
 
-  (require rackunit)
+
   (define graph (read-t-graph))
 
   ;; STATION
