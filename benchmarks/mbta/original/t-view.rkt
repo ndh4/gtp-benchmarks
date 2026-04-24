@@ -155,14 +155,14 @@
      (s)
      (cond
       ((= (num-expected-stations-matching s) 1) #f)
-      (else (and/c string? (λ (res) (substring? res s))))))
+      (else (and/c string? (λ (res) (substring? s res))))))
     #:post
     (self s result)
     (let ((disabled (get-field disabled self)))
       (and (list? disabled)
            (if (string? result)
-             (= (length disabled) (unbox stash1))
-             (and (<= (length disabled) (unbox stash1))
+             (= (length disabled) (unbox stash2))
+             (and (<= (length disabled) (unbox stash2))
                   (for/and
                    ((other-s disabled))
                    (not (string-contains? other-s s)))))))))
