@@ -1,8 +1,4 @@
-#hash((0
-       .
-       #s(target-file
-          "/home/breitnw/Documents/research/parent-cat/gtp-benchmarks/benchmarks/snake/original/cut-tail.rkt"
-          ()))
+#hash((0 . #s(target-file "./benchmarks/snake/original/cut-tail.rkt" ()))
       (1 . #s(context 0 (begin (require rackunit)) ()))
       (2 . #s(test 1 (check-equal? (cut-tail (list (posn 1 1))) (list)) ()))
       (3

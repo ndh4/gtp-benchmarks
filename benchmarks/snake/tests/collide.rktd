@@ -1,8 +1,4 @@
-#hash((0
-       .
-       #s(target-file
-          "/home/breitnw/Documents/research/parent-cat/gtp-benchmarks/benchmarks/snake/original/collide.rkt"
-          ()))
+#hash((0 . #s(target-file "./benchmarks/snake/original/collide.rkt" ()))
       (1 . #s(context 0 (begin (require rackunit)) ()))
       (2
        .
