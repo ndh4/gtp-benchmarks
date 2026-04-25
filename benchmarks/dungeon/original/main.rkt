@@ -70,124 +70,132 @@
 ))
 (require/configurable-contract "utils.rkt" reset! #;random random-from random-between )
 
-;; (provide/configurable-contract
-;;  [N exact-nonnegative-integer?]
-;;  [wall-cache ([max (hash/c array-coord? boolean?)]
-;;               [types hash?])]
-;;  [free-cache ([max (hash/c array-coord? boolean?)]
-;;               [types hash?])]
-;;  [animate-generation? boolean?]
-;;  [ITERS exact-nonnegative-integer?]
-;;  [dungeon-height exact-nonnegative-integer?]
-;;  [dungeon-width exact-nonnegative-integer?]
-;;  [try-add-rectangle ([max (->i ([grid grid?]
-;;                                 [pos (grid) (and/c array-coord?
-;;                                                    (within-grid/c grid))]
-;;                                 [height index?]
-;;                                 [width index?]
-;;                                 [direction direction?])
-;;                                [result (pos height width direction)
-;;                                        (or-#f/c
-;;                                         (room-with/c
-;;                                          (=/c height)
-;;                                          (=/c width)
-;;                                          (alistof (and/c array-coord?
-;;                                                          (coord-within-box/c pos
-;;                                                                              height
-;;                                                                              width
-;;                                                                              direction))
-;;                                                   cell%/c)
-;;                                          ;; ll: I don't think these can (reasonably) be
-;;                                          ;; refined (note that they still have the default
-;;                                          ;; room contract, see definition of room-with/c)
-;;                                          any/c
-;;                                          any/c))])]
-;;                      [types (grid? array-coord? index? index? direction? 
-;;                                    . -> .
-;;                                    (or-#f/c any-room?))])]
-;;  [commit-room ([max (->i ([grid grid?]
-;;                           [room any-room?])
-;;                          [result void?]
-;;                          #:post (grid room)
-;;                          (for/and ([pos+cell% (in-list (room-poss->cells room))])
-;;                            (match-define (cons pos poss-cell%) pos+cell%)
-;;                            (is-a? (grid-ref grid pos)
-;;                                   poss-cell%)))]
-;;                [types (grid? any-room? . -> . void?)])]
-;;  [random-direction ([max (-> (curryr member (list left right up down)))]
-;;                     [types (-> direction?)])]
-;;  [horizontal? ([max (->i ([dir direction?])
-;;                          [result (dir) (if (member dir (list left right))
-;;                                            #t
-;;                                            #f)])]
-;;                [types (direction? . -> . boolean?)])]
-;;  [vertical? ([max (->i ([dir direction?])
-;;                        [result (dir) (if (member dir (list up down))
-;;                                          #t
-;;                                          #f)])]
-;;              [types (direction? . -> . boolean?)])]
-;;  [new-room ([max (->i ([grid grid?]
-;;                        [pos (grid) (and/c array-coord?
-;;                                           (within-grid/c grid))]
-;;                        [dir direction?])
-;;                       [result (pos dir)
-;;                               (or-#f/c
-;;                                (room-with/c
-;;                                 (random-result-between/c 7 11)
-;;                                 (random-result-between/c 7 11)
-;;                                 (alistof (and/c array-coord?
-;;                                                 ;; ll: Just make sure it's within the max
-;;                                                 (coord-within-box/c pos
-;;                                                                     11
-;;                                                                     11
-;;                                                                     dir))
-;;                                          cell%/c)
-;;                                 any/c
-;;                                 any/c))])]
-;;             [types (grid? array-coord? direction? . -> . (or-#f/c any-room?))])]
-;;  [new-corridor ([max (->i ([grid grid?]
-;;                            [pos array-coord?]
-;;                            [dir direction?])
-;;                           [result (pos dir)
-;;                                   (let* ([h? (horizontal? dir)]
-;;                                          [h (if h? 3 8)]
-;;                                          [w (if h? 10 3)])
-;;                                     (or-#f/c
-;;                                      (room-with/c
-;;                                       (random-result-between/c 3 8)
-;;                                       (random-result-between/c 3 10)
-;;                                       (alistof (and/c array-coord?
-;;                                                       ;; ll: Just make sure it's within
-;;                                                       ;; the max
-;;                                                       (coord-within-box/c pos
-;;                                                                           h
-;;                                                                           w
-;;                                                                           dir))
-;;                                                cell%/c)
-;;                                       any/c
-;;                                       any/c)))])]
-;;                 [types (grid? array-coord? direction? . -> . (or-#f/c any-room?))])]
-;;  [generate-dungeon ([max (->i ([encounters (listof exact-nonnegative-integer?)])
-;;                               [result
-;;                                (encounters)
-;;                                (and/c grid?
-;;                                       (room-count>=/c (length encounters)))])]
-;;                     [types ((listof exact-nonnegative-integer?) . -> . grid?)])]
-;;  [counts-as-free? ([max (->i ([grid grid?]
-;;                               [pos array-coord?])
-;;                              [result boolean?]
-;;                              #:post (grid pos result) (let ([c (grid-ref grid pos)])
-;;                                                         (or (false? result)
-;;                                                             (is-a? c empty-cell%)
-;;                                                             (is-a? c door%))))]
-;;                    [types (grid? array-coord? . -> . boolean?)])]
-;;  [hash-clear! any/c]
-;;  [smooth-walls ([max (grid? . -> . grid?)]
-;;                 [types (grid? . -> . grid?)])]
-;;  [smooth-single-wall ([max (grid? array-coord? . -> . void?)]
-;;                       [types (grid? array-coord? . -> . void?)])]
-;;  [LOOPS exact-nonnegative-integer?]
-;;  [main any/c])
+ (provide/configurable-contract
+  [N ([max exact-nonnegative-integer?]
+      [types exact-nonnegative-integer?])]
+  [wall-cache ([max (hash/c array-coord? boolean?)]
+               [types hash?])]
+  [free-cache ([max (hash/c array-coord? boolean?)]
+               [types hash?])]
+  [animate-generation? ([max boolean?]
+                        [types])]
+  [ITERS ([max exact-nonnegative-integer?]
+          [types exact-nonnegative-integer?])]
+  [dungeon-height ([max exact-nonnegative-integer?]
+                   [types exact-nonnegative-integer?])]
+  [dungeon-width ([max exact-nonnegative-integer?]
+                  [types exact-nonnegative-integer?])]
+  [try-add-rectangle ([max (->i ([grid grid?]
+                                 [pos (grid) (and/c array-coord?
+                                                    (within-grid/c grid))]
+                                 [height index?]
+                                 [width index?]
+                                 [direction direction?])
+                                [result (pos height width direction)
+                                        (or-#f/c
+                                         (room-with/c
+                                          (=/c height)
+                                          (=/c width)
+                                          (alistof (and/c array-coord?
+                                                          (coord-within-box/c pos
+                                                                              height
+                                                                              width
+                                                                              direction))
+                                                   cell%/c)
+                                          ;; ll: I don't think these can (reasonably) be
+                                          ;; refined (note that they still have the default
+                                          ;; room contract, see definition of room-with/c)
+                                          any/c
+                                          any/c))])]
+                      [types (grid? array-coord? index? index? direction?
+                                    . -> .
+                                    (or-#f/c any-room?))])]
+  [commit-room ([max (->i ([grid grid?]
+                           [room any-room?])
+                          [result void?]
+                          #:post (grid room)
+                          (for/and ([pos+cell% (in-list (room-poss->cells room))])
+                            (match-define (cons pos poss-cell%) pos+cell%)
+                            (is-a? (grid-ref grid pos)
+                                   poss-cell%)))]
+                [types (grid? any-room? . -> . void?)])]
+  [random-direction ([max (-> (curryr member (list left right up down)))]
+                     [types (-> direction?)])]
+  [horizontal? ([max (->i ([dir direction?])
+                          [result (dir) (if (member dir (list left right))
+                                            #t
+                                            #f)])]
+                [types (direction? . -> . boolean?)])]
+  [vertical? ([max (->i ([dir direction?])
+                        [result (dir) (if (member dir (list up down))
+                                          #t
+                                          #f)])]
+              [types (direction? . -> . boolean?)])]
+  [new-room ([max (->i ([grid grid?]
+                        [pos (grid) (and/c array-coord?
+                                           (within-grid/c grid))]
+                        [dir direction?])
+                       [result (pos dir)
+                               (or-#f/c
+                                (room-with/c
+                                 (random-result-between/c 7 11)
+                                 (random-result-between/c 7 11)
+                                 (alistof (and/c array-coord?
+                                                 ;; ll: Just make sure it's within the max
+                                                 (coord-within-box/c pos
+                                                                     11
+                                                                     11
+                                                                     dir))
+                                          cell%/c)
+                                 any/c
+                                 any/c))])]
+             [types (grid? array-coord? direction? . -> . (or-#f/c any-room?))])]
+  [new-corridor ([max (->i ([grid grid?]
+                            [pos array-coord?]
+                            [dir direction?])
+                           [result (pos dir)
+                                   (let* ([h? (horizontal? dir)]
+                                          [h (if h? 3 8)]
+                                          [w (if h? 10 3)])
+                                     (or-#f/c
+                                      (room-with/c
+                                       (random-result-between/c 3 8)
+                                       (random-result-between/c 3 10)
+                                       (alistof (and/c array-coord?
+                                                       ;; ll: Just make sure it's within
+                                                       ;; the max
+                                                       (coord-within-box/c pos
+                                                                           h
+                                                                           w
+                                                                           dir))
+                                                cell%/c)
+                                       any/c
+                                       any/c)))])]
+                 [types (grid? array-coord? direction? . -> . (or-#f/c any-room?))])]
+  [generate-dungeon ([max (->i ([encounters (listof exact-nonnegative-integer?)])
+                               [result
+                                (encounters)
+                                (and/c grid?
+                                       (room-count>=/c (length encounters)))])]
+                     [types ((listof exact-nonnegative-integer?) . -> . grid?)])]
+  [counts-as-free? ([max (->i ([grid grid?]
+                               [pos array-coord?])
+                              [result boolean?]
+                              #:post (grid pos result) (let ([c (grid-ref grid pos)])
+                                                         (or (false? result)
+                                                             (is-a? c empty-cell%)
+                                                             (is-a? c door%))))]
+                    [types (grid? array-coord? . -> . boolean?)])]
+  [hash-clear! ([max any/c]
+                [types any/c])]
+  [smooth-walls ([max (grid? . -> . grid?)]
+                 [types (grid? . -> . grid?)])]
+  [smooth-single-wall ([max (grid? array-coord? . -> . void?)]
+                       [types (grid? array-coord? . -> . void?)])]
+  [LOOPS ([max exact-nonnegative-integer?]
+          [types exact-nonnegative-integer?])]
+  [main ([max any/c]
+         [types any/c])])
 
 ;; =============================================================================
 ;(define-type Poss->Cells (Listof (Pairof Pos Cell%)))
