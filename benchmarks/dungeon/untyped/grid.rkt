@@ -9,126 +9,20 @@
 
 (require (only-in "cell.rkt" cell%? class-equal?))
 
-(require/configurable-contract "cell.rkt" void-cell% char->cell%)
+(require (only-in "cell.rkt" void-cell% char->cell%))
 
-(provide/configurable-contract
- (array-set!
-  ((max
-    (->i
-     ((g (arrayof cell%?)) (p array-coord?) (v cell%?))
-     (result void?)
-     #:post
-     (g p v)
-     (equal? v (grid-ref g p))))
-   (types (-> (arrayof cell%?) array-coord? cell%? void?))))
- (build-array
-  ((max
-    (->i
-     ((p array-coord?) (f (-> array-coord? cell%?)))
-     (result (p) (and/c (arrayof cell%?) (array-size=/c p)))
-     #:post
-     (p f result)
-     (for*/and
-      ((x (in-range (vector-ref p 0))) (y (in-range (vector-ref p 1))))
-      (define xy (vector x y))
-      (equal? (f xy) (grid-ref result xy)))))
-   (types (-> array-coord? (-> array-coord? cell%?) (arrayof cell%?)))))
- (parse-grid
-  ((max (-> (listof string?) grid?)) (types (-> (listof string?) grid?))))
- (show-grid ((max (-> grid? string?)) (types (-> grid? string?))))
- (grid-height
-  ((max
-    (->i
-     ((g grid?))
-     (result (g) (and/c index? (curry equal? (vector-length g))))))
-   (types (-> grid? index?))))
- (grid-width
-  ((max
-    (->i
-     ((g grid?))
-     (result
-      (g)
-      (and/c index? (curry equal? (vector-length (vector-ref g 0)))))))
-   (types (-> grid? index?))))
- (within-grid?
-  ((max
-    (->i
-     ((g grid?) (pos array-coord?))
-     (result
-      (g pos)
-      (curry
-       equal?
-       (and (<= 0 (vector-ref pos 0) (sub1 (grid-height g)))
-            (<= 0 (vector-ref pos 1) (sub1 (grid-width g))))))))
-   (types (-> grid? array-coord? boolean?))))
- (grid-ref
-  ((max
-    (->i
-     ((g grid?) (pos array-coord?))
-     (result
-      (g pos)
-      (or-#f/c
-       (and/c
-        cell%?
-        (curry
-         equal?
-         (when (within-grid? g pos)
-           (vector-ref
-            (vector-ref g (vector-ref pos 0))
-            (vector-ref pos 1)))))))))
-   (types (-> grid? array-coord? (or-#f/c cell%?)))))
- (left
-  ((max
-    (and/c
-     direction?
-     (->i
-      ((pos array-coord?))
-      ((n exact-nonnegative-integer?))
-      (result
-       (pos n)
-       (vector/c
-        (vector-ref pos 0)
-        (max (- (vector-ref pos 1) (if (unsupplied-arg? n) 1 n)) 0))))))
-   (types direction?)))
- (right
-  ((max
-    (and/c
-     direction?
-     (->i
-      ((pos array-coord?))
-      ((n exact-nonnegative-integer?))
-      (result
-       (pos n)
-       (vector/c
-        (vector-ref pos 0)
-        (max (+ (vector-ref pos 1) (if (unsupplied-arg? n) 1 n)) 0))))))
-   (types direction?)))
- (up
-  ((max
-    (and/c
-     direction?
-     (->i
-      ((pos array-coord?))
-      ((n exact-nonnegative-integer?))
-      (result
-       (pos n)
-       (vector/c
-        (max (- (vector-ref pos 0) (if (unsupplied-arg? n) 1 n)) 0)
-        (vector-ref pos 1))))))
-   (types direction?)))
- (down
-  ((max
-    (and/c
-     direction?
-     (->i
-      ((pos array-coord?))
-      ((n exact-nonnegative-integer?))
-      (result
-       (pos n)
-       (vector/c
-        (max (+ (vector-ref pos 0) (if (unsupplied-arg? n) 1 n)) 0)
-        (vector-ref pos 1))))))
-   (types direction?))))
+(provide array-set!
+         build-array
+         parse-grid
+         show-grid
+         grid-height
+         grid-width
+         within-grid?
+         grid-ref
+         left
+         right
+         up
+         down)
 
 (provide array-coord? direction? arrayof grid? within-grid/c)
 
@@ -136,8 +30,18 @@
 
 (define/ctc-helper (arrayof val-ctc) (vectorof (vectorof val-ctc)))
 
-(define (array-set! g p v)
-  (vector-set! (vector-ref g (vector-ref p 0)) (vector-ref p 1) v))
+(define/contract
+ (array-set! g p v)
+ (configurable-ctc
+  (max
+   (->i
+    ((g (arrayof cell%?)) (p array-coord?) (v cell%?))
+    (result void?)
+    #:post
+    (g p v)
+    (equal? v (grid-ref g p))))
+  (types (-> (arrayof cell%?) array-coord? cell%? void?)))
+ (vector-set! (vector-ref g (vector-ref p 0)) (vector-ref p 1) v))
 
 (define/ctc-helper
  ((array-size=/c dims) array)
@@ -145,55 +49,177 @@
  (and (= (vector-length array) x)
       (if (not (zero? x)) (= (vector-length (vector-ref array 0)) y) #t)))
 
-(define (build-array p f)
+(define/contract
+ (build-array p f)
+ (configurable-ctc
+  (max
+   (->i
+    ((p array-coord?) (f (-> array-coord? cell%?)))
+    (result (p) (and/c (arrayof cell%?) (array-size=/c p)))
+    #:post
+    (p f result)
+    (for*/and
+     ((x (in-range (vector-ref p 0))) (y (in-range (vector-ref p 1))))
+     (define xy (vector x y))
+     (equal? (f xy) (grid-ref result xy)))))
+  (types (-> array-coord? (-> array-coord? cell%?) (arrayof cell%?))))
+ (for/vector
+  ((x (in-range (vector-ref p 0))))
   (for/vector
-   ((x (in-range (vector-ref p 0))))
-   (for/vector
-    ((y (in-range (vector-ref p 1))))
-    (f (vector (assert x index?) (assert y index?))))))
+   ((y (in-range (vector-ref p 1))))
+   (f (vector (assert x index?) (assert y index?))))))
 
 (define/ctc-helper grid? (arrayof cell%?))
 
-(define (parse-grid los)
-  (for/vector
-   ((s (in-list los)))
-   (for/vector ((c (in-string s))) (new (char->cell% c)))))
+(define/contract
+ (parse-grid los)
+ (configurable-ctc
+  (max (-> (listof string?) grid?))
+  (types (-> (listof string?) grid?)))
+ (for/vector
+  ((s (in-list los)))
+  (for/vector ((c (in-string s))) (new (char->cell% c)))))
 
-(define (show-grid g)
-  (with-output-to-string
-   (lambda ()
-     (for
-      ((r (in-vector g)))
-      (for ((c (in-vector r))) (display (send c show)))
-      (newline)))))
+(define/contract
+ (show-grid g)
+ (configurable-ctc (max (-> grid? string?)) (types (-> grid? string?)))
+ (with-output-to-string
+  (lambda ()
+    (for
+     ((r (in-vector g)))
+     (for ((c (in-vector r))) (display (send c show)))
+     (newline)))))
 
-(define (grid-height g) (vector-length g))
+(define/contract
+ (grid-height g)
+ (configurable-ctc
+  (max
+   (->i
+    ((g grid?))
+    (result (g) (and/c index? (curry equal? (vector-length g))))))
+  (types (-> grid? index?)))
+ (vector-length g))
 
-(define (grid-width g) (vector-length (vector-ref g 0)))
+(define/contract
+ (grid-width g)
+ (configurable-ctc
+  (max
+   (->i
+    ((g grid?))
+    (result
+     (g)
+     (and/c index? (curry equal? (vector-length (vector-ref g 0)))))))
+  (types (-> grid? index?)))
+ (vector-length (vector-ref g 0)))
 
-(define (within-grid? g pos)
-  (and (<= 0 (vector-ref pos 0) (sub1 (grid-height g)))
-       (<= 0 (vector-ref pos 1) (sub1 (grid-width g)))))
+(define/contract
+ (within-grid? g pos)
+ (configurable-ctc
+  (max
+   (->i
+    ((g grid?) (pos array-coord?))
+    (result
+     (g pos)
+     (curry
+      equal?
+      (and (<= 0 (vector-ref pos 0) (sub1 (grid-height g)))
+           (<= 0 (vector-ref pos 1) (sub1 (grid-width g))))))))
+  (types (-> grid? array-coord? boolean?)))
+ (and (<= 0 (vector-ref pos 0) (sub1 (grid-height g)))
+      (<= 0 (vector-ref pos 1) (sub1 (grid-width g)))))
 
 (define/ctc-helper ((within-grid/c g) pos) (within-grid? g pos))
 
-(define (grid-ref g pos)
-  (and (within-grid? g pos)
-       (vector-ref (vector-ref g (vector-ref pos 0)) (vector-ref pos 1))))
+(define/contract
+ (grid-ref g pos)
+ (configurable-ctc
+  (max
+   (->i
+    ((g grid?) (pos array-coord?))
+    (result
+     (g pos)
+     (or-#f/c
+      (and/c
+       cell%?
+       (curry
+        equal?
+        (when (within-grid? g pos)
+          (vector-ref
+           (vector-ref g (vector-ref pos 0))
+           (vector-ref pos 1)))))))))
+  (types (-> grid? array-coord? (or-#f/c cell%?))))
+ (and (within-grid? g pos)
+      (vector-ref (vector-ref g (vector-ref pos 0)) (vector-ref pos 1))))
 
 (define/ctc-helper direction? (->* (array-coord?) (index?) array-coord?))
 
-(define (left pos (n 1))
-  (vector (vector-ref pos 0) (max (- (vector-ref pos 1) n) 0)))
+(define/contract
+ (left pos (n 1))
+ (configurable-ctc
+  (max
+   (and/c
+    direction?
+    (->i
+     ((pos array-coord?))
+     ((n exact-nonnegative-integer?))
+     (result
+      (pos n)
+      (vector/c
+       (vector-ref pos 0)
+       (max (- (vector-ref pos 1) (if (unsupplied-arg? n) 1 n)) 0))))))
+  (types direction?))
+ (vector (vector-ref pos 0) (max (- (vector-ref pos 1) n) 0)))
 
-(define (right pos (n 1))
-  (vector (vector-ref pos 0) (max (+ (vector-ref pos 1) n) 0)))
+(define/contract
+ (right pos (n 1))
+ (configurable-ctc
+  (max
+   (and/c
+    direction?
+    (->i
+     ((pos array-coord?))
+     ((n exact-nonnegative-integer?))
+     (result
+      (pos n)
+      (vector/c
+       (vector-ref pos 0)
+       (max (+ (vector-ref pos 1) (if (unsupplied-arg? n) 1 n)) 0))))))
+  (types direction?))
+ (vector (vector-ref pos 0) (max (+ (vector-ref pos 1) n) 0)))
 
-(define (up pos (n 1))
-  (vector (max (- (vector-ref pos 0) n) 0) (vector-ref pos 1)))
+(define/contract
+ (up pos (n 1))
+ (configurable-ctc
+  (max
+   (and/c
+    direction?
+    (->i
+     ((pos array-coord?))
+     ((n exact-nonnegative-integer?))
+     (result
+      (pos n)
+      (vector/c
+       (max (- (vector-ref pos 0) (if (unsupplied-arg? n) 1 n)) 0)
+       (vector-ref pos 1))))))
+  (types direction?))
+ (vector (max (- (vector-ref pos 0) n) 0) (vector-ref pos 1)))
 
-(define (down pos (n 1))
-  (vector (max (+ (vector-ref pos 0) n) 0) (vector-ref pos 1)))
+(define/contract
+ (down pos (n 1))
+ (configurable-ctc
+  (max
+   (and/c
+    direction?
+    (->i
+     ((pos array-coord?))
+     ((n exact-nonnegative-integer?))
+     (result
+      (pos n)
+      (vector/c
+       (max (+ (vector-ref pos 0) (if (unsupplied-arg? n) 1 n)) 0)
+       (vector-ref pos 1))))))
+  (types direction?))
+ (vector (max (+ (vector-ref pos 0) n) 0) (vector-ref pos 1)))
 
 #;(module+
  test

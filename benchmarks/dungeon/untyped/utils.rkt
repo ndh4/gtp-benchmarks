@@ -8,47 +8,18 @@
          "../../../ctcs/configurable.rkt"
          "../base/random-number-table.rkt")
 
-(provide/configurable-contract
- (orig ((max any/c) (types any/c)))
- (r* ((max any/c) (types any/c)))
- (reset!
-  ((max (->* () void? #:post (equal? (unbox r*) orig))) (types (-> void?))))
- (article
-  ((max
-    (->*
-     (boolean? boolean?)
-     (#:an? boolean?)
-     (apply or/c (list+titlecases "the" "an" "a"))))
-   (types (->* (boolean? boolean?) (#:an? boolean?) string?))))
- (random-between
-  ((max
-    (->i
-     ((min exact-nonnegative-integer?)
-      (max (min) (and/c exact-nonnegative-integer? (>/c min))))
-     (result (min max) (random-result-between/c min max))))
-   (types
-    (->
-     exact-nonnegative-integer?
-     exact-nonnegative-integer?
-     exact-nonnegative-integer?))))
- (d6
-  ((max (-> (random-result-between/c 1 7)))
-   (types (-> exact-nonnegative-integer?))))
- (d20
-  ((max (-> (random-result-between/c 1 21)))
-   (types (-> exact-nonnegative-integer?))))
- (random-from
-  ((max (->i ((l (listof any/c))) (result (l) (memberof/c l))))
-   (types (-> (listof any/c) any/c))))
- (shuffle
-  ((max (->i ((l (listof any/c))) (result (l) (permutationof/c l))))
-   (types (-> (listof any/c) (listof any/c))))))
+(provide orig r* reset! article random-between d6 d20 random-from shuffle)
 
 (provide random-result-between/c)
 
-(define r* (box orig))
+(define/contract r* (configurable-ctc (max any/c) (types any/c)) (box orig))
 
-(define (reset!) (set-box! r* orig))
+(define/contract
+ (reset!)
+ (configurable-ctc
+  (max (->* () void? #:post (equal? (unbox r*) orig)))
+  (types (-> void?)))
+ (set-box! r* orig))
 
 (define (random n) (begin0 (car (unbox r*)) (set-box! r* (cdr (unbox r*)))))
 
@@ -56,22 +27,63 @@
  (list+titlecases . los)
  (append los (map string-titlecase los)))
 
-(define (article capitalize? specific? #:an? (an? #f))
-  (if specific?
-    (if capitalize? "The" "the")
-    (if an? (if capitalize? "An" "an") (if capitalize? "A" "a"))))
+(define/contract
+ (article capitalize? specific? #:an? (an? #f))
+ (configurable-ctc
+  (max
+   (->*
+    (boolean? boolean?)
+    (#:an? boolean?)
+    (apply or/c (list+titlecases "the" "an" "a"))))
+  (types (->* (boolean? boolean?) (#:an? boolean?) string?)))
+ (if specific?
+   (if capitalize? "The" "the")
+   (if an? (if capitalize? "An" "an") (if capitalize? "A" "a"))))
 
 (define/ctc-helper
  (random-result-between/c min max)
  (and/c exact-nonnegative-integer? (>=/c min) (<=/c max)))
 
-(define (random-between min max) (+ min (random (- max min))))
+(define/contract
+ (random-between min max)
+ (configurable-ctc
+  (max
+   (->i
+    ((min exact-nonnegative-integer?)
+     (max (min) (and/c exact-nonnegative-integer? (>/c min))))
+    (result (min max) (random-result-between/c min max))))
+  (types
+   (->
+    exact-nonnegative-integer?
+    exact-nonnegative-integer?
+    exact-nonnegative-integer?)))
+ (+ min (random (- max min))))
 
-(define (d6) (random-between 1 7))
+(define/contract
+ (d6)
+ (configurable-ctc
+  (max (-> (random-result-between/c 1 7)))
+  (types (-> exact-nonnegative-integer?)))
+ (random-between 1 7))
 
-(define (d20) (random-between 1 21))
+(define/contract
+ (d20)
+ (configurable-ctc
+  (max (-> (random-result-between/c 1 21)))
+  (types (-> exact-nonnegative-integer?)))
+ (random-between 1 21))
 
-(define (random-from l) (first (shuffle l)))
+(define/contract
+ (random-from l)
+ (configurable-ctc
+  (max (->i ((l (listof any/c))) (result (l) (memberof/c l))))
+  (types (-> (listof any/c) any/c)))
+ (first (shuffle l)))
 
-(define (shuffle l) (reverse l))
+(define/contract
+ (shuffle l)
+ (configurable-ctc
+  (max (->i ((l (listof any/c))) (result (l) (permutationof/c l))))
+  (types (-> (listof any/c) (listof any/c))))
+ (reverse l))
 
