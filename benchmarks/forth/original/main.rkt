@@ -1,12 +1,11 @@
 #lang racket
-;;(provide;; /configurable-contract
- ;; [LOOPS ([max 1]
- ;;   [types natural?])]
- ;; [main ([max (-> (listof string?) void?)]
- ;;   [types (-> (listof string?) void?)])]
- ;; [lines ([max (listof string?)]
- ;;   [type
-    ;; s (listof string?)])])
+(provide/configurable-contract
+  [LOOPS ([max 1]
+    [types natural?])]
+  [main ([max (-> (listof string?) void?)]
+    [types (-> (listof string?) void?)])]
+  [lines ([max (listof string?)]
+    [types (listof string?)])])
 
 ;; (require (only-in "eval.rkt"
 ;;   forth-eval*

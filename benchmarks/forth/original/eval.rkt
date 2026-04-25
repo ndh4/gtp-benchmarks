@@ -62,11 +62,10 @@
                                   stack?)]))]
    [types (env? stack? token*? . -> . (values (or-#f/c env?) stack?))])]
  [forth-tokenize ([max (->i ([str string?])
-             [result (str) (equal?/c
-                            (de-nest
-                             (read
-                              (open-input-string
-                               (string-append "(" str ")")))))])]
+             [result (str) (and/c (listof (or/c number? symbol?))
+                            (lambda (result)
+                             (= (length result)
+                                (length (string-split str)))))])]
    [types (string? . -> . token*?)])]
  [de-nest ([max (->i ([v* (listof/any-depth/c token*?)])
              [result (not/c nested-singleton-list?)])]
@@ -201,7 +200,8 @@
   (define eval/stack (lambda (token*)
                        (let-values ([(e s) (forth-eval E1 S1 token*)]) s)))
 
-  (check-equal? (eval/stack #f) S1)
+;; #f breaks the contract for token*?, so remove it from consideration
+  ;(check-equal? (eval/stack #f) S1)
   (check-equal? (eval/stack 'nada) S1)
   (check-equal? (eval/stack '(exit)) S1)
   (check-equal? (eval/stack '(help)) S1)

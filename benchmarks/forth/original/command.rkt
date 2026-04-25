@@ -23,6 +23,7 @@
           or-#f/c
           command%/c
           command%?
+          command%-with-id/c
           command%?-with-exec
           stack?
           env?
@@ -136,29 +137,28 @@
    [types env?])]
  [exit? ([max (->i ([sym any/c])
              [result (sym)
-                     (memq sym '(exit quit q leave bye))])]
+                     (not (not (memq sym '(exit quit q leave bye))))])]
    [types (any/c . -> . boolean?)])]
  [find-command ([max (->i ([E env?]
               [sym symbol?])
-             [result (E)
-                     (and (not (empty? E))
-                          (get-field id (first E)))])]
-   [types (env? symbol? . -> . symbol?)])]
+             [result (E sym)
+                     (or-#f/c (command%-with-id/c sym))])]
+   [types (env? symbol? . -> . command%)])]
  [help? ([max (->i ([sym any/c])
              [result (sym)
-                     (memq sym '(help ? ??? -help --help h))])]
+                     (not (not (memq sym '(help ? ??? -help --help h))))])]
    [types (any/c . -> . boolean?)])]
  [show? ([max (->i ([sym any/c])
              [result (sym)
-                     (memq sym '(show print pp ls stack))])]
+                     (not (not (memq sym '(show print pp ls stack))))])]
    [types (any/c . -> . boolean?)])]
- [show-help ([max (->i ([E env?]
-              [v any/c])
+ [show-help ([max (->i ([E env?])
+              ([v any/c])
              [result string?]
              #:post (E v result)
              (regexp-match?
               (match v
-                [#f (and (= (length (string-split result "\n"))
+                [(or #f (? unsupplied-arg?)) (and (= (length (string-split result "\n"))
                             (add1 (length E)))
                          "^Available commands:")]
                 [(or (list (? symbol? s)) (? symbol? s))
@@ -414,8 +414,9 @@
   (check-true (eq? '+ (get-field id (find-command CMD* '+))))
 
   (check-false (if (find-command CMD* 'hi) #t #f))
-  (check-false (if (find-command CMD* "yes") #t #f))
-  (check-false (if (find-command CMD* 00) #t #f))
+  ;; The commented-out tests violate find-command's precondition
+;  (check-false (if (find-command CMD* "yes") #t #f))
+;  (check-false (if (find-command CMD* 00) #t #f))
 
   ;; -- help?
   (check-true (if (help? 'help) #t #f))
