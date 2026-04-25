@@ -78,7 +78,7 @@
   [free-cache ([max (hash/c array-coord? boolean?)]
                [types hash?])]
   [animate-generation? ([max boolean?]
-                        [types])]
+                        [types boolean?])]
   [ITERS ([max exact-nonnegative-integer?]
           [types exact-nonnegative-integer?])]
   [dungeon-height ([max exact-nonnegative-integer?]
@@ -669,7 +669,9 @@
                                "......"
                                "......"
                                "......")))
-  (check-false (try-add-rectangle g1 #(10 10) 3 3 right)) ; out of bounds
+  ;; The following test actually violates the contract on tri-add-rectangle,
+  ;; so I (nh) removed it.
+  #;(check-false (try-add-rectangle g1 #(10 10) 3 3 right)) ; out of bounds
   (commit-room g1 (or (try-add-rectangle g1 #(2 1) 3 3 right) (error 'commit)))
   (check-equal? (show-grid g1)
                 (render-grid '("......"
