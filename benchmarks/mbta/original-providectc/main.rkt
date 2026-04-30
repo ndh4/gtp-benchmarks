@@ -60,8 +60,10 @@
                                      (λ (res)
                                        (substring? s res))])]
             [types (-> string? string?)])]
-  [assert ([max (string? natural? . -> . void?)])]
-  [main ([max any/c])])
+  [assert ([max (string? natural? . -> . void?)]
+           [types (string? natural? . -> . void?)])]
+  [main ([max any/c]
+         [types any/c])])
 
 
 ;; ===================================================================================================

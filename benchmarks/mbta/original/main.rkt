@@ -88,7 +88,9 @@
 
 (define/contract
  (assert result expected-length)
- (configurable-ctc (max (-> string? natural? void?)))
+ (configurable-ctc
+  (max (-> string? natural? void?))
+  (types (-> string? natural? void?)))
  (define num-result (length (string-split result "\n")))
  (unless (= num-result expected-length)
    (error
@@ -100,7 +102,7 @@
 
 (define/contract
  (main)
- (configurable-ctc (max any/c))
+ (configurable-ctc (max any/c) (types any/c))
  (define (run-query str)
    (define r (run-t str))
    (if r r (error 'main (format "run-t failed to respond to query ~e\n" str))))
