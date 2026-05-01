@@ -39,7 +39,7 @@
                          [result (char)
                                  (and/c cell%/c
                                         (curry class-equal? (dict-ref chars->cell%s char)))])]
-               [types (char? . -> . cell%?)])]
+               [types (char? . -> . cell%/c)])]
  [empty-cell% ([max (make-cell%/c-with self
                                        (or/c #\space
                                              (send (get-field occupant self)

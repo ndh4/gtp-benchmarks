@@ -90,7 +90,7 @@
     (result
      (char)
      (and/c cell%/c (curry class-equal? (dict-ref chars->cell%s char))))))
-  (types (-> char? cell%?)))
+  (types (-> char? cell%/c)))
  (dict-ref chars->cell%s char))
 
 (register-cell-type! cell% #\*)
