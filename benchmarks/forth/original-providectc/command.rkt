@@ -143,7 +143,7 @@
               [sym symbol?])
              [result (E sym)
                      (or-#f/c (command%-with-id/c sym))])]
-   [types (env? symbol? . -> . command%)])]
+   [types (env? symbol? . -> . (or-#f/c command%?))])]
  [help? ([max (->i ([sym any/c])
              [result (sym)
                      (not (not (memq sym '(help ? ??? -help --help h))))])]
@@ -170,7 +170,7 @@
                  (regexp-quote
                   (format "Cannot help with '~a'" x))])
               result))]
-   [types (env? any/c . -> . string?)])])
+   [types ((env?) (any/c) . ->* . string?)])])
 
 (define (assert v p)
   (unless (p v) (error 'assert))

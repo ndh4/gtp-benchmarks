@@ -293,7 +293,7 @@
    (->i
     ((E env?) (sym symbol?))
     (result (E sym) (or-#f/c (command%-with-id/c sym)))))
-  (types (-> env? symbol? command%)))
+  (types (-> env? symbol? (or-#f/c command%?))))
  (for/or ((c (in-list E))) (if (eq? sym (get-field id c)) c #f)))
 
 (define/contract
@@ -339,7 +339,7 @@
           (format "Unknown command '~a'" s))))
       (x (regexp-quote (format "Cannot help with '~a'" x))))
      result)))
-  (types (-> env? any/c string?)))
+  (types (->* (env?) (any/c) string?)))
  (match
   v
   (#f
