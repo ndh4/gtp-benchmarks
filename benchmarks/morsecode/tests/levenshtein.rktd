@@ -1,8 +1,6 @@
 #hash((0
        .
-       #s(target-file
-          "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks/morsecode/original/levenshtein.rkt"
-          ()))
+       #s(target-file "./benchmarks/morsecode/original/levenshtein.rkt" ()))
       (1 . #s(context 0 (begin (require rackunit)) ()))
       (2
        .

@@ -1,8 +1,4 @@
-#hash((0
-       .
-       #s(target-file
-          "/Users/nhejduk/Documents/Research-Cloud/teco-parent/contracts-and-testing/bex/orchestration/../../../gtp-benchmarks/benchmarks/kcfa/original/time.rkt"
-          ()))
+#hash((0 . #s(target-file "./benchmarks/kcfa/original/time.rkt" ()))
       (1
        .
        #s(context 0 (begin (require rackunit (only-in racket/format ~a))) ()))
