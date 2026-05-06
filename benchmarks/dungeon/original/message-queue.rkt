@@ -6,8 +6,8 @@
          "../../../ctcs/configurable.rkt")
 
 (provide/configurable-contract
- [message-queue ([max (listof string?)]
-   [types (listof string?)])]
+ [message-queue ([max (box/c (listof string?))]
+   [types (box/c (listof string?))])]
  [enqueue-message! ([max (let ([pre/queue-len #f]
               [pre/queue message-queue])
           (->i ([m string?])
@@ -33,10 +33,10 @@
 ;; list of strings (messages) which were produced since the previous
 ;; previous display, and need to be displayed now
 (define message-queue
-  '())
+  (box '()))
 
 (define (enqueue-message! m)
-  (set! message-queue (cons m message-queue)))
+  (set-box! message-queue (cons m message-queue)))
 
 (define (reset-message-queue!)
-  (set! message-queue '()))
+  (set-box! message-queue '()))

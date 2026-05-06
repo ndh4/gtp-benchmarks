@@ -17,7 +17,7 @@
 ;; (require (only-in "message-queue.rkt"
 ;;                   enqueue-message!
 ;;                   ))
-(require/configurable-contract "message-queue.rkt" enqueue-message! )
+(require/configurable-contract "message-queue.rkt" enqueue-message! message-queue)
 (require (only-in racket/dict
                   dict-ref
                   dict-set!
@@ -137,6 +137,17 @@
       (enqueue-message! "Can't close that."))
     (super-new)))
 
+(module+ test
+  (require rackunit)
+  (define base-c (new cell%))
+  
+  (check-equal? (send base-c free?) #f)
+  (check-equal? (send base-c show) #\*)
+  (send base-c open)
+  (check-equal? (car (unbox message-queue)) "Can't open that.")
+  (send base-c close)
+  (check-equal? (car (unbox message-queue)) "Can't close that."))
+
 ;; maps printed representations to cell classes
 ;; for map parsing
 (define chars->cell%s
@@ -170,6 +181,24 @@
     (super-new)))
 (register-cell-type! empty-cell% #\space)
 
+(module+ test
+  (define player%
+    (class object%
+      (define/public (show)
+        #\@)
+      (super-new)))
+  (define empty-c (new empty-cell%))
+  (define empty-c/player (new empty-cell% [occupant (new player%)]))
+  
+  (check-equal? (send empty-c free?) #t)
+  (check-equal? (send empty-c/player free?) #f)
+  (check-equal? (send empty-c show) #\space)
+  (check-equal? (send empty-c/player show) #\@)
+  (send empty-c/player open)
+  (check-equal? (car (unbox message-queue)) "Can't open that.")
+  (send empty-c/player close)
+  (check-equal? (car (unbox message-queue)) "Can't close that."))
+
 (define void-cell%
   (class cell%
     (inspect #f)
@@ -177,12 +206,32 @@
     (super-new)))
 (register-cell-type! void-cell% #\.)
 
+(module+ test
+  (define void-c (new void-cell%))
+  
+  (check-equal? (send void-c free?) #f)
+  (check-equal? (send void-c show) #\.)
+  (send void-c open)
+  (check-equal? (car (unbox message-queue)) "Can't open that.")
+  (send void-c close)
+  (check-equal? (car (unbox message-queue)) "Can't close that."))
+
 (define wall%
   (class cell%
     (inspect #f)
     (define/override (show) #\X) ; for testing only
     (super-new)))
 (register-cell-type! wall% #\X)
+
+(module+ test
+  (define wall-c (new wall%))
+  
+  (check-equal? (send wall-c free?) #f)
+  (check-equal? (send wall-c show) #\X)
+  (send wall-c open)
+  (check-equal? (car (unbox message-queue)) "Can't open that.")
+  (send wall-c close)
+  (check-equal? (car (unbox message-queue)) "Can't close that."))
 
 (define double-bar? #t)
 (define-syntax-rule (define-wall name single-bar double-bar)
@@ -211,6 +260,16 @@
 (define-wall east-tee-wall%    #\u2524 #\u2563)
 (define-wall west-tee-wall%    #\u251c #\u2560)
 
+(module+ test
+  (define vertical-wall-c (new vertical-wall%))
+  
+  (check-equal? (send vertical-wall-c free?) #f)
+  (check-equal? (send vertical-wall-c show) #\u2551) ;; double-bar
+  (send vertical-wall-c open)
+  (check-equal? (car (unbox message-queue)) "Can't open that.")
+  (send vertical-wall-c close)
+  (check-equal? (car (unbox message-queue)) "Can't close that."))
+
 (define door%
   (class cell%
     (inspect #f)
@@ -228,6 +287,19 @@
           (enqueue-message! "The door is already closed.")))
     (super-new)))
 
+(module+ test
+  (define door-c (new door%))
+  (define door-c/player (new door% [occupant (new player%)]))
+  
+  (check-equal? (send door-c free?) #t)
+  (check-equal? (send door-c/player free?) #f)
+  (check-equal? (send door-c show) #\*) ;; nothing yet
+  (check-equal? (send door-c/player show) #\*) 
+  (send door-c open)
+  (check-equal? (car (unbox message-queue)) "The door is already open.")
+  (send door-c close)
+  (check-equal? (car (unbox message-queue)) "The door is already open.")) ;; no change
+
 (define vertical-door%
   (class door%
     (inspect #f)
@@ -238,6 +310,12 @@
           #\|))
     (super-new)))
 (register-cell-type! vertical-door% #\|)
+
+(module+ test
+  (define vertical-door-c (new vertical-door%))
+  (define vertical-door-c/player (new vertical-door% [occupant (new player%)]))
+  (check-equal? (send vertical-door-c show) #\_)
+  (check-equal? (send vertical-door-c/player show) #\@))
 
 (define other-vertical-door%
   (class vertical-door%
@@ -255,6 +333,12 @@
           #\-))
     (super-new)))
 (register-cell-type! horizontal-door% #\-)
+
+(module+ test
+  (define horizontal-door-c (new horizontal-door%))
+  (define horizontal-door-c/player (new horizontal-door% [occupant (new player%)]))
+  (check-equal? (send horizontal-door-c show) #\')
+  (check-equal? (send horizontal-door-c/player show) #\@))
 
 (define other-horizontal-door%
   (class horizontal-door%
