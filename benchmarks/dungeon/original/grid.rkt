@@ -207,8 +207,25 @@
 
 
 (module+ test
-  (require rackunit)
+  (require rackunit
+           "cell.rkt")
 
+  (check-equal? (left (vector 3 3)) (vector 3 2))
+  (check-equal? (left (vector 3 0)) (vector 3 0))
+  (check-equal? (left (vector 3 3) 2) (vector 3 1))
+  (check-equal? (left (vector 3 3) 4) (vector 3 0))
+  (check-equal? (right (vector 3 3)) (vector 3 4))
+  (check-equal? (right (vector 3 3) 5) (vector 3 8))
+  (check-equal? (right (vector 3 3) -2) (vector 3 1))
+  (check-equal? (right (vector 3 3) -5) (vector 3 0))
+  (check-equal? (up (vector 3 3)) (vector 2 3))
+  (check-equal? (up (vector 0 3)) (vector 0 3))
+  (check-equal? (up (vector 3 3) 2) (vector 1 3))
+  (check-equal? (up (vector 3 3) 4) (vector 0 3))
+  (check-equal? (down (vector 3 3)) (vector 4 3))
+  (check-equal? (down (vector 3 3) 5) (vector 8 3))
+  (check-equal? (down (vector 3 3) -2) (vector 1 3))
+  (check-equal? (down (vector 3 3) -5) (vector 0 3))
 
   (define (parse-and-show los) (show-grid (parse-grid los)))
 
@@ -219,11 +236,11 @@
   (check-equal? (parse-and-show g1) " \n")
 
   (define g2
-    '("**********"
-      "*        *"
-      "*        *"
-      "*        *"
-      "**********"))
+    '("XXXXX'XXXX"
+      "X. #     X"
+      "_    *  #X"
+      "X        X"
+      "XXXXXXXXXX"))
   (check-equal? (parse-and-show g2) (render-grid g2))
 
   (define g2* (parse-grid g2))
@@ -234,4 +251,29 @@
   (check-false (within-grid? g2* '#(0 10)))
   (check-false (within-grid? g2* '#(5 0)))
   (check-false (within-grid? g2* '#(5 10)))
+
+  (check-equal? (grid-ref g2* '#(0 0)) (new wall%))
+  (check-equal? (grid-ref g2* '#(2 0)) (new other-vertical-door%))
+  (check-equal? (grid-ref g2* '#(0 5)) (new other-horizontal-door%))
+  (check-equal? (grid-ref g2* '#(1 3)) (new pillar%))
+  (check-equal? (grid-ref g2* '#(3 1)) (new empty-cell%))
+  (check-equal? (grid-ref g2* '#(2 5)) (new cell%))
+  (check-equal? (grid-ref g2* '#(1 1)) (new void-cell%))
+
+  (check-equal? (grid-width g2*) 10)
+  (check-equal? (grid-height g2*) 5)
+
+  (define g3
+    '("XXXXX-XXXX"
+      "X. +     X"
+      "|    *  +X"
+      "X        X"
+      "XXXXXXXXXX"))
+  ;; closed doors will be rendered as open
+  ;; single pillars will be rendered as double
+  (check-equal? (parse-and-show g3) (render-grid g2))
+
+  (define g3* (parse-grid g3))
+  (check-equal? (grid-ref g3* '#(2 0)) (new vertical-door%))
+  (check-equal? (grid-ref g3* '#(0 5)) (new horizontal-door%))
   )
