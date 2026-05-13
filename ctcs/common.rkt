@@ -69,6 +69,9 @@
 
 (define command%? (instanceof/c command%/c))
 (define env? (listof command%?))
+(define (command%-with-id/c id-field)
+  (and/c command%?
+         (lambda (x) (eq? id-field (get-field id x)))))
 
 (define-syntax (command%?-with-exec stx)
   (syntax-parse stx

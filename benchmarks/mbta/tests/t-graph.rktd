@@ -1,42 +1,39 @@
-#hash((0
-       .
-       #s(target-file
-          "/home/breitnw/Documents/research/parent-cat/gtp-benchmarks/benchmarks/mbta/original/t-graph.rkt"
-          ()))
-      (1
+#hash((0 . #s(target-file "./benchmarks/mbta/original/t-graph.rkt" ()))
+      (1 . #s(context 0 (begin (require rackunit)) ()))
+      (2
        .
        #s(test
-          0
+          1
           (check-equal? (line-specification? "---- blue") '("blue"))
           ()))
-      (2 . #s(test 0 (check-equal? (line-specification? "----blue") #f) ()))
-      (3
-       .
-       #s(test 0 (check-equal? (line-specification? "- blue") '("blue")) ()))
+      (3 . #s(test 1 (check-equal? (line-specification? "----blue") #f) ()))
       (4
        .
-       #s(test
-          0
-          (check-equal? (line-specification? "- A B C") '("A" "B" "C"))
-          ()))
+       #s(test 1 (check-equal? (line-specification? "- blue") '("blue")) ()))
       (5
        .
        #s(test
-          0
-          (check-exn exn:fail? (λ () (lines->hash '("---- line "))))
+          1
+          (check-equal? (line-specification? "- A B C") '("A" "B" "C"))
           ()))
       (6
        .
        #s(test
-          0
-          (check-equal?
-           '#hash(("line" . ("Davis Station")))
-           (lines->hash '("-- line " "Davis Station")))
+          1
+          (check-exn exn:fail? (λ () (lines->hash '("---- line "))))
           ()))
       (7
        .
        #s(test
-          0
+          1
+          (check-equal?
+           '#hash(("line" . ("Davis Station")))
+           (lines->hash '("-- line " "Davis Station")))
+          ()))
+      (8
+       .
+       #s(test
+          1
           (check-equal?
            '#hash(("line"
                    .
@@ -45,10 +42,10 @@
                     ("Davis Station" "Alewife Station"))))
            (lines->hash '("---- line " "Alewife Station" "Davis Station")))
           ()))
-      (8
+      (9
        .
        #s(test
-          0
+          1
           (check-equal?
            '#hash(("line1"
                    .
@@ -63,10 +60,10 @@
            (lines->hash
             '("---- line1 line2 " "Alewife Station" "Davis Station")))
           ()))
-      (9
+      (10
        .
        #s(test
-          0
+          1
           (check-exn
            exn:fail?
            (λ ()
@@ -76,10 +73,10 @@
                 "---- line3 "
                 "Government Center Station"))))
           ()))
-      (10
+      (11
        .
        #s(test
-          0
+          1
           (check-equal?
            '#hash(("line1"
                    .
@@ -99,10 +96,10 @@
               "---- line2 "
               "Davis Station")))
           ()))
-      (11
+      (12
        .
        #s(test
-          0
+          1
           (check-equal?
            '(("blue"
               (("Government Center Station" "Bowdoin Station")
@@ -129,33 +126,28 @@
                ("Revere Beach Station" "Wonderland Station"))))
            (read-t-line-from-file "blue"))
           ()))
-      (12
-       .
-       #s(context
-          0
-          (begin (require rackunit) (define graph (read-t-graph)))
-          ()))
-      (13 . #s(test 12 (check-equal? (send graph station "Oops") '()) ()))
-      (14
-       .
-       #s(test
-          12
-          (check-equal?
-           (send graph station "Northeastern University Station")
-           "Northeastern University Station")
-          ()))
+      (13 . #s(context 1 (begin (define graph (read-t-graph))) ()))
+      (14 . #s(test 13 (check-equal? (send graph station "Oops") '()) ()))
       (15
        .
        #s(test
-          12
+          13
           (check-equal?
-           (send graph station "Northeastern")
+           (send graph station "Northeastern University Station")
            "Northeastern University Station")
           ()))
       (16
        .
        #s(test
-          12
+          13
+          (check-equal?
+           (send graph station "Northeastern")
+           "Northeastern University Station")
+          ()))
+      (17
+       .
+       #s(test
+          13
           (check-equal?
            (send graph station "Center")
            '("Hynes Convention Center"
@@ -164,31 +156,31 @@
              "Malden Center Station"
              "Tufts Medical Center Station"))
           ()))
-      (17
-       .
-       #s(test 12 (check-equal? (send graph station? "Northeastern") #f) ()))
       (18
        .
+       #s(test 13 (check-equal? (send graph station? "Northeastern") #f) ()))
+      (19
+       .
        #s(test
-          12
+          13
           (check-equal?
            (send graph station? "Northeastern University Station")
            #t)
           ()))
-      (19
+      (20
        .
        #s(test
-          12
+          13
           (check-equal?
-           `(("Government Center Station" ,(set)))
+           `((("Government Center Station" ,(set))))
            (send graph find-path
              "Government Center Station"
              "Government Center Station"))
           ()))
-      (20
+      (21
        .
        #s(test
-          12
+          13
           (check-equal?
            `((("Northeastern University Station" ,(set "E"))
               ("Symphony Station" ,(set "E"))))
@@ -196,10 +188,10 @@
              "Northeastern University Station"
              "Symphony Station"))
           ()))
-      (21
+      (22
        .
        #s(test
-          12
+          13
           (check-equal?
            `((("Northeastern University Station" ,(set "E"))
               ("Symphony Station" ,(set "E"))
@@ -208,20 +200,20 @@
              "Northeastern University Station"
              "Prudential Station"))
           ()))
-      (22
+      (23
        .
        #s(context
-          12
+          13
           (begin
             (define multiple-routes
               (send graph find-path
                 "Government Center Station"
                 "Haymarket Station")))
           ()))
-      (23
+      (24
        .
        #s(test
-          22
+          23
           (check-not-false
            (member
             `(("Government Center Station" ,(set "D" "E" "B" "C"))
@@ -231,20 +223,20 @@
               ("Haymarket Station" ,(set "orange")))
             multiple-routes))
           ()))
-      (24
+      (25
        .
        #s(test
-          22
+          23
           (check-not-false
            (member
             `(("Government Center Station" ,(set "D" "E" "B" "C"))
               ("Haymarket Station" ,(set "D" "E" "B" "C")))
             multiple-routes))
           ()))
-      (25
+      (26
        .
        #s(test
-          22
+          23
           (check-not-false
            (member
             `(("Government Center Station" ,(set "blue"))

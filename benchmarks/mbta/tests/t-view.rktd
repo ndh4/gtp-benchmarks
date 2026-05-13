@@ -1,8 +1,4 @@
-#hash((0
-       .
-       #s(target-file
-          "/home/breitnw/Documents/research/parent-cat/gtp-benchmarks/benchmarks/mbta/original/t-view.rkt"
-          ()))
+#hash((0 . #s(target-file "./benchmarks/mbta/original/t-view.rkt" ()))
       (1
        .
        #s(context
@@ -348,7 +344,7 @@
        #s(test
           56
           (check-equal?
-           "Close your eyes and tap your heels three times. Open your eyes. You will be at brook."
+           "no such station: brook"
            (send manage1 find "brook" "brook"))
           ()))
       (60
@@ -356,7 +352,7 @@
        #s(test
           56
           (check-equal?
-           "Close your eyes and tap your heels three times. Open your eyes. You will be at Brook."
+           "disambiguate your current location: Brookline Hills Station Stony Brook Station Brookline Village Station"
            (send manage1 find "Brook" "Brook"))
           ()))
       (61

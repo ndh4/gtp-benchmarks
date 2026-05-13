@@ -1,8 +1,4 @@
-#hash((0
-       .
-       #s(target-file
-          "/Users/nhejduk/Research-Local/blgt-parent/gtp-benchmarks/benchmarks/dungeon/original/main.rkt"
-          ()))
+#hash((0 . #s(target-file "./benchmarks/dungeon/original/main.rkt" ()))
       (1
        .
        #s(context
@@ -25,9 +21,6 @@
           ()))
       (3
        .
-       #s(test 1 (check-false (try-add-rectangle g1 #(10 10) 3 3 right)) ()))
-      (4
-       .
        #s(context
           1
           (begin
@@ -35,48 +28,48 @@
              g1
              (or (try-add-rectangle g1 #(2 1) 3 3 right) (error 'commit))))
           ()))
-      (5
+      (4
        .
        #s(test
-          4
+          3
           (check-equal?
            (show-grid g1)
            (render-grid
             '("......" ".XXX.." ".X X.." ".XXX.." "......" "......")))
           ()))
-      (6 . #s(test 4 (check-false (try-add-rectangle g1 #(2 2) 3 3 up)) ()))
-      (7
+      (5 . #s(test 3 (check-false (try-add-rectangle g1 #(2 2) 3 3 up)) ()))
+      (6
        .
        #s(context
-          4
+          3
           (begin
             (commit-room
              g1
              (or (try-add-rectangle g1 #(3 3) 3 3 down) (error 'commit))))
           ()))
-      (8
+      (7
        .
        #s(test
-          7
+          6
           (check-equal?
            (show-grid g1)
            (render-grid
             '("......" ".XXX.." ".X X.." ".XXXX." "..X X." "..XXX.")))
           ()))
-      (9
+      (8
        .
        #s(context
-          7
+          6
           (begin
             (define g2 (empty-grid))
             (commit-room
              g2
              (or (try-add-rectangle g2 #(1 1) 3 4 right) (error 'commit))))
           ()))
-      (10
+      (9
        .
        #s(test
-          9
+          8
           (check-equal?
            (show-grid g2)
            (render-grid

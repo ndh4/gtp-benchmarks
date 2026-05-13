@@ -1,8 +1,4 @@
-#hash((0
-       .
-       #s(target-file
-          "/Users/nhejduk/Research-Local/blgt-parent/gtp-benchmarks/benchmarks/forth/original/eval.rkt"
-          ()))
+#hash((0 . #s(target-file "./benchmarks/forth/original/eval.rkt" ()))
       (1
        .
        #s(context
@@ -57,25 +53,24 @@
               (lambda (token*)
                 (let-values (((e s) (forth-eval E1 S1 token*))) s))))
           ()))
-      (15 . #s(test 14 (check-equal? (eval/stack #f) S1) ()))
-      (16 . #s(test 14 (check-equal? (eval/stack 'nada) S1) ()))
-      (17 . #s(test 14 (check-equal? (eval/stack '(exit)) S1) ()))
-      (18 . #s(test 14 (check-equal? (eval/stack '(help)) S1) ()))
-      (19 . #s(test 14 (check-equal? (eval/stack '(: hi 3 2 1)) S1) ()))
-      (20 . #s(test 14 (check-equal? (eval/stack '(+)) '(6 8)) ()))
-      (21 . #s(test 14 (check-equal? (eval/stack '(-)) '(2 8)) ()))
-      (22 . #s(test 14 (check-equal? (eval/stack '(*)) '(8 8)) ()))
-      (23 . #s(test 14 (check-equal? (eval/stack '(/)) '(2 8)) ()))
-      (24 . #s(test 14 (check-equal? (eval/stack '(drop)) (stack-drop S1)) ()))
-      (25 . #s(test 14 (check-equal? (eval/stack '(dup)) (stack-dup S1)) ()))
-      (26 . #s(test 14 (check-equal? (eval/stack '(over)) (stack-over S1)) ()))
-      (27 . #s(test 14 (check-equal? (eval/stack '(swap)) (stack-swap S1)) ()))
-      (28 . #s(test 14 (check-equal? (eval/stack '(1)) (stack-push S1 1)) ()))
-      (29
+      (15 . #s(test 14 (check-equal? (eval/stack 'nada) S1) ()))
+      (16 . #s(test 14 (check-equal? (eval/stack '(exit)) S1) ()))
+      (17 . #s(test 14 (check-equal? (eval/stack '(help)) S1) ()))
+      (18 . #s(test 14 (check-equal? (eval/stack '(: hi 3 2 1)) S1) ()))
+      (19 . #s(test 14 (check-equal? (eval/stack '(+)) '(6 8)) ()))
+      (20 . #s(test 14 (check-equal? (eval/stack '(-)) '(2 8)) ()))
+      (21 . #s(test 14 (check-equal? (eval/stack '(*)) '(8 8)) ()))
+      (22 . #s(test 14 (check-equal? (eval/stack '(/)) '(2 8)) ()))
+      (23 . #s(test 14 (check-equal? (eval/stack '(drop)) (stack-drop S1)) ()))
+      (24 . #s(test 14 (check-equal? (eval/stack '(dup)) (stack-dup S1)) ()))
+      (25 . #s(test 14 (check-equal? (eval/stack '(over)) (stack-over S1)) ()))
+      (26 . #s(test 14 (check-equal? (eval/stack '(swap)) (stack-swap S1)) ()))
+      (27 . #s(test 14 (check-equal? (eval/stack '(1)) (stack-push S1 1)) ()))
+      (28
        .
        #s(test 14 (check-equal? (eval/stack '(push 8)) (stack-push S1 8)) ()))
-      (30 . #s(test 14 (check-equal? (eval/stack '(show)) S1) ()))
-      (31
+      (29 . #s(test 14 (check-equal? (eval/stack '(show)) S1) ()))
+      (30
        .
        #s(context
           14
@@ -87,40 +82,40 @@
               (lambda (token*)
                 (let-values (((e s) (forth-eval E2 S2 token*))) (length e)))))
           ()))
-      (32 . #s(test 31 (check-equal? (eval/env-length '(2)) L2) ()))
-      (33 . #s(test 31 (check-equal? (eval/env-length '(swap)) L2) ()))
+      (31 . #s(test 30 (check-equal? (eval/env-length '(2)) L2) ()))
+      (32 . #s(test 30 (check-equal? (eval/env-length '(swap)) L2) ()))
+      (33
+       .
+       #s(test
+          30
+          (check-equal? (forth-tokenize "hello world") '(hello world))
+          ()))
       (34
        .
        #s(test
-          31
-          (check-equal? (forth-tokenize "hello world") '(hello world))
+          30
+          (check-equal? (forth-tokenize "Hello WORLD") '(hello world))
           ()))
       (35
        .
        #s(test
-          31
-          (check-equal? (forth-tokenize "Hello WORLD") '(hello world))
-          ()))
-      (36
-       .
-       #s(test
-          31
+          30
           (check-equal?
            (forth-tokenize ": key val val val;")
            '(: key val val |val;|))
           ()))
-      (37
+      (36
        .
        #s(test
-          31
+          30
           (check-equal?
            (forth-tokenize ": key val val val ;")
            '(: key val val val |;|))
           ()))
-      (38
+      (37
        .
        #s(test
-          31
+          30
           (check-equal? (forth-tokenize ": DOUBLE 2 *;") '(: double 2 |*;|))
           ()))
-      (39 . #s(test 31 (check-equal? (forth-tokenize "1 2 3") '(1 2 3)) ())))
+      (38 . #s(test 30 (check-equal? (forth-tokenize "1 2 3") '(1 2 3)) ())))
