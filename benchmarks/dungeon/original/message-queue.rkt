@@ -1,5 +1,7 @@
 #lang racket
 
+(define-syntax ctc-level 'max)
+
 (require racket/contract
          (only-in racket/list first empty? rest)
          "../../../ctcs/precision-config.rkt"
@@ -7,11 +9,11 @@
 
 (provide message-queue enqueue-message! reset-message-queue!)
 
-;; list of strings (messages) which were produced since the previous
-;; previous display, and need to be displayed now
 (define/contract
  message-queue
- (configurable-ctc (max (box/c (listof string?))) (types (box/c (listof string?))))
+ (configurable-ctc
+  (max (box/c (listof string?)))
+  (types (box/c (listof string?))))
  (box '()))
 
 (define/contract
@@ -42,13 +44,15 @@
   (types (-> void?)))
  (set-box! message-queue '()))
 
-(module+ test
-  (require rackunit)
-  (check-equal? (unbox message-queue) '())
-  (enqueue-message! "A very important message")
-  (enqueue-message! "Another very important message")
-  (check-equal? (unbox message-queue)
-                (list "Another very important message"
-                      "A very important message"))
-  (reset-message-queue!)
-  (check-equal? (unbox message-queue) '()))
+(module+
+ test
+ (require rackunit)
+ (check-equal? (unbox message-queue) '())
+ (enqueue-message! "A very important message")
+ (enqueue-message! "Another very important message")
+ (check-equal?
+  (unbox message-queue)
+  (list "Another very important message" "A very important message"))
+ (reset-message-queue!)
+ (check-equal? (unbox message-queue) '()))
+

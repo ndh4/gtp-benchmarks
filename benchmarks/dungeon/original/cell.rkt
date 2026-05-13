@@ -29,6 +29,8 @@
 
 (provide cell%? cell%/c class-equal?)
 
+(define/ctc-helper (not-equal? x y) (not (equal? x y)))
+
 (define-syntax-rule/ctc-helper
  (make-cell%/c-with self-id show-char free?/occupant-comparer)
  (class/c*
@@ -59,8 +61,6 @@
    (define/public (close) (enqueue-message! "Can't close that."))
    (super-new)))
 
-;; maps printed representations to cell classes
-;; for map parsing
 (define/contract
  chars->cell%s
  (configurable-ctc (max (hash/c char? cell%/c)) (types hash?))
@@ -104,7 +104,7 @@
    (make-cell%/c-with
     self
     (or/c #\space (send (get-field occupant self) show))
-    (not/c equal?)))
+    not-equal?))
   (types cell%/c))
  (class cell%
    (inspect #f)
@@ -179,7 +179,7 @@
 (define/contract
  door%
  (configurable-ctc
-  (max (make-cell%/c-with self #\* (not/c equal?)))
+  (max (make-cell%/c-with self #\* not-equal?))
   (types cell%/c))
  (class cell%
    (inspect #f)
@@ -200,7 +200,7 @@
    (make-cell%/c-with
     self
     (or/c #\_ (send (get-field occupant self) show))
-    (not/c equal?)))
+    not-equal?))
   (types cell%/c))
  (class door%
    (inspect #f)
@@ -221,7 +221,7 @@
    (make-cell%/c-with
     self
     (or/c #\_ (send (get-field occupant self) show))
-    (not/c equal?)))
+    not-equal?))
   (types cell%/c))
  (class vertical-door% (inspect #f) (super-new)))
 
@@ -234,7 +234,7 @@
    (make-cell%/c-with
     self
     (or/c #\' (send (get-field occupant self) show))
-    (not/c equal?)))
+    not-equal?))
   (types cell%/c))
  (class door%
    (inspect #f)
@@ -255,81 +255,71 @@
    (make-cell%/c-with
     self
     (or/c #\' (send (get-field occupant self) show))
-    (not/c equal?)))
+    not-equal?))
   (types cell%/c))
  (class horizontal-door% (inspect #f) (super-new)))
 
 (register-cell-type! other-horizontal-door% #\')
 
-(module+ test
-  (require rackunit)
+(module+
+ test
+ (require rackunit)
+ (define player% (class object% (define/public (show) #\@) (super-new)))
+ (define base-c (new cell%))
+ (check-equal? (send base-c free?) #f)
+ (check-equal? (send base-c show) #\*)
+ (send base-c open)
+ (check-equal? (car (unbox message-queue)) "Can't open that.")
+ (send base-c close)
+ (check-equal? (car (unbox message-queue)) "Can't close that.")
+ (define empty-c (new empty-cell%))
+ (define empty-c/player (new empty-cell% (occupant (new player%))))
+ (check-equal? (send empty-c free?) #t)
+ (check-equal? (send empty-c/player free?) #f)
+ (check-equal? (send empty-c show) #\space)
+ (check-equal? (send empty-c/player show) #\@)
+ (send empty-c/player open)
+ (check-equal? (car (unbox message-queue)) "Can't open that.")
+ (send empty-c/player close)
+ (check-equal? (car (unbox message-queue)) "Can't close that.")
+ (define void-c (new void-cell%))
+ (check-equal? (send void-c free?) #f)
+ (check-equal? (send void-c show) #\.)
+ (send void-c open)
+ (check-equal? (car (unbox message-queue)) "Can't open that.")
+ (send void-c close)
+ (check-equal? (car (unbox message-queue)) "Can't close that.")
+ (define wall-c (new wall%))
+ (check-equal? (send wall-c free?) #f)
+ (check-equal? (send wall-c show) #\X)
+ (send wall-c open)
+ (check-equal? (car (unbox message-queue)) "Can't open that.")
+ (send wall-c close)
+ (check-equal? (car (unbox message-queue)) "Can't close that.")
+ (define vertical-wall-c (new vertical-wall%))
+ (check-equal? (send vertical-wall-c free?) #f)
+ (check-equal? (send vertical-wall-c show) #\║)
+ (send vertical-wall-c open)
+ (check-equal? (car (unbox message-queue)) "Can't open that.")
+ (send vertical-wall-c close)
+ (check-equal? (car (unbox message-queue)) "Can't close that.")
+ (define door-c (new door%))
+ (define door-c/player (new door% (occupant (new player%))))
+ (check-equal? (send door-c free?) #t)
+ (check-equal? (send door-c/player free?) #f)
+ (check-equal? (send door-c show) #\*)
+ (check-equal? (send door-c/player show) #\*)
+ (send door-c open)
+ (check-equal? (car (unbox message-queue)) "The door is already open.")
+ (send door-c close)
+ (check-equal? (car (unbox message-queue)) "The door is already open.")
+ (define vertical-door-c (new vertical-door%))
+ (define vertical-door-c/player (new vertical-door% (occupant (new player%))))
+ (check-equal? (send vertical-door-c show) #\_)
+ (check-equal? (send vertical-door-c/player show) #\@)
+ (define horizontal-door-c (new horizontal-door%))
+ (define horizontal-door-c/player
+   (new horizontal-door% (occupant (new player%))))
+ (check-equal? (send horizontal-door-c show) #\')
+ (check-equal? (send horizontal-door-c/player show) #\@))
 
-  (define player%
-    (class object%
-      (define/public (show)
-        #\@)
-      (super-new)))
-
-  (define base-c (new cell%))
-  (check-equal? (send base-c free?) #f)
-  (check-equal? (send base-c show) #\*)
-  (send base-c open)
-  (check-equal? (car (unbox message-queue)) "Can't open that.")
-  (send base-c close)
-  (check-equal? (car (unbox message-queue)) "Can't close that.")
-
-  (define empty-c (new empty-cell%))
-  (define empty-c/player (new empty-cell% [occupant (new player%)]))
-  (check-equal? (send empty-c free?) #t)
-  (check-equal? (send empty-c/player free?) #f)
-  (check-equal? (send empty-c show) #\space)
-  (check-equal? (send empty-c/player show) #\@)
-  (send empty-c/player open)
-  (check-equal? (car (unbox message-queue)) "Can't open that.")
-  (send empty-c/player close)
-  (check-equal? (car (unbox message-queue)) "Can't close that.")
-
-  (define void-c (new void-cell%))
-  (check-equal? (send void-c free?) #f)
-  (check-equal? (send void-c show) #\.)
-  (send void-c open)
-  (check-equal? (car (unbox message-queue)) "Can't open that.")
-  (send void-c close)
-  (check-equal? (car (unbox message-queue)) "Can't close that.")
-
-  (define wall-c (new wall%))
-  (check-equal? (send wall-c free?) #f)
-  (check-equal? (send wall-c show) #\X)
-  (send wall-c open)
-  (check-equal? (car (unbox message-queue)) "Can't open that.")
-  (send wall-c close)
-  (check-equal? (car (unbox message-queue)) "Can't close that.")
-
-  (define vertical-wall-c (new vertical-wall%))
-  (check-equal? (send vertical-wall-c free?) #f)
-  (check-equal? (send vertical-wall-c show) #\u2551) ;; double-bar
-  (send vertical-wall-c open)
-  (check-equal? (car (unbox message-queue)) "Can't open that.")
-  (send vertical-wall-c close)
-  (check-equal? (car (unbox message-queue)) "Can't close that.")
-
-  (define door-c (new door%))
-  (define door-c/player (new door% [occupant (new player%)]))
-  (check-equal? (send door-c free?) #t)
-  (check-equal? (send door-c/player free?) #f)
-  (check-equal? (send door-c show) #\*) ;; nothing yet
-  (check-equal? (send door-c/player show) #\*) 
-  (send door-c open)
-  (check-equal? (car (unbox message-queue)) "The door is already open.")
-  (send door-c close)
-  (check-equal? (car (unbox message-queue)) "The door is already open.") ;; no change
-
-  (define vertical-door-c (new vertical-door%))
-  (define vertical-door-c/player (new vertical-door% [occupant (new player%)]))
-  (check-equal? (send vertical-door-c show) #\_)
-  (check-equal? (send vertical-door-c/player show) #\@)
-
-  (define horizontal-door-c (new horizontal-door%))
-  (define horizontal-door-c/player (new horizontal-door% [occupant (new player%)]))
-  (check-equal? (send horizontal-door-c show) #\')
-  (check-equal? (send horizontal-door-c/player show) #\@))
