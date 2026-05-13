@@ -36,7 +36,18 @@
   (box '()))
 
 (define (enqueue-message! m)
-  (set-box! message-queue (cons m message-queue)))
+  (set-box! message-queue (cons m (unbox message-queue))))
 
 (define (reset-message-queue!)
   (set-box! message-queue '()))
+
+(module+ test
+  (require rackunit)
+  (check-equal? (unbox message-queue) '())
+  (enqueue-message! "A very important message")
+  (enqueue-message! "Another very important message")
+  (check-equal? (unbox message-queue)
+                (list "Another very important message"
+                      "A very important message"))
+  (reset-message-queue!)
+  (check-equal? (unbox message-queue) '()))
