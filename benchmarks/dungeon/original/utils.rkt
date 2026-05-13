@@ -21,7 +21,13 @@
   (types (-> void?)))
  (set-box! r* orig))
 
-(define (random n) (begin0 (modulo (car (unbox r*)) n) (set-box! r* (cdr (unbox r*)))))
+(define/contract (random n)
+  (configurable-ctc
+   (max (->* ()
+             void?
+             #:post (equal? (unbox r*) orig)))
+   (types (-> void?)))
+  (begin0 (modulo (car (unbox r*)) n) (set-box! r* (cdr (unbox r*)))))
 
 (define/ctc-helper
  (list+titlecases . los)
