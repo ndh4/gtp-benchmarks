@@ -59,17 +59,6 @@
    (define/public (close) (enqueue-message! "Can't close that."))
    (super-new)))
 
-(module+ test
-  (require rackunit)
-  (define base-c (new cell%))
-  
-  (check-equal? (send base-c free?) #f)
-  (check-equal? (send base-c show) #\*)
-  (send base-c open)
-  (check-equal? (car (unbox message-queue)) "Can't open that.")
-  (send base-c close)
-  (check-equal? (car (unbox message-queue)) "Can't close that."))
-
 ;; maps printed representations to cell classes
 ;; for map parsing
 (define/contract
@@ -273,11 +262,21 @@
 (register-cell-type! other-horizontal-door% #\')
 
 (module+ test
+  (require rackunit)
+
   (define player%
     (class object%
       (define/public (show)
         #\@)
       (super-new)))
+
+  (define base-c (new cell%))
+  (check-equal? (send base-c free?) #f)
+  (check-equal? (send base-c show) #\*)
+  (send base-c open)
+  (check-equal? (car (unbox message-queue)) "Can't open that.")
+  (send base-c close)
+  (check-equal? (car (unbox message-queue)) "Can't close that.")
 
   (define empty-c (new empty-cell%))
   (define empty-c/player (new empty-cell% [occupant (new player%)]))
