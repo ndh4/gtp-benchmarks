@@ -44,7 +44,7 @@
                                        (or/c #\space
                                              (send (get-field occupant self)
                                                    show))
-                                       (not/c equal?))]
+                                       not-equal?)]
                [types cell%/c])]
  [void-cell% ([max (make-cell%/c-with self #\. equal?)]
               [types cell%/c])]
@@ -52,31 +52,31 @@
          [types cell%/c])]
  [double-bar? ([max boolean?]
                [types boolean?])]
- [door% ([max (make-cell%/c-with self #\* (not/c equal?))]
+ [door% ([max (make-cell%/c-with self #\* not-equal?)]
          [types cell%/c])]
  [vertical-door% ([max (make-cell%/c-with self
                                           (or/c #\_
                                                 (send (get-field occupant self)
                                                       show))
-                                          (not/c equal?))]
+                                          not-equal?)]
                   [types cell%/c])]
  [other-vertical-door% ([max (make-cell%/c-with self
                                                 (or/c #\_
                                                       (send (get-field occupant self)
                                                             show))
-                                                (not/c equal?))]
+                                                not-equal?)]
                         [types cell%/c])]
  [horizontal-door% ([max (make-cell%/c-with self
                                             (or/c #\'
                                                   (send (get-field occupant self)
                                                         show))
-                                            (not/c equal?))]
+                                            not-equal?)]
                     [types cell%/c])]
  [other-horizontal-door% ([max (make-cell%/c-with self
                                                   (or/c #\'
                                                         (send (get-field occupant self)
                                                               show))
-                                                  (not/c equal?))]
+                                                  not-equal?)]
                           [types cell%/c])])
 
 
@@ -97,6 +97,9 @@
 
 
 ;; =============================================================================
+
+(define/ctc-helper (not-equal? x y)
+  (not (equal? x y)))
 
 (define-syntax-rule/ctc-helper (make-cell%/c-with self-id show-char
                                        free?/occupant-comparer)
