@@ -1,7 +1,5 @@
 #lang racket
 
-(define-syntax ctc-level 'max)
-
 (require racket/contract
          (only-in racket/list first empty? rest)
          "../../../ctcs/precision-config.rkt"

@@ -1,8 +1,5 @@
 #lang racket
 
-
-(define-syntax ctc-level 'max)
-
 (require (only-in racket/list first permutations)
          (only-in racket/file file->value)
          racket/contract

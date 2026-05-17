@@ -1,7 +1,5 @@
 #lang racket
 
-(define-syntax ctc-level 'max)
-
 (require require-typed-check
          racket/class
          "../base/un-types.rkt"
