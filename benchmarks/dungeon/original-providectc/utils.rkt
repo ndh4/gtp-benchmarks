@@ -21,7 +21,7 @@
                     void?
                     #:post (equal? (unbox r*) orig))]
           [types (-> void?)])]
- #;[random ([max (->i ([n exact-nonnegative-integer?])
+ [random ([max (->i ([n exact-nonnegative-integer?])
                     [result (n) (and/c exact-nonnegative-integer?
                                        (</c n))])]
           [types (any/c . -> . exact-nonnegative-integer?)])]
@@ -68,7 +68,7 @@
 
 ;; Non-specific ctc because this random stuff is rigged to be deterministic
 (define (random n)
-  (begin0 (car (unbox r*)) (set-box! r* (cdr (unbox r*)))))
+  (begin0 (modulo (car (unbox r*)) n) (set-box! r* (cdr (unbox r*)))))
 
 (define/ctc-helper (list+titlecases . los)
   (append los
@@ -102,3 +102,65 @@
 
 (define (shuffle l)
   (reverse l))
+
+(module+ test
+  (require rackunit)
+
+  ;; reset!
+  (set-box! r* '(1 2 3 4 5))
+  (reset!)
+  (check-equal? (unbox r*) orig)
+
+  ;; random
+  (set-box! r* '(1 2 3 4 5))
+  (define-values (r1 r2 r3 r4 r5)
+    (values (random 3)
+            (random 123)
+            (random 1)
+            (random 3)
+            (random 3)))
+  (check-equal? r1 1)
+  (check-equal? r2 2)
+  (check-equal? r3 0)
+  (check-equal? r4 1)
+  (check-equal? r5 2)
+
+  ;; random-between
+  (set-box! r* '(1 2 3 4 5))
+  (define-values (rb1 rb2 rb3 rb4 rb5)
+    (values (random-between 4 8)
+            (random-between 9 11)
+            (random-between 3 9)
+            (random-between 2 5)
+            (random-between 2 5)))
+  (check-equal? rb1 5)
+  (check-equal? rb2 9)
+  (check-equal? rb3 6)
+  (check-equal? rb4 3)
+  (check-equal? rb5 4)
+
+  ;; d6
+  (set-box! r* '(15 20 25))
+  (define-values (d61 d62 d63)
+    (values (d6) (d6) (d6)))
+  (check-equal? d61 4)
+  (check-equal? d62 3)
+  (check-equal? d63 2)
+
+  ;; d20
+  (set-box! r* '(15 20 25))
+  (define-values (d201 d202 d203)
+    (values (d20) (d20) (d20)))
+  (check-equal? d201 16)
+  (check-equal? d202 1)
+  (check-equal? d203 6)
+
+  ;; article
+  (check-equal? (article #t #t) "The")
+  (check-equal? (article #t #f) "A")
+  (check-equal? (article #f #t) "the")
+  (check-equal? (article #f #f) "a")
+  (check-equal? (article #t #t #:an? #t) "The")
+  (check-equal? (article #t #f #:an? #t) "An")
+  (check-equal? (article #f #t #:an? #t) "the")
+  (check-equal? (article #f #f #:an? #t) "an"))
