@@ -9,8 +9,10 @@
 
 (define/contract
  message-queue
- (configurable-ctc (max (listof string?)) (types (listof string?)))
- '())
+ (configurable-ctc
+  (max (box/c (listof string?)))
+  (types (box/c (listof string?))))
+ (box '()))
 
 (define/contract
  (enqueue-message! m)
@@ -22,21 +24,33 @@
       #:pre
       ()
       (begin
-        (set! pre/queue-len (length message-queue))
-        (set! pre/queue-len message-queue))
+        (set! pre/queue-len (length (unbox message-queue)))
+        (set! pre/queue (unbox message-queue)))
       (result void?)
       #:post
       (m)
-      (and (equal? pre/queue (rest message-queue))
-           (= (length message-queue) (add1 pre/queue-len))
-           (string=? m (first message-queue))))))
+      (and (equal? pre/queue (rest (unbox message-queue)))
+           (= (length (unbox message-queue)) (add1 pre/queue-len))
+           (string=? m (first (unbox message-queue)))))))
   (types (-> string? void?)))
- (set! message-queue (cons m message-queue)))
+ (set-box! message-queue (cons m (unbox message-queue))))
 
 (define/contract
  (reset-message-queue!)
  (configurable-ctc
-  (max (->* () () void? #:post (empty? message-queue)))
+  (max (->* () () void? #:post (empty? (unbox message-queue))))
   (types (-> void?)))
- (set! message-queue '()))
+ (set-box! message-queue '()))
+
+#;(module+
+ test
+ (require rackunit)
+ (check-equal? (unbox message-queue) '())
+ (enqueue-message! "A very important message")
+ (enqueue-message! "Another very important message")
+ (check-equal?
+  (unbox message-queue)
+  (list "Another very important message" "A very important message"))
+ (reset-message-queue!)
+ (check-equal? (unbox message-queue) '()))
 

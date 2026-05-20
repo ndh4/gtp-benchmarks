@@ -600,6 +600,7 @@
 #;(module+
  test
  (require rackunit)
+ (require (only-in "grid.rkt" parse-grid))
  (define (render-grid g) (string-join g "\n" #:after-last "\n"))
  (define (empty-grid) (build-array #(6 6) (lambda _ (new void-cell%))))
  (define g1 (empty-grid))
@@ -615,9 +616,117 @@
  (check-equal?
   (show-grid g1)
   (render-grid '("......" ".XXX.." ".X X.." ".XXXX." "..X X." "..XXX.")))
+ (check-equal?
+  (show-grid (smooth-walls g1))
+  (render-grid '("......" ".╔═╗.." ".║ ║.." ".╚╦╩╗." "..║ ║." "..╚═╝.")))
  (define g2 (empty-grid))
  (commit-room g2 (or (try-add-rectangle g2 #(1 1) 3 4 right) (error 'commit)))
  (check-equal?
   (show-grid g2)
-  (render-grid '(".XXXX." ".X  X." ".XXXX." "......" "......" "......"))))
+  (render-grid '(".XXXX." ".X  X." ".XXXX." "......" "......" "......")))
+ (check-equal?
+  (show-grid (smooth-walls g2))
+  (render-grid '(".╔══╗." ".║  ║." ".╚══╝." "......" "......" "......")))
+ (define (walls/one) (parse-grid '("..." ".X." "...")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/one)))
+  (render-grid '("..." ".#." "...")))
+ (define (walls/corners) (parse-grid '("...." ".XX." ".XX." "....")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/corners)))
+  (render-grid '("...." ".╔╗." ".╚╝." "....")))
+ (define (walls/horiz) (parse-grid '("....." ".XXX." ".....")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/horiz)))
+  (render-grid '("....." ".═══." ".....")))
+ (define (walls/vert) (parse-grid '("..." ".X." ".X." ".X." "...")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/vert)))
+  (render-grid '("..." ".║." ".║." ".║." "...")))
+ (define (walls/tees-1)
+   (parse-grid '("......" ".. X.." ".XXX ." ". XXX." "..X .." "......")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/tees-1)))
+  (render-grid '("......" ".. ║.." ".═╦╣ ." ". ╠╩═." "..║ .." "......")))
+ (define (walls/tees-2)
+   (parse-grid '("......" "..X .." ". XXX." ".XXX ." ".. X.." "......")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/tees-2)))
+  (render-grid '("......" "..║ .." ". ╠╦═." ".═╩╣ ." ".. ║.." "......")))
+ (define (walls/no-tees-1)
+   (parse-grid '("......" "...X.." ".XXX ." ". XXX." "..X..." "......")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/no-tees-1)))
+  (render-grid '("......" "...║.." ".═╗║ ." ". ║╚═." "..║..." "......")))
+ (define (walls/no-tees-2)
+   (parse-grid '("......" ".. X.." ".XXX.." "..XXX." "..X .." "......")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/no-tees-2)))
+  (render-grid '("......" ".. ║.." ".══╝.." "..╔══." "..║ .." "......")))
+ (define (walls/no-tees-3)
+   (parse-grid '("......" "..X..." ". XXX." ".XXX ." "...X.." "......")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/no-tees-3)))
+  (render-grid '("......" "..║..." ". ║╔═." ".═╝║ ." "...║.." "......")))
+ (define (walls/no-tees-4)
+   (parse-grid '("......" "..X .." "..XXX." ".XXX.." ".. X.." "......")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/no-tees-4)))
+  (render-grid '("......" "..║ .." "..╚══." ".══╗.." ".. ║.." "......")))
+ (define (walls/no-tees-err)
+   (parse-grid '("......" "...X.." ".XXX.." "..XXX." "..X..." "......")))
+ (check-exn #rx"cond" (thunk (show-grid (smooth-walls (walls/no-tees-err)))))
+ (define (walls/plus-1)
+   (parse-grid '("....." ". X ." ".XXX." ". X ." ".....")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/plus-1)))
+  (render-grid '("....." ". ║ ." ".═╬═." ". ║ ." ".....")))
+ (define (walls/plus-2)
+   (parse-grid '("....." ". X.." ".XXX." "..X ." ".....")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/plus-2)))
+  (render-grid '("....." ". ║.." ".═╬═." "..║ ." ".....")))
+ (define (walls/plus-3)
+   (parse-grid '("....." "..X ." ".XXX." ". X.." ".....")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/plus-3)))
+  (render-grid '("....." "..║ ." ".═╬═." ". ║.." ".....")))
+ (define (walls/no-plus-1)
+   (parse-grid
+    '("......." ". X.X ." ".XXXXX." "..X.X.." ".XXXXX." ". X.X ." ".......")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/no-plus-1)))
+  (render-grid
+   '("......." ". ║.║ ." ".═╝═╚═." "..║.║.." ".═╗═╔═." ". ║.║ ." ".......")))
+ (define (walls/no-plus-2)
+   (parse-grid '("....." ". X ." ".XXX." "..X.." ".XXX." ". X ." ".....")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/no-plus-2)))
+  (render-grid '("....." ". ║ ." ".═╩═." "..║.." ".═╦═." ". ║ ." ".....")))
+ (define (walls/no-plus-3)
+   (parse-grid '("......." ". X.X ." ".XXXXX." ". X.X ." ".......")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/no-plus-3)))
+  (render-grid '("......." ". ║.║ ." ".═╣═╠═." ". ║.║ ." ".......")))
+ (define (walls/some-doors)
+   (parse-grid
+    '("......XXXX."
+      ".XXX..X  X."
+      ".| XXXX-XX."
+      ".X      X.."
+      ".X-XXX-XX.."
+      ".....X X..."
+      ".....XXX..."
+      "...........")))
+ (check-equal?
+  (show-grid (smooth-walls (walls/some-doors)))
+  (render-grid
+   '("......╔══╗."
+     ".╔═╗..║  ║."
+     "._ ╚══╩'╦╝."
+     ".║      ║.."
+     ".╚'══╦'╦╝.."
+     ".....║ ║..."
+     ".....╚═╝..."
+     "..........."))))
 
