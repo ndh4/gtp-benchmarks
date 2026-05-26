@@ -16,7 +16,7 @@
                                (cond [(procedure? val)
                                       (define procedure-name (object-name val))
                                       (define (print-and-execute-call proc the-call)
-                                        (printf "~v~n" the-call)
+                                        (printf "~v~n~n" the-call)
                                         (keyword-apply proc
                                                        (call-proc-kws the-call)
                                                        (call-kw-args the-call)
@@ -28,7 +28,7 @@
                                          (print-and-execute-call val (call procedure-name '() '() args)))
                                        )]
                                      [else
-                                      (displayln 'b)
+                                      (displayln "Contracted value is not a procedure.")
                                       val]))))))
 
 (define (add-arg-recorder c)
