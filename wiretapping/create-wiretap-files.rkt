@@ -31,21 +31,28 @@
       (call-with-output-file out-file #:exists 'replace
         (lambda (out)
           (rw-hashlang-and-ctc-level #:in in #:out out)
-          (let loop ()
-            (define expr (read in))
-            (cond [(eof-object? expr)
-                   (newline out)]
-                  [else
-                   (pretty-write expr out)
-                   (newline out)
-                   (loop)])))))))
+          (reader-loop
+           #:in in
+           #:initial-accum-val '()
+           #:on-expr
+           (lambda (#:expr expr #:accum accum)
+             (newline out)
+             (pretty-write expr out)
+             '())))))))
+
+(define (reader-loop #:in in #:initial-accum-val initial-accum-val #:on-expr on-expr)
+  (let loop ([accum initial-accum-val])
+    (define expr (read in))
+    (cond [(eof-object? expr)
+           accum]
+          [else
+           (loop (on-expr #:expr expr #:accum accum))])))
 
 (define (rw-hashlang-and-ctc-level #:in in #:out out)
   (displayln (read-line in) out)
   (newline out)
   (pretty-write '(require (for-syntax racket/base)) out)
-  (pretty-write `(define-syntax ctc-level ',contract-level) out)
-  (newline out))
+  (pretty-write `(define-syntax ctc-level ',contract-level) out))
 
 (define (create-wiretap-files-one-module #:in-file in-file #:out-dir out-dir)
   (define contracted-identifiers (find-contracted-identifiers in-file))
@@ -55,19 +62,20 @@
 (define (find-contracted-identifiers file)
   (call-with-input-file file
     (lambda (in)
-      (read-line in) ;; Discard hashlang declaration
-      (let loop ([accum '()])
-        (define expr (read in))
-        (if (eof-object? expr)
-            accum
-            (match expr
-              [(list* 'define/contract (cons (? symbol? id) _) _ _)
-               ;; ^ Match shorthand function definitions: (define (id args ...) body ...)
-               (loop (cons id accum))]
-              [else
-               (when (string-contains? (~a expr) "define/contract")
-                 (printf "!Possible missed contract(s): ~a~n~n" expr))
-               (loop accum)]))))))
+      (read-line in) ;; Ignore hashlang declaration
+      (reader-loop
+       #:in in
+       #:initial-accum-val '()
+       #:on-expr
+       (lambda (#:expr expr #:accum accum)
+         (match expr
+           [(list* 'define/contract (cons (? symbol? id) _) _ _)
+            ;; ^ Match shorthand function definitions: (define (id args ...) body ...)
+            (cons id accum)]
+           [else
+            (when (string-contains? (~a expr) "define/contract")
+              (printf "!Possible missed contract(s): ~a~n~n" expr))
+            accum]))))))
 
 
 (define (sanitize identifier)
@@ -84,23 +92,25 @@
       (call-with-output-file out-file #:exists 'replace
         (lambda (out)
           (rw-hashlang-and-ctc-level #:in in #:out out)
-          (pretty-write `(require "../../../wiretapping/wiretap.rkt") out)
           (newline out)
-          (let loop ()
-            (define expr (read in))
-            (cond [(eof-object? expr)
-                   (pretty-write (make-exercise identifier) out)]
-                  [else
-                   (match expr
-                     [(list* 'define/contract (cons (== identifier) args) ctc body)
-                      (pretty-write
-                       `(define/contract ,(cons identifier args) (add-arg-recorder ,ctc) ,@body) out)]
-                     [(list* 'module+ 'test _)
-                      (void)]
-                     [_
-                      (pretty-write expr out)])
-                   (newline out)
-                   (loop)])))))))
+          (pretty-write `(require "../../../wiretapping/wiretap.rkt") out)
+          (reader-loop
+           #:in in
+           #:initial-accum-val '()
+           #:on-expr
+           (lambda (#:expr expr #:accum accum)
+             (newline out)
+             (match expr
+               [(list* 'define/contract (cons (== identifier) args) ctc body)
+                (pretty-write
+                 `(define/contract ,(cons identifier args) (add-arg-recorder ,ctc) ,@body) out)]
+               [(list* 'module+ 'test _)
+                (void)]
+               [_
+                (pretty-write expr out)])
+             '()))
+          (newline out)
+          (pretty-write (make-exercise identifier) out))))))
 
 (define (make-exercise identifier)
   `(for ([fuel (in-range 10)])
