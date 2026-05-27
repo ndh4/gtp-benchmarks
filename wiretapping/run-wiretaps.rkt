@@ -15,11 +15,13 @@
     "forth")
   )
 
+(define contract-level 'max)
+(define MEMORY_LIMIT 50)
 
 (define (run-wiretap-on-benchmark benchmark)
   (define base-dir (build-path path-to-bench-dirs benchmark))
-  (define wiretap-dir (build-path base-dir "wiretap"))
-  (define output-dir (build-path base-dir "wiretap-results"))
+  (define wiretap-dir (build-path base-dir (format "wiretap-~a" contract-level)))
+  (define output-dir (build-path base-dir (format "wiretap-~a-results" contract-level)))
   (unless (directory-exists? output-dir)
     (make-directory output-dir))
   (for ([wiretap-runner (directory-list wiretap-dir #:build? #t)]
@@ -34,7 +36,7 @@
       (define inspector (current-code-inspector))
       (parameterize ([current-output-port out]
                      [current-directory run-dir]
-                     [sandbox-memory-limit 50]
+                     [sandbox-memory-limit MEMORY_LIMIT]
                      [sandbox-output out]
                      [sandbox-make-code-inspector (thunk inspector)]
                      [sandbox-security-guard (current-security-guard)]  ; Allow any file/network access
@@ -45,4 +47,6 @@
           (eval (make-base-namespace)))))))
 
 (for ([benchmark benchmarks])
+  (printf "Running wiretap on \"~a\" with contract level \"~a\" and ~aMB memory limit...~n"
+           benchmark contract-level MEMORY_LIMIT)
   (run-wiretap-on-benchmark benchmark))
