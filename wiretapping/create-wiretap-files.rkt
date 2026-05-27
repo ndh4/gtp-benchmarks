@@ -1,29 +1,17 @@
 #lang racket
 
-(define path-to-bench-dirs
-  "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks")
-
-(define benchmarks
-  '("mbta"
-    "morsecode"
-    "sieve"
-    "snake"
-    "kcfa"
-    "dungeon"
-    "forth")
-  )
-
-(define contract-level 'max)
+(require "params.rkt")
 
 (define (create-wiretap-files-whole-benchmark benchmark)
   (define base-dir (build-path path-to-bench-dirs benchmark))
   (define input-dir (build-path base-dir "original"))
   (define output-dir (build-path base-dir (format "wiretap-~a" contract-level)))
   (unless (directory-exists? output-dir) (make-directory output-dir))
-  (for ([in-file (directory-list input-dir #:build? #t)])
-    (when (file-exists? in-file)
-      (add-ctc-level #:in-file in-file #:out-file (build-path output-dir (file-name-from-path in-file)))
-      (create-wiretap-files-one-module #:in-file in-file #:out-dir output-dir))))
+  (for ([in-file (directory-list input-dir #:build? #t)]
+        #:when (and (file-exists? in-file)
+                    (equal? (path-get-extension in-file) #".rkt")))
+    (add-ctc-level #:in-file in-file #:out-file (build-path output-dir (file-name-from-path in-file)))
+    (create-wiretap-files-one-module #:in-file in-file #:out-dir output-dir)))
 
 (define (add-ctc-level #:in-file in-file #:out-file out-file)
   (call-with-input-file in-file

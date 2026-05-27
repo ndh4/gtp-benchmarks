@@ -1,22 +1,7 @@
 #lang racket
 
-(require racket/sandbox)
-
-(define path-to-bench-dirs
-  "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks")
-
-(define benchmarks
-  '("mbta"
-    "morsecode"
-    "sieve"
-    "snake"
-    "kcfa"
-    "dungeon"
-    "forth")
-  )
-
-(define contract-level 'max)
-(define MEMORY_LIMIT 50)
+(require "params.rkt"
+         racket/sandbox)
 
 (define (run-wiretap-on-benchmark benchmark)
   (define base-dir (build-path path-to-bench-dirs benchmark))
@@ -26,6 +11,7 @@
     (make-directory output-dir))
   (for ([wiretap-runner (directory-list wiretap-dir #:build? #t)]
         #:when (and (file-exists? wiretap-runner)
+                    (equal? (path-get-extension wiretap-runner) #".rkt")
                     (string-contains? (path->string (file-name-from-path wiretap-runner)) "_TAP_")))
       (run-one-wiretap #:run-dir wiretap-dir #:runner wiretap-runner #:out-dir output-dir)))
 
