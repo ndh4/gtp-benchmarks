@@ -4,7 +4,6 @@
 ;; (A value is a closure)
 
 (require
-  require-typed-check
   racket/set
   racket/list
   "structs.rkt"

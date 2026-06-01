@@ -3,7 +3,6 @@
 ;; User Interface to `ai.rkt`
 
 (require
-  require-typed-check
   racket/set
   "structs.rkt"
   ;; "benv.rkt"
