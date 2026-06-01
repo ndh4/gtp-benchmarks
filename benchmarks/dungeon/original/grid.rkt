@@ -1,7 +1,6 @@
 #lang racket
 
 (require "../base/un-types.rkt"
-         require-typed-check
          racket/contract
          (only-in "../../../ctcs/common.rkt" or-#f/c)
          "../../../ctcs/configurable.rkt"

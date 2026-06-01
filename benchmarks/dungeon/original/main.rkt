@@ -1,7 +1,6 @@
 #lang racket
 
-(require require-typed-check
-         racket/class
+(require racket/class
          "../base/un-types.rkt"
          racket/match
          racket/contract
