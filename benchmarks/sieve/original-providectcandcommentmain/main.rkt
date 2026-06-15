@@ -20,11 +20,11 @@
 ;; `count-from n` Build a stream of integers starting from `n` and iteratively adding 1
 (define (count-from n)
   #;(configurable-ctc
-   [max (->i ([n number?])
+   [max (->i ([n integer?])
              [result (n)
-                     (simple-stream/dc* (and/c number? (=/c n))
+                     (simple-stream/dc* (and/c integer? (=/c n))
                                         (λ (last)
-                                          (and/c number? (=/c (add1 last)))))])]
+                                          (and/c integer? (=/c (add1 last)))))])]
    [types (-> number? (simple-streamof number?))])
   (make-simple-stream n (lambda () (count-from (add1 n)))))
 
