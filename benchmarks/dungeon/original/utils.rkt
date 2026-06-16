@@ -38,7 +38,10 @@
     ((n exact-nonnegative-integer?))
     (result (n) (and/c exact-nonnegative-integer? (</c n)))))
   (types (-> any/c exact-nonnegative-integer?)))
- (begin0 (modulo (car (unbox r*)) n) (set-box! r* (cdr (unbox r*)))))
+ (begin0
+   (modulo (car (unbox r*)) n)
+   (set-box! r* (cdr (unbox r*)))
+   (when (empty? (unbox r*)) (reset!))))
 
 (define/ctc-helper
  (list+titlecases . los)
@@ -93,7 +96,7 @@
 (define/contract
  (random-from l)
  (configurable-ctc
-  (max (->i ((l (listof any/c))) (result (l) (memberof/c l))))
+  (max (->i ((l (and/c (listof any/c) cons?))) (result (l) (memberof/c l))))
   (types (-> (listof any/c) any/c)))
  (first (shuffle l)))
 

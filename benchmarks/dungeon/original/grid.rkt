@@ -8,7 +8,7 @@
 
 (require (only-in "cell.rkt" cell%? class-equal?))
 
-(require (only-in "cell.rkt" void-cell% char->cell%))
+(require (only-in "cell.rkt" void-cell% char->cell% chars->cell%s))
 
 (provide array-set!
          build-array
@@ -70,10 +70,17 @@
 
 (define/ctc-helper grid? (arrayof cell%?))
 
+(define/ctc-helper
+ (stringof char-pred)
+ (flat-named-contract
+  `(stringof ,(contract-name char-pred))
+  (lambda (s)
+    (and (string? s) (for/and ((ch (in-string s))) (char-pred ch))))))
+
 (define/contract
  (parse-grid los)
  (configurable-ctc
-  (max (-> (listof string?) grid?))
+  (max (-> (listof (stringof (curry dict-has-key? chars->cell%s))) grid?))
   (types (-> (listof string?) grid?)))
  (for/vector
   ((s (in-list los)))

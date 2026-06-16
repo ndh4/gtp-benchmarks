@@ -41,7 +41,7 @@
       [types (-> exact-nonnegative-integer?)])]
  [d20 ([max (-> (random-result-between/c 1 21))]
        [types (-> exact-nonnegative-integer?)])]
- [random-from ([max (->i ([l (listof any/c)])
+ [random-from ([max (->i ([l (and/c (listof any/c) cons?)])
                          [result (l) (memberof/c l)])]
                [types ((listof any/c) . -> . any/c)])]
  [shuffle ([max (->i ([l (listof any/c)])
@@ -68,7 +68,9 @@
 
 ;; Non-specific ctc because this random stuff is rigged to be deterministic
 (define (random n)
-  (begin0 (modulo (car (unbox r*)) n) (set-box! r* (cdr (unbox r*)))))
+  (begin0 (modulo (car (unbox r*)) n)
+          (set-box! r* (cdr (unbox r*)))
+          (when (empty? (unbox r*)) (reset!))))
 
 (define/ctc-helper (list+titlecases . los)
   (append los

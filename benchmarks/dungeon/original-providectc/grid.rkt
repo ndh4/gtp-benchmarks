@@ -14,7 +14,7 @@
   cell%?
   class-equal?
 ))
-(require/configurable-contract "cell.rkt" void-cell% char->cell% )
+(require/configurable-contract "cell.rkt" void-cell% char->cell% chars->cell%s)
 
 (provide/configurable-contract
  [array-set! ([max (->i ([g (arrayof cell%?)]
@@ -35,7 +35,7 @@
                            (equal? (f xy)
                                    (grid-ref result xy))))]
                [types (array-coord? (array-coord? . -> . cell%?) . -> . (arrayof cell%?))])]
- [parse-grid ([max ((listof string?) . -> . grid?)]
+ [parse-grid ([max ((listof (stringof (curry dict-has-key? chars->cell%s))) . -> . grid?)]
               [types ((listof string?) . -> . grid?)])]
  [show-grid ([max (grid? . -> . string?)]
              [types (grid? . -> . string?)])]
@@ -144,6 +144,14 @@
 ;; a Grid is a math/array Mutable-Array of cell%
 ;; (mutability is required for dungeon generation)
 (define/ctc-helper grid? (arrayof cell%?))
+
+(define/ctc-helper (stringof char-pred)
+  (flat-named-contract
+   `(stringof ,(contract-name char-pred))
+   (lambda (s)
+     (and (string? s)
+          (for/and ([ch (in-string s)])
+            (char-pred ch))))))
 
 ;; parses a list of strings into a grid, based on the printed representation
 ;; of each cell
