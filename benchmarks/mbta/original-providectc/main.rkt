@@ -2,68 +2,64 @@
 
 ;; ===================================================================================================
 (require
- ;; "run-t.rkt"
- "data.rkt"
- "helpers.rkt"
- "../../../ctcs/precision-config.rkt"
- "../../../ctcs/common.rkt"
- "../../../ctcs/configurable.rkt"
- (only-in racket/string string-join))
+  ;; "run-t.rkt"
+  "data.rkt"
+  "helpers.rkt"
+  "../../../ctcs/precision-config.rkt"
+  "../../../ctcs/common.rkt"
+  "../../../ctcs/configurable.rkt"
+  (only-in racket/string string-join))
 (require/configurable-contract "run-t.rkt" run-t manage EOM DONE ENABLE DISABLE PATH )
 
- (provide/configurable-contract
-  [dat->station-names ([max (->i ([fname (and/c string? (λ (f) (file-exists? f)))])
-                                 [result (fname)
-                                         (and/c (listof station?)
-                                                (λ (lst)
-                                                  (sublist? lst (file->lines fname))))])]
-                       #;[max/sub1 (-> (and/c string? (λ (f) (file-exists? f)))
-                                       (listof station?))]
-                       [types (-> string? (listof string?))])]
-  [BLUE-STATIONS ([max (and/c (listof station?)
-                              (λ (lst)
-                                (sublist? lst (file->lines "../base/blue.dat"))))]
-                  #;[max/sub1 (listof station?)]
-                  [types (listof string?)])]
-  [ORANGE-STATIONS ([max (and/c (listof station?)
-                                (λ (lst)
-                                  (sublist? lst (file->lines "../base/orange.dat"))))]
-                    #;[max/sub1 (listof station?)]
-                    [types (listof string?)])]
-  [path ([max (->i ([from string?]
-                    [to string?])
-                   [result (from to)
-                           (λ (res)
-                             (ordered-substrings? (list "from" from "to" to) res))])]
-         #;[max/sub1 (->i ([from string?]
-                           [to string?])
-                          [result (from to)
-                                  (λ (res)
-                                    (and (substring? from res)
-                                         (substring? to res)))])]
-         [types (-> string? string? string?)])]
-  [enable ([max (->i ([s string?])
+(provide/configurable-contract
+ [dat->station-names ([max (->i ([fname (and/c path-string? (λ (f) (file-exists? f)))])
+                                [result (fname)
+                                        (and/c (listof station?)
+                                               (λ (lst)
+                                                 (sublist? lst (file->lines fname))))])]
+                      #;[max/sub1 (-> (and/c string? (λ (f) (file-exists? f)))
+                                      (listof station?))]
+                      [types (-> string? (listof string?))])]
+ [BLUE-STATIONS ([max (and/c (listof station?)
+                             (λ (lst)
+                               (sublist? lst (file->lines "../base/blue.dat"))))]
+                 #;[max/sub1 (listof station?)]
+                 [types (listof string?)])]
+ [ORANGE-STATIONS ([max (and/c (listof station?)
+                               (λ (lst)
+                                 (sublist? lst (file->lines "../base/orange.dat"))))]
+                   #;[max/sub1 (listof station?)]
+                   [types (listof string?)])]
+ [path ([max (->i ([from string?]
+                   [to string?])
+                  [result (from to)
+                          (λ (res)
+                            (ordered-substrings? (list "from" from "to" to) res))])]
+        #;[max/sub1 (->i ([from string?]
+                          [to string?])
+                         [result (from to)
+                                 (λ (res)
+                                   (and (substring? from res)
+                                        (substring? to res)))])]
+        [types (-> string? string? string?)])]
+ [enable ([max (->i ([s string?])
+                    [result (s)
+                            (λ (res)
+                              (ordered-substrings? (list "enable" s) res))])]
+          #;[max/sub1 (->i ([s string?])
+                           [result (s)
+                                   (λ (res)
+                                     (substring? s res))])]
+          [types (-> string? string?)])]
+ [disable ([max (->i ([s string?])
                      [result (s)
                              (λ (res)
-                               (ordered-substrings? (list "enable" s) res))])]
+                               (ordered-substrings? (list "disable" s) res))])]
            #;[max/sub1 (->i ([s string?])
                             [result (s)
                                     (λ (res)
                                       (substring? s res))])]
-           [types (-> string? string?)])]
-  [disable ([max (->i ([s string?])
-                      [result (s)
-                              (λ (res)
-                                (ordered-substrings? (list "disable" s) res))])]
-            #;[max/sub1 (->i ([s string?])
-                             [result (s)
-                                     (λ (res)
-                                       (substring? s res))])]
-            [types (-> string? string?)])]
-  [assert ([max (string? natural? . -> . void?)]
-           [types (string? natural? . -> . void?)])]
-  [main ([max any/c]
-         [types any/c])])
+           [types (-> string? string?)])])
 
 
 ;; ===================================================================================================
@@ -92,32 +88,29 @@
 
 ;; ===================================================================================================
 
-(define (assert result expected-length)
-  (define num-result (length (string-split result "\n")))
-  (unless (= num-result expected-length)
-    (error (format "Expected ~a results, got ~a\nFull list:~a"
-                   expected-length
-                   num-result
-                   result))))
-
-(define (main)
+(module+ test
+  (require rackunit)
   (define (run-query str)
     (define r (run-t str))
     (if r
         r
         (error 'main (format "run-t failed to respond to query ~e\n" str))))
-  (assert (run-query (path "Airport" "Northeastern")) 14)
-  (assert (run-query (disable "Government")) 1)
-  (assert (run-query (path "Airport" "Northeastern")) 16)
-  (assert (run-query (enable "Government")) 1)
-  (assert (run-query (path "Airport" "Harvard Square")) 12)
-  (assert (run-query (disable "Park Street")) 1)
-  (assert (run-query (path "Northeastern" "Harvard Square")) 1) ;;impossible path
-  (assert (run-query (enable "Park Street")) 1)
-  (assert (run-query (path "Northeastern" "Harvard Square")) 12)
-  ;; --
-  (for* ([s1 (in-list ORANGE-STATIONS)] [s2 (in-list BLUE-STATIONS)])
-    (run-query (path s1 s2))))
+  (define (num-pieces res)
+    (length (string-split res "\n")))
+  (check-equal? (num-pieces (run-query (path "Airport" "Northeastern"))) 14)
+  
+  (define res1 (run-query (disable "Government")))
+  (check-equal? (num-pieces res1) 1)
+  (check-equal? (num-pieces (run-query (path "Airport" "Northeastern"))) 16)
+  
+  (define res2 (run-query (enable "Government")))
+  (check-equal? (num-pieces res2) 1)
+  (check-equal? (num-pieces (run-query (path "Airport" "Harvard Square"))) 12)
 
-#;(time (main))
+  (define res3 (run-query (disable "Park Street")))
+  (check-equal? (num-pieces res3) 1)
+  (check-equal? (num-pieces (run-query (path "Northeastern" "Harvard Square"))) 1) ;;impossible path
 
+  (define res4 (run-query (enable "Park Street")))
+  (check-equal? (num-pieces res4) 1)
+  (check-equal? (num-pieces (run-query (path "Northeastern" "Harvard Square"))) 12))

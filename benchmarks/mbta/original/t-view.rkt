@@ -30,7 +30,7 @@
  (configurable-ctc
   (max
    (->i
-    ((inp-lst (listof (listof any/c))))
+    ((inp-lst (and/c cons? (listof (listof any/c)))))
     (result
      (inp-lst)
      (λ (out-lst)

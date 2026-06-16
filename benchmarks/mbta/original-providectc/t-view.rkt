@@ -26,7 +26,7 @@
 (require/configurable-contract "t-graph.rkt" mbta% read-t-graph)
 
 (provide/configurable-contract
- [selector ([max (->i ([inp-lst (listof (listof any/c))])
+ [selector ([max (->i ([inp-lst (and/c cons? (listof (listof any/c)))])
                       [result (inp-lst)
                               (λ (out-lst)
                                 (and (list? out-lst)

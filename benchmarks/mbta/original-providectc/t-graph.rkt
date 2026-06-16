@@ -111,7 +111,7 @@
                          [types (-> string?
                                     (listof (list/c string?
                                                     (listof (list/c string? string?)))))])]
- [lines->hash ([max (->i ([lines (listof string?)])
+ [lines->hash ([max (->i ([lines (cons/c #px"--* (.*)" (listof string?))])
                          [result (lines)
                                  ;; ll: checked 4x per unique line
                                  (λ (h)

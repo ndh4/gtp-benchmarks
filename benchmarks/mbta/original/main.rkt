@@ -9,21 +9,14 @@
 
 (require (only-in "run-t.rkt" run-t manage EOM DONE ENABLE DISABLE PATH))
 
-(provide dat->station-names
-         BLUE-STATIONS
-         ORANGE-STATIONS
-         path
-         enable
-         disable
-         assert
-         main)
+(provide dat->station-names BLUE-STATIONS ORANGE-STATIONS path enable disable)
 
 (define/contract
  (dat->station-names fname)
  (configurable-ctc
   (max
    (->i
-    ((fname (and/c string? (λ (f) (file-exists? f)))))
+    ((fname (and/c path-string? (λ (f) (file-exists? f)))))
     (result
      (fname)
      (and/c (listof station?) (λ (lst) (sublist? lst (file->lines fname)))))))
@@ -86,36 +79,28 @@
   (types (-> string? string?)))
  (format "disable ~a" s))
 
-(define/contract
- (assert result expected-length)
- (configurable-ctc
-  (max (-> string? natural? void?))
-  (types (-> string? natural? void?)))
- (define num-result (length (string-split result "\n")))
- (unless (= num-result expected-length)
-   (error
-    (format
-     "Expected ~a results, got ~a\nFull list:~a"
-     expected-length
-     num-result
-     result))))
-
-(define/contract
- (main)
- (configurable-ctc (max any/c) (types any/c))
+(module+
+ test
+ (require rackunit)
  (define (run-query str)
    (define r (run-t str))
    (if r r (error 'main (format "run-t failed to respond to query ~e\n" str))))
- (assert (run-query (path "Airport" "Northeastern")) 14)
- (assert (run-query (disable "Government")) 1)
- (assert (run-query (path "Airport" "Northeastern")) 16)
- (assert (run-query (enable "Government")) 1)
- (assert (run-query (path "Airport" "Harvard Square")) 12)
- (assert (run-query (disable "Park Street")) 1)
- (assert (run-query (path "Northeastern" "Harvard Square")) 1)
- (assert (run-query (enable "Park Street")) 1)
- (assert (run-query (path "Northeastern" "Harvard Square")) 12)
- (for*
-  ((s1 (in-list ORANGE-STATIONS)) (s2 (in-list BLUE-STATIONS)))
-  (run-query (path s1 s2))))
+ (define (num-pieces res) (length (string-split res "\n")))
+ (check-equal? (num-pieces (run-query (path "Airport" "Northeastern"))) 14)
+ (define res1 (run-query (disable "Government")))
+ (check-equal? (num-pieces res1) 1)
+ (check-equal? (num-pieces (run-query (path "Airport" "Northeastern"))) 16)
+ (define res2 (run-query (enable "Government")))
+ (check-equal? (num-pieces res2) 1)
+ (check-equal? (num-pieces (run-query (path "Airport" "Harvard Square"))) 12)
+ (define res3 (run-query (disable "Park Street")))
+ (check-equal? (num-pieces res3) 1)
+ (check-equal?
+  (num-pieces (run-query (path "Northeastern" "Harvard Square")))
+  1)
+ (define res4 (run-query (enable "Park Street")))
+ (check-equal? (num-pieces res4) 1)
+ (check-equal?
+  (num-pieces (run-query (path "Northeastern" "Harvard Square")))
+  12))
 

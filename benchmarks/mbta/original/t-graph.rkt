@@ -226,7 +226,7 @@
  (configurable-ctc
   (max
    (->i
-    ((lines (listof string?)))
+    ((lines (cons/c #px"--* (.*)" (listof string?))))
     (result
      (lines)
      (λ (h)
