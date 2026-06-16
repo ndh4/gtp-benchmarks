@@ -35,7 +35,7 @@
 
 (provide/configurable-contract
  [assert ([max #;(parametric->/c [A] (A (A . -> . boolean?) . -> . A))
-        (any/c (any/c . -> . boolean?) . -> . any/c)]
+        (any/c (any/c . -> . #t) . -> . any/c)]
    [types (any/c (any/c . -> . boolean?) . -> . any/c)])]
  [defn-command ([max (command%?-with-exec
          (args E S v)

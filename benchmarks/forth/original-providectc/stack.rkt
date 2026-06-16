@@ -31,7 +31,7 @@
                                              (cons (first S)
                                                    (rest (rest S))))))])]
               [types (stack? . -> . stack?)])]
- [stack-pop ([max (->i ([S stack?])
+ [stack-pop ([max (->i ([S non-empty-stack?])
                        (values
                         [first-result (S) (equal?/c (first S))]
                         [second-result (S) (equal?/c (rest S))]))]

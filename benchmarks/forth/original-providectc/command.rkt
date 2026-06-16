@@ -43,8 +43,8 @@
 (require/configurable-contract "stack.rkt" stack-swap stack-push stack-pop stack-over stack-init stack-dup stack-drop )
 
 (provide/configurable-contract
- [assert ([max any/c]
-   [types any/c])]
+ [assert ([max (any/c (any/c . -> . #t) . -> . any/c)]
+   [types (any/c (any/c . -> . boolean?) . -> . any/c)])]
  [command% ([max command%/c]
    [types command%/c])]
  [singleton-list? ([max (->i ([x any/c])

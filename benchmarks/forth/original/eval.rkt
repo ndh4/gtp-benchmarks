@@ -32,7 +32,7 @@
 (define/contract
  (assert v p)
  (configurable-ctc
-  (max (-> any/c (-> any/c boolean?) any/c))
+  (max (-> any/c (-> any/c #t) any/c))
   (types (-> any/c (-> any/c boolean?) any/c)))
  (unless (p v) (error 'assert))
  v)

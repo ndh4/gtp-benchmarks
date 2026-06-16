@@ -70,7 +70,7 @@
  (configurable-ctc
   (max
    (->i
-    ((S stack?))
+    ((S non-empty-stack?))
     (values
      (first-result (S) (equal?/c (first S)))
      (second-result (S) (equal?/c (rest S))))))
