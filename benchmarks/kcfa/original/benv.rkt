@@ -74,7 +74,11 @@
  (configurable-ctc
   (max
    (->i
-    ((benv BEnv?) (keys (listof Var?)) (vals (listof Addr?)))
+    ((benv BEnv?)
+     (keys (listof Var?))
+     (vals
+      (keys)
+      (and/c (listof Addr?) (lambda (vals) (= (length vals) (length keys))))))
     (result BEnv?)
     #:post
     (benv keys vals result)

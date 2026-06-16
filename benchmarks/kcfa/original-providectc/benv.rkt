@@ -28,7 +28,7 @@
                [types (BEnv? Var? Addr? . -> . BEnv?)])]
  [benv-extend* ([max (->i ([benv BEnv?]
                            [keys (listof Var?)]
-                           [vals (listof Addr?)])
+                           [vals (keys) (and/c (listof Addr?) (lambda (vals) (= (length vals) (length keys))))])
                           [result BEnv?]
                           #:post (benv keys vals result)
                           (for/and ([k (in-list keys)]
