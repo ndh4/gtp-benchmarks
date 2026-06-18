@@ -28,8 +28,14 @@
 (struct posn (x y) #:transparent)
 
 (define/ctc-helper
- (posn-type? p)
- (match p ((posn (? integer?) (? integer?)) #t) (_ #f)))
+ posn-type?
+ (flat-named-contract
+  'posn-type?
+  (λ (p) (match p ((posn (? integer?) (? integer?)) #t) (_ #f)))
+  (λ (fuel)
+    (define int-generator
+      (contract-random-generate/choose integer? (sub1 fuel)))
+    (thunk (posn (int-generator) (int-generator))))))
 
 (define/ctc-helper
  ((posn=?/c p1) p2)
@@ -44,6 +50,8 @@
 
 (define/ctc-helper snake-segs? (listof posn-type?))
 
+(define/ctc-helper nonempty-snake-segs? (and/c cons? snake-segs?))
+
 (define/ctc-helper (snake-segs=?/c segs) (apply list/c (map posn=?/c segs)))
 
 (define/ctc-helper food? posn-type?)
@@ -52,11 +60,19 @@
 
 (define/ctc-helper snake-dir? (or/c "up" "down" "left" "right"))
 
-(struct snake (dir segs))
+(struct snake (dir segs) #:transparent)
 
 (define/ctc-helper
- (snake-type? s)
- (match s ((snake (? string?) (? snake-segs?)) #t) (_ #f)))
+ snake-type?
+ (flat-named-contract
+  'snake-type?
+  (λ (s) (match s ((snake (? snake-dir?) (? nonempty-snake-segs?)) #t) (_ #f)))
+  (λ (fuel)
+    (define snake-dir?-generator
+      (contract-random-generate/choose snake-dir? (sub1 fuel)))
+    (define snake-segs?-generator
+      (contract-random-generate/choose nonempty-snake-segs? (sub1 fuel)))
+    (thunk (snake (snake-dir?-generator) (snake-segs?-generator))))))
 
 (define/ctc-helper
  ((snake/c dir/c segs/c) s)
@@ -72,11 +88,20 @@
   (((snake dir segs1) (snake dir segs2)) ((snake-segs=?/c segs1) segs2))
   ((_ _) #f)))
 
-(struct world (snake food))
+(struct world (snake food) #:transparent)
 
 (define/ctc-helper
- ((world/c snake/c food/c) x)
- (match x ((world (? snake/c) (? food/c)) #t) (_ #f)))
+ (world/c snake/c food/c)
+ (flat-named-contract
+  (string->symbol
+   (format "(world/c ~a ~a)" (contract-name snake/c) (contract-name food/c)))
+  (λ (x) (match x ((world (? snake/c) (? food/c)) #t) (_ #f)))
+  (λ (fuel)
+    (define snake-generator
+      (contract-random-generate/choose snake/c (sub1 fuel)))
+    (define food-generator
+      (contract-random-generate/choose food/c (sub1 fuel)))
+    (thunk (world (snake-generator) (food-generator))))))
 
 (define/ctc-helper
  ((world=?/c w1) w2)
@@ -93,9 +118,9 @@
  (configurable-ctc
   (max
    (->i
-    ((p1 posn?) (p2 posn?))
+    ((p1 posn-type?) (p2 posn-type?))
     (result (p1 p2) (match* (p1 p2) (((posn x y) (posn x y)) #t) ((_ _) #f)))))
-  (types (-> posn? posn? boolean?)))
+  (types (-> posn-type? posn-type? boolean?)))
  (and (= (posn-x p1) (posn-x p2)) (= (posn-y p1) (posn-y p2))))
 
 (module+
