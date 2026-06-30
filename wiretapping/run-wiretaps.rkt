@@ -3,7 +3,7 @@
 (require "params.rkt"
          racket/sandbox)
 
-(define (run-wiretap-on-benchmark benchmark)
+(define (run-wiretap-on-benchmark #:benchmark benchmark #:contract-level contract-level)
   (define base-dir (build-path path-to-bench-dirs benchmark))
   (define wiretap-dir (build-path base-dir (format "wiretap-~a" contract-level)))
   (define output-dir (build-path base-dir (format "wiretap-~a-results" contract-level)))
@@ -22,17 +22,21 @@
       (define inspector (current-code-inspector))
       (parameterize ([current-output-port out]
                      [current-directory run-dir]
-                     [sandbox-memory-limit MEMORY_LIMIT]
-                     [sandbox-output out]
+                     [sandbox-error-output out]
                      [sandbox-make-code-inspector (thunk inspector)]
                      [sandbox-security-guard (current-security-guard)]  ; Allow any file/network access
-                     [sandbox-eval-limits #f]               ; No time/CPU limits
+                     [sandbox-eval-limits (list TIME_LIMIT_SECONDS MEMORY_LIMIT_MB)]
                      [sandbox-propagate-exceptions #t])     ; Pass all errors through
         (with-handlers ([exn:fail? (lambda (e) (printf "[Reached error~n-------------~n~a]~n" (exn-message e)))])
           (define eval (make-module-evaluator wiretap-runner))
           (eval (make-base-namespace)))))))
 
-(for ([benchmark benchmarks])
-  (printf "Running wiretap on \"~a\" with contract level \"~a\" and ~aMB memory limit...~n"
-           benchmark contract-level MEMORY_LIMIT)
-  (run-wiretap-on-benchmark benchmark))
+(for* ([contract-level contract-levels]
+       [benchmark benchmarks])
+  (printf "Running wiretap on \"~a\" with contract level \"~a\", ~as time limit, and ~aMB memory limit...~n"
+           benchmark contract-level TIME_LIMIT_SECONDS MEMORY_LIMIT_MB)
+  (run-wiretap-on-benchmark #:benchmark benchmark #:contract-level contract-level))
+
+#;(run-one-wiretap #:run-dir "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks/kcfa/wiretap-max"
+                 #:runner (string->path "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks/kcfa/wiretap-max/ai_TAP_explore.rkt")
+                 #:out-dir "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/wiretap-scratch-results")
