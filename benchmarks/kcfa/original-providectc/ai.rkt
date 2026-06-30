@@ -132,7 +132,9 @@
 ;; -- state space exploration
 
 (define/ctc-helper ((subset?/c sub) s)
-  (subset? sub s))
+  (define sublist (set->list sub))
+  (define slist (set->list s))
+  (not (not (for/and ([elem sublist]) (member elem slist)))))
 
 ;(: explore (-> (Setof State) (Listof State) (Setof State)))
 (define (explore seen todo)
