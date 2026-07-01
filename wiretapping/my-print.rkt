@@ -70,6 +70,9 @@
     (struct-type-info struct-type))
   name)
 
+(define (get-class-name obj)
+  (string-replace (symbol->string (object-name obj)) "object:" ""))
+
 (define (my-print obj port)
   (match obj
     [(or (? symbol?) (? boolean?) (? number?) (? char?))
@@ -100,6 +103,16 @@
      (display "))" port)]
     [(? generic-set?)
      (my-construct-print (get-set-label obj) (in-set obj) port)]
+    [(? object?)
+     (display "(new " port)
+     (display (get-class-name obj) port)
+     (for ([field-name (field-names obj)])
+       (display " (" port)
+       (display field-name port)
+       (display " " port)
+       (my-print (dynamic-get-field field-name obj) port)
+       (display ")" port))
+     (display ")" port)]
     [(? struct?)
      (define name (get-struct-name obj))
      (my-construct-print name (in-list (struct->list obj)) port)]
@@ -110,5 +123,7 @@
      (my-construct-print 'void empty-stream port)]
     [(? procedure?)
      (my-construct-print 'some-procedure empty-stream port)]
+    [(? class?)
+     (display (object-name obj) port)]
     [else
      (fprintf port "#<Unknown: ~a>" obj)]))
