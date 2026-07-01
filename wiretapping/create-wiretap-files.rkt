@@ -67,7 +67,9 @@
 
 
 (define (sanitize identifier)
-  (string-replace (~a identifier) "/" "_"))
+  (for/fold ([str (~a identifier)])
+            ([replacer (in-list '(("/" . "_") ("!" . "B") ("?" . "H")))])
+    (string-replace str (car replacer) (cdr replacer))))
 
 (define (create-wiretap-file #:identifier identifier #:in-file in-file #:out-dir out-dir #:ctc-level contract-level)
   (define out-file
