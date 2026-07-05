@@ -129,7 +129,7 @@
    (->i
     ((a vector?)
      (b vector?)
-     (pred (-> any/c any/c boolean?))
+     (pred (and/c (-> any/c any/c boolean?) commutative-binary-function?))
      (get-scratch
       (->i
        ((n natural?))
@@ -179,12 +179,78 @@
  (check-equal? (vector-levenshtein '#(6 6 6) '#(6 35 6 24 6 32)) 3))
 
 (define/ctc-helper
+ (make-fixed-or/c*)
+ (define generator-store (box #f))
+ (define predicate-store (box #f))
+ (define (clean-predicate-store!? . _) (set-box! predicate-store #f) #t)
+ (define ctc
+   (make-contract
+    #:name
+    (string->symbol "(fixed-or/c string? vector? list?)")
+    #:late-neg-projection
+    (λ (blame)
+      (λ (val neg-party)
+        (define stored-type (unbox predicate-store))
+        (match
+         stored-type
+         ((? symbol?)
+          (define ctc-pred
+            (case stored-type
+              ((string?) string?)
+              ((vector?) vector?)
+              ((list?) list?)))
+          (((contract-late-neg-projection ctc-pred) blame) val neg-party))
+         (#f
+          (match
+           val
+           ((? string?) (set-box! predicate-store 'string?) val)
+           ((? vector?) (set-box! predicate-store 'vector?) val)
+           ((? list?) (set-box! predicate-store 'list?) val)
+           (else
+            (raise-blame-error
+             blame
+             #:missing-party
+             neg-party
+             val
+             '(expected "(or/c string? vector? list?)" given: "~e")
+             val)))))))
+    #:generate
+    (λ (fuel)
+      (define string-generator (contract-random-generate/choose string? fuel))
+      (define list-generator (contract-random-generate/choose list? fuel))
+      (define vector-generator (lambda _ (list->vector (list-generator))))
+      (lambda _
+        (define stored-type (unbox generator-store))
+        (match
+         stored-type
+         ((? symbol?)
+          (set-box! generator-store #f)
+          (case stored-type
+            ((string?) (string-generator))
+            ((vector?) (vector-generator))
+            ((list?) (list-generator))))
+         (#f
+          (case (random 3)
+            ((0) (set-box! generator-store 'string?) (string-generator))
+            ((1) (set-box! generator-store 'vector?) (vector-generator))
+            ((2) (set-box! generator-store 'list?) (list-generator)))))))))
+ (cons ctc clean-predicate-store!?))
+
+(define/ctc-helper fixed-vsl/c** (make-fixed-or/c*))
+
+(define/ctc-helper fixed-vsl/c (car fixed-vsl/c**))
+
+(define/ctc-helper reset-vsl!? (cdr fixed-vsl/c**))
+
+(define/ctc-helper
  (levenshtein-variant/pred/c #:at level #:sequence-type (seq? vector?))
  (match
   level
   ('max
    (->i
-    ((a seq?) (b seq?) (pred (-> any/c any/c boolean?)))
+    ((a seq?)
+     (b seq?)
+     (pred (and/c (-> any/c any/c boolean?) commutative-binary-function?)))
     (result natural?)
     #:post
     (a b pred result)
@@ -192,7 +258,14 @@
   ('types (-> seq? seq? (-> any/c any/c boolean?) natural?))))
 
 (define/ctc-helper
- (levenshtein-variant/c pred #:at level #:sequence-type (seq? vector?))
+ (levenshtein-variant/c
+  pred
+  #:at
+  level
+  #:sequence-type
+  (seq? vector?)
+  #:clean-seqtype-env!?
+  (clean-seqtype-env!? (lambda () (void))))
  (match
   level
   ('max
@@ -201,7 +274,7 @@
     (result natural?)
     #:post
     (a b result)
-    (editable-to? a b result #:compare-with pred)))
+    (and (editable-to? a b result #:compare-with pred) (reset-vsl!?))))
   ('types (-> seq? seq? natural?))))
 
 (define/contract
@@ -346,7 +419,9 @@
     #:at
     'max
     #:sequence-type
-    (or/c string? vector? list?)))
+    fixed-vsl/c
+    #:clean-seqtype-env!?
+    reset-vsl!?))
   (types
    (levenshtein-variant/c
     equal?

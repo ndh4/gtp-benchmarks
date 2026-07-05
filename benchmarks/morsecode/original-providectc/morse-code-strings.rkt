@@ -20,14 +20,13 @@
 (require/configurable-contract "morse-code-table.rkt" char-table clean-pattern lines wikipedia-text )
 
 (provide/configurable-contract
- [char->dit-dah-string ([max (->i ([letter char?])
-                                  #:pre (letter) (hash-has-key? char-table (char-downcase letter))
+ [char->dit-dah-string ([max (->i ([letter (and/c char? (lambda (letter) (hash-has-key? char-table (char-downcase letter))))])
                                   [result (letter)
                                           (and/c morse-string?
                                                  (morse-decodes-to? letter))])]
                         [types (-> char? string?)])]
- [string->morse ([max (->i ([str string?])
-                           [result (str)
+ [string->morse ([max (->i ([str (stringof (lambda (letter) (hash-has-key? char-table (char-downcase letter))))])
+                            [result (str)
                                    (and/c morse-string? (morse-decodes-to? str))]
                            #:post (str result)
                            (if (non-empty-string? str)

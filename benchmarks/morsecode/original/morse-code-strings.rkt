@@ -33,10 +33,10 @@
  (configurable-ctc
   (max
    (->i
-    ((letter char?))
-    #:pre
-    (letter)
-    (hash-has-key? char-table (char-downcase letter))
+    ((letter
+      (and/c
+       char?
+       (lambda (letter) (hash-has-key? char-table (char-downcase letter))))))
     (result (letter) (and/c morse-string? (morse-decodes-to? letter)))))
   (types (-> char? string?)))
  (define res (hash-ref char-table (char-downcase letter) #f))
@@ -49,7 +49,9 @@
  (configurable-ctc
   (max
    (->i
-    ((str string?))
+    ((str
+      (stringof
+       (lambda (letter) (hash-has-key? char-table (char-downcase letter))))))
     (result (str) (and/c morse-string? (morse-decodes-to? str)))
     #:post
     (str result)
