@@ -8,7 +8,7 @@
  (only-in racket/function curry)
  (only-in "../../../ctcs/common.rkt"
           stack?
-          list-with-min-size/c
+          list-with-min-size-two/c
           equal?/c))
 
 (provide/configurable-contract
@@ -23,7 +23,7 @@
              [types (stack? . -> . stack?)])]
  [stack-init ([max (-> (and/c stack? empty?))]
               [types (-> stack?)])]
- [stack-over ([max (->i ([S (stack-with-min-size/c 2)])
+ [stack-over ([max (->i ([S stack-with-min-size-two/c])
                         [result (S)
                                 (equal?/c
                                  (cons (first S)
@@ -41,7 +41,7 @@
                         [result (S v)
                                 (equal?/c (cons v S))])]
               [types (stack? any/c . -> . stack?)])]
- [stack-swap ([max (->i ([S (stack-with-min-size/c 2)])
+ [stack-swap ([max (->i ([S stack-with-min-size-two/c])
                         [result (S)
                                 (equal?/c
                                  (cons (second S)
@@ -100,7 +100,7 @@
 (define/ctc-helper stackof listof)
 (define/ctc-helper non-empty-stack? (and/c stack?
                                 (not/c empty?)))
-(define/ctc-helper stack-with-min-size/c list-with-min-size/c)
+(define/ctc-helper stack-with-min-size-two/c list-with-min-size-two/c)
 
 (define (list->stack xs)
   (for/fold ([S (stack-init)])

@@ -45,6 +45,12 @@
         #f))
 
 
+(define
+ (stringof char-pred)
+ (flat-named-contract
+  `(stringof ,(contract-name char-pred))
+  (lambda (s)
+    (and (string? s) (for/and ((ch (in-string s))) (char-pred ch))))))
 
 (define stack? list?)
 
@@ -98,8 +104,36 @@
   (and (list? S)
        (>= (length S) n)))
 
+(define list-with-min-size-two/c
+  (cons/c any/c
+    (cons/c any/c
+      list?)))
+
 (define ((equal?/c c/v) v)
   (equal? c/v v))
 
 (define ((thunked-equal?/c c/v) v)
   (equal? (c/v) v))
+
+(struct commutative-binary-function-proj ()
+  #:property prop:contract
+  (build-contract-property
+   #:name (λ (c) 'commutative-binary-function?)
+   #:late-neg-projection (λ (c)
+                           (λ (blame)
+                             (λ (val neg-party)
+                               (cond [(and (procedure? val) (procedure-arity-includes? val 2))
+                                      (λ (x y)
+                                        (define normal (val x y))
+                                        (define flipped (val y x))
+                                        (if (equal? normal flipped)
+                                            normal
+                                            (raise-blame-error blame #:missing-party neg-party val
+                                                               "promised commutative function, but flipping input order changed the outputs: ~e and ~e for inputs ~e and ~e"
+                                                               normal flipped x y)))]
+                                     [else
+                                      (raise-blame-error blame #:missing-party neg-party val
+                                                         "promised: a binary function~n  produced: ~e" val)]))))))
+
+(define commutative-binary-function?
+  (commutative-binary-function-proj))

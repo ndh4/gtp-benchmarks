@@ -7,7 +7,7 @@
          (only-in
           "../../../ctcs/common.rkt"
           stack?
-          list-with-min-size/c
+          list-with-min-size-two/c
           equal?/c))
 
 (provide list->stack
@@ -23,7 +23,7 @@
 
 (define/ctc-helper non-empty-stack? (and/c stack? (not/c empty?)))
 
-(define/ctc-helper stack-with-min-size/c list-with-min-size/c)
+(define/ctc-helper stack-with-min-size-two/c list-with-min-size-two/c)
 
 (define/contract
  (list->stack xs)
@@ -56,7 +56,7 @@
  (configurable-ctc
   (max
    (->i
-    ((S (stack-with-min-size/c 2)))
+    ((S stack-with-min-size-two/c))
     (result
      (S)
      (equal?/c
@@ -89,7 +89,7 @@
  (configurable-ctc
   (max
    (->i
-    ((S (stack-with-min-size/c 2)))
+    ((S stack-with-min-size-two/c))
     (result
      (S)
      (equal?/c (cons (second S) (cons (first S) (rest (rest S))))))))

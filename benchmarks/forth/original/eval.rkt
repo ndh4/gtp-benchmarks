@@ -92,8 +92,39 @@
    (else (forth-eval e s token*)))))
 
 (define/ctc-helper
- ((listof/any-depth/c ctc) v)
- (if (list? v) (andmap (listof/any-depth/c ctc) v) (ctc v)))
+ (listof/any-depth/c ctc)
+ (define name (format "(listof/any-depth/c ~a)" (contract-name ctc)))
+ (make-contract
+  #:name
+  (string->symbol name)
+  #:late-neg-projection
+  (λ (blame)
+    (λ (val neg-party)
+      (if (list? val)
+        (map
+         (lambda (elem)
+           (((contract-late-neg-projection (listof/any-depth/c ctc)) blame)
+            elem
+            neg-party))
+         val)
+        (((contract-late-neg-projection ctc) blame) val neg-party))))
+  #:generate
+  (λ (fuel)
+    (define base-generator (contract-random-generate/choose ctc fuel))
+    (case fuel
+      ((0) base-generator)
+      (else
+       (define ladc-generator
+         (contract-random-generate/choose
+          (listof/any-depth/c ctc)
+          (sub1 fuel)))
+       (thunk
+        (if (zero? (random 2))
+          (base-generator)
+          (let loop ()
+            (if (zero? (random fuel))
+              '()
+              (cons (ladc-generator) (loop)))))))))))
 
 (define/ctc-helper token*? (listof/any-depth/c (or/c symbol? number?)))
 
