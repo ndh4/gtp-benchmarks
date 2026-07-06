@@ -6,21 +6,18 @@
          add-arg-recorder
          print-and-execute-call)
 
-(struct call (proc-name proc-kws kw-args pos-args)
-  #:prefab)
-
 (define (print-and-execute-call proc the-call)
-  (my-print the-call (current-error-port))
-  (eprintf "~n~n")
-  (define result
+  (define bugged-call (call (call-proc-name the-call)
+                            (call-proc-kws the-call)
+                            (map bug-arg (call-kw-args the-call))
+                            (map bug-arg (call-pos-args the-call))))
+  (begin0
     (keyword-apply proc
-      (call-proc-kws the-call)
-      (call-kw-args the-call)
-      (call-pos-args the-call)))
-  (eprintf "(result ")
-  (my-print result (current-error-port))
-  (eprintf ")~n~n")
-  result)
+                   (call-proc-kws bugged-call)
+                   (call-kw-args bugged-call)
+                   (call-pos-args bugged-call))
+    (my-print bugged-call (current-error-port))
+    (eprintf "~n~n")))
 
 (struct arg-recorder ()
   #:property prop:contract
@@ -35,8 +32,7 @@
                                        (λ (kws kw-args . args)
                                          (print-and-execute-call val (call procedure-name kws kw-args args)))
                                        (λ args
-                                         (print-and-execute-call val (call procedure-name '() '() args)))
-                                       )]
+                                         (print-and-execute-call val (call procedure-name '() '() args))))]
                                      [else
                                       (displayln "Contracted value is not a procedure." (current-error-port))
                                       val]))))))

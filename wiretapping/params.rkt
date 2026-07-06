@@ -15,9 +15,9 @@
 ;    "morsecode"
 ;    "sieve"
 ;    "snake"
-    "kcfa"
+;    "kcfa"
 ;    "dungeon"
-;    "forth"
+    "forth"
     )
   )
 
