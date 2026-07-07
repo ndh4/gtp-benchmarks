@@ -119,7 +119,11 @@
   (max
    (->i
     ((p1 posn-type?) (p2 posn-type?))
-    (result (p1 p2) (match* (p1 p2) (((posn x y) (posn x y)) #t) ((_ _) #f)))))
+    (result
+     (p1 p2)
+     (not
+      (or (not (= (posn-x p1) (posn-x p2)))
+          (not (= (posn-y p1) (posn-y p2))))))))
   (types (-> posn-type? posn-type? boolean?)))
  (and (= (posn-x p1) (posn-x p2)) (= (posn-y p1) (posn-y p2))))
 
