@@ -8,7 +8,14 @@
 
 (provide color? line-type line? expected-stations station? line-families)
 
-(define/ctc-helper (color? str) (member str '("blue" "green" "orange" "red")))
+(define/ctc-helper color-list '("blue" "green" "orange" "red"))
+
+(define/ctc-helper
+ color?
+ (flat-named-contract
+  'color?
+  (λ (p) (member p color-list))
+  (λ (fuel) (thunk (list-ref color-list (random (length color-list)))))))
 
 (define/ctc-helper
  line-type
@@ -22,21 +29,27 @@
    ("blue")))
 
 (define/ctc-helper
- (line? str)
- (member
-  str
-  '("E"
-    "D"
-    "C"
-    "B"
-    "A"
-    "Mattapan"
-    "Braintree"
-    "orange"
-    "blue"
-    "line"
-    "line1"
-    "line2")))
+ expected-lines
+ '("E"
+   "D"
+   "C"
+   "B"
+   "A"
+   "Mattapan"
+   "Braintree"
+   "orange"
+   "blue"
+   "line"
+   "line1"
+   "line2"))
+
+(define/ctc-helper
+ line?
+ (flat-named-contract
+  'line?
+  (λ (p) (member p expected-lines))
+  (λ (fuel)
+    (thunk (list-ref expected-lines (random (length expected-lines)))))))
 
 (define/ctc-helper
  expected-stations
@@ -170,5 +183,11 @@
     "Mattapan Station"
     "")))
 
-(define/ctc-helper (station? str) (member str expected-stations))
+(define/ctc-helper
+ station?
+ (flat-named-contract
+  'station?
+  (λ (p) (member p expected-stations))
+  (λ (fuel)
+    (thunk (list-ref expected-stations (random (length expected-stations)))))))
 

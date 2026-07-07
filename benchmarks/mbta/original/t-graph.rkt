@@ -22,6 +22,83 @@
 (provide mbta%/c)
 
 (define/ctc-helper
+ (line-spec-list? p)
+ (and (list? p)
+      (pair? p)
+      (let ((regexp-res (regexp-match #px"--* (.*)" (first p))))
+        (and regexp-res
+             (let ((allowed-lines (string-split (second regexp-res))))
+               (line-spec-list-station-first? (rest p) allowed-lines))))))
+
+(define/ctc-helper
+ (line-spec-list-station-first? p allowed-lines)
+ (and (list? p)
+      (pair? p)
+      (station? (first p))
+      (line-spec-list-remainder? (rest p) allowed-lines)))
+
+(define/ctc-helper
+ (line-spec-list-remainder? p allowed-lines)
+ (and (list? p)
+      (or (null? p)
+          (and (station? (first p))
+               (line-spec-list-remainder? (rest p) allowed-lines))
+          (let ((regexp-res (regexp-match #px"--* (.*)" (first p))))
+            (and regexp-res
+                 (andmap
+                  (λ (e) (member e allowed-lines))
+                  (string-split (second regexp-res))))))))
+
+(define/ctc-helper
+ line-spec-list/c
+ (flat-named-contract
+  'line-spec-list/c
+  line-spec-list?
+  (λ (fuel)
+    (define dashes-generator
+      (contract-random-generate/choose (and/c pair? (listof #\-)) fuel))
+    (define line-generator (contract-random-generate/choose line? fuel))
+    (define lines-generator
+      (contract-random-generate/choose (and/c pair? (listof line?)) fuel))
+    (define station-generator (contract-random-generate/choose station? fuel))
+    (define (make-starter lines)
+      (string-append-immutable
+       (list->string (dashes-generator))
+       " "
+       (string-join lines " ")))
+    (thunk
+     (define allowed-lines (remove-duplicates (lines-generator)))
+     (define (generate-remainder disallowed-stations fuel)
+       (cond
+        ((zero? (random fuel)) '())
+        (else
+         (define generated-station (station-generator))
+         (if (member generated-station disallowed-stations)
+           (generate-remainder disallowed-stations (sub1 fuel))
+           (if (zero? (random 2))
+             (cons
+              (make-starter
+               (take
+                (shuffle allowed-lines)
+                (add1 (random (length allowed-lines)))))
+              (cons
+               generated-station
+               (generate-remainder
+                (cons generated-station disallowed-stations)
+                (sub1 fuel))))
+             (cons
+              generated-station
+              (generate-remainder
+               (cons generated-station disallowed-stations)
+               (sub1 fuel))))))))
+     (define generated-station (station-generator))
+     (cons
+      (make-starter allowed-lines)
+      (cons
+       generated-station
+       (generate-remainder (list generated-station) fuel)))))))
+
+(define/ctc-helper
  T-graph/c
  (λ (g)
    (and (graph? g)
@@ -204,7 +281,7 @@
  (configurable-ctc
   (max
    (->i
-    ((lf (λ (lf) (color? lf))))
+    ((lf color?))
     (result
      (lf)
      (λ (res)
@@ -226,7 +303,7 @@
  (configurable-ctc
   (max
    (->i
-    ((lines (cons/c #px"--* (.*)" (listof string?))))
+    ((lines line-spec-list/c))
     (result
      (lines)
      (λ (h)
