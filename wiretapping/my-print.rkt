@@ -4,45 +4,44 @@
          racket/struct)
 
 (provide my-print
-         record-call
-         (struct-out bugged-procedure)
          (struct-out call)
          bug-arg)
+
+(define-values (prop:print-as-λ print-as-λ? get-print-as-λ)
+  (make-impersonator-property 'print-as-λ))
 
 (struct call (proc-name proc-kws kw-args pos-args)
   #:prefab)
 
-(struct bugged-procedure (proc io-table)
-  #:property prop:procedure
-  (make-keyword-procedure
-   (λ (bp kws kw-args . args)
-     (record-call (bugged-procedure-proc bp) (bugged-procedure-io-table bp) (call (object-name (bugged-procedure-proc bp)) kws kw-args args)))
-   (λ (bp . args)
-     (record-call (bugged-procedure-proc bp) (bugged-procedure-io-table bp) (call (object-name (bugged-procedure-proc bp)) '() '() args)))))
-
-(define (record-call proc io-table the-call)
-  (call-with-values
-   (thunk
-    (keyword-apply
-     proc
-     (call-proc-kws the-call)
-     (call-kw-args the-call)
-     (call-pos-args the-call)))
-   (λ results
-     (hash-set! io-table
-             (list (call-proc-kws the-call) (call-kw-args the-call) (call-pos-args the-call))
-             results)
-     (apply values results))))
-
 (define (bug-arg arg)
   (match arg
-    [(? bugged-procedure?) arg]
-    [(? procedure?) (bugged-procedure arg (make-hash))]
-
-    [(? list?)
-     (map bug-arg arg)]
-    [(? pair?)
-     (cons (bug-arg car) (bug-arg cdr))]
+    [(? procedure?)
+     (define io-table (make-hash))
+     (chaperone-procedure
+      arg
+      (make-keyword-procedure
+       (λ (kws kw-args . args)
+         (values
+          (λ results
+            (hash-set! io-table
+                       (list kws kw-args args)
+                       results)
+            (apply values results))
+          (if (null? kws)
+              (apply values args)
+              (apply values kw-args args)))))
+       prop:print-as-λ
+       (λ (port)
+         (display "(make-keyword-procedure " port)
+         (display "(λ (kws kw-args . args) " port)
+         (display "(apply values " port)
+         (display "(hash-ref " port)
+         (my-print io-table port)
+         (display " (list kws kw-args args) '(#f)))))" port)))]
+[(? list?)
+ (map bug-arg arg)]
+[(? pair?)
+ (cons (bug-arg car) (bug-arg cdr))]
     [(? mpair?)
      (mcons (bug-arg mcar) (bug-arg mcdr))]
     [(? vector?)
@@ -64,27 +63,19 @@
      (define boxer (if (immutable? arg) box-immutable box))
      (boxer (bug-arg (unbox arg)))]
 
-    
+; Cases not explicitly handled:
 ;    [(or (? symbol?) (? boolean?) (? number?) (? char?))
-;     (print obj port)]
+;     ...]
 ;    [(? string?)
-;     (my-string-print obj 'string port)]
+;     ...]
 ;    [(? bytes?)
-;     (my-string-print obj 'bytes port)]
+;     ...]
 ;    [(? object?)
-;     (display "(new " port)
-;     (display (get-class-name obj) port)
-;     (for ([field-name (field-names obj)])
-;       (display " (" port)
-;       (display field-name port)
-;       (display " " port)
-;       (my-print (dynamic-get-field field-name obj) port)
-;       (display ")" port))
-;     (display ")" port)]
+;     ...]
 ;    [(? void?)
-;     (my-construct-print 'void empty-stream port)]
+;     ...]
 ;    [(? class?)
-;     (display (object-name obj) port)]
+;     ...]
     [else arg]))
 
 (define (my-construct-print name elem-stream port)
@@ -228,13 +219,7 @@
        (my-print (dynamic-get-field field-name obj) port)
        (display ")" port))
      (display ")" port)]
-    [(? bugged-procedure?)
-     (display "(make-keyword-procedure " port)
-     (display "(λ (kws kw-args . args) " port)
-     (display "(apply values " port)
-     (display "(hash-ref " port)
-     (my-print (bugged-procedure-io-table obj) port)
-     (display " (list kws kw-args args) (list null)))))" port)]
+    [(? print-as-λ?) ((get-print-as-λ obj) port)]
     [(? struct?)
      (define name (get-struct-name obj))
      (my-construct-print name (in-list (struct->list obj)) port)]
