@@ -1,6 +1,6 @@
 #lang racket
 
-(require "./my-print.rkt")
+(require "my-print.rkt")
 
 (provide (struct-out call)
          add-arg-recorder

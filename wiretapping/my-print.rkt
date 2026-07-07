@@ -30,20 +30,20 @@
           (if (null? kws)
               (apply values args)
               (apply values kw-args args)))))
-       prop:print-as-λ
-       (λ (port)
-         (display "(make-keyword-procedure " port)
-         (display "(λ (kws kw-args . args) " port)
-         (display "(apply values " port)
-         (display "(hash-ref " port)
-         (my-print io-table port)
-         (display " (list kws kw-args args) '(#f)))))" port)))]
-[(? list?)
- (map bug-arg arg)]
-[(? pair?)
- (cons (bug-arg car) (bug-arg cdr))]
+      prop:print-as-λ
+      (λ (port)
+        (display "(make-keyword-procedure " port)
+        (display "(λ (kws kw-args . args) " port)
+        (display "(apply values " port)
+        (display "(hash-ref " port)
+        (my-print io-table port)
+        (display " (list kws kw-args args) '(#f)))))" port)))]
+    [(? list?)
+     (map bug-arg arg)]
+    [(? pair?)
+     (cons (bug-arg (car arg)) (bug-arg (cdr arg)))]
     [(? mpair?)
-     (mcons (bug-arg mcar) (bug-arg mcdr))]
+     (mcons (bug-arg (mcar arg)) (bug-arg (mcdr arg)))]
     [(? vector?)
      (define mapped-vec (vector-map bug-arg arg))
      (if (immutable? arg)
