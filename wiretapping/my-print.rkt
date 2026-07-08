@@ -21,15 +21,15 @@
       arg
       (make-keyword-procedure
        (λ (kws kw-args . args)
-         (values
-          (λ results
-            (hash-set! io-table
-                       (list kws kw-args args)
-                       results)
-            (apply values results))
-          (if (null? kws)
-              (apply values args)
-              (apply values kw-args args)))))
+         (define results-printer
+           (λ results
+             (hash-set! io-table
+                        (list kws kw-args args)
+                        results)
+             (apply values results)))
+         (if (null? kws)
+             (apply values results-printer args)
+             (apply values results-printer kw-args args))))
       prop:print-as-λ
       (λ (port)
         (display "(make-keyword-procedure " port)
