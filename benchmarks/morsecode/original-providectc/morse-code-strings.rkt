@@ -20,12 +20,12 @@
 (require/configurable-contract "morse-code-table.rkt" char-table clean-pattern lines wikipedia-text )
 
 (provide/configurable-contract
- [char->dit-dah-string ([max (->i ([letter (and/c char? (lambda (letter) (hash-has-key? char-table (char-downcase letter))))])
+ [char->dit-dah-string ([max (->i ([letter char-in-table?])
                                   [result (letter)
                                           (and/c morse-string?
                                                  (morse-decodes-to? letter))])]
                         [types (-> char? string?)])]
- [string->morse ([max (->i ([str (stringof (lambda (letter) (hash-has-key? char-table (char-downcase letter))))])
+ [string->morse ([max (->i ([str (and/c non-empty-string? (stringof char-in-table?))])
                             [result (str)
                                    (and/c morse-string? (morse-decodes-to? str))]
                            #:post (str result)
@@ -47,6 +47,17 @@
            (map (λ (c) (hash-ref char-table (char-downcase c)))
                 (string->list target-str))))
   (string=? encoded-target morse-str))
+
+(define/ctc-helper char-in-table?
+  (flat-named-contract
+   'char-in-table?
+   (lambda (c)
+     (and (char? c)
+          (hash-has-key? char-table (char-downcase c))))
+   (lambda (fuel)
+     (lambda ()
+      (define keys (hash-keys char-table))
+      (list-ref keys (random (length keys)))))))
 
 ;; map a character to a dit-dah string
 (define (char->dit-dah-string letter)

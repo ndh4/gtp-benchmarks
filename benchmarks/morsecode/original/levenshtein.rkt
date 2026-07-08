@@ -41,8 +41,8 @@
 (define/contract
  (%vector-empty? v)
  (configurable-ctc
-  (max (->i ((v vector?)) (result (v) (zero? (vector-length v)))))
-  (types (-> vector? boolean?)))
+  (max (->i ((v my-vector?)) (result (v) (zero? (vector-length v)))))
+  (types (-> my-vector? boolean?)))
  (zero? (vector-length v)))
 
 (define/contract
@@ -127,13 +127,13 @@
  (configurable-ctc
   (max
    (->i
-    ((a vector?)
-     (b vector?)
+    ((a my-vector?)
+     (b my-vector?)
      (pred (and/c (-> any/c any/c boolean?) commutative-binary-function?))
      (get-scratch
       (->i
        ((n natural?))
-       (result vector?)
+       (result my-vector?)
        #:post
        (n result)
        (= (vector-length result) n))))
@@ -143,10 +143,10 @@
     (editable-to? a b result #:compare-with pred)))
   (types
    (->
-    vector?
-    vector?
+    my-vector?
+    my-vector?
     (-> any/c any/c boolean?)
-    (-> natural? vector?)
+    (-> natural? my-vector?)
     natural?)))
  (let ((a-len (vector-length a)) (b-len (vector-length b)))
    (cond
@@ -186,7 +186,7 @@
  (define ctc
    (make-contract
     #:name
-    (string->symbol "(fixed-or/c string? vector? list?)")
+    (string->symbol "(fixed-or/c string? my-vector? list?)")
     #:late-neg-projection
     (λ (blame)
       (λ (val neg-party)
@@ -197,14 +197,14 @@
           (define ctc-pred
             (case stored-type
               ((string?) string?)
-              ((vector?) vector?)
+              ((my-vector?) my-vector?)
               ((list?) list?)))
           (((contract-late-neg-projection ctc-pred) blame) val neg-party))
          (#f
           (match
            val
            ((? string?) (set-box! predicate-store 'string?) val)
-           ((? vector?) (set-box! predicate-store 'vector?) val)
+           ((? vector?) (set-box! predicate-store 'my-vector?) val)
            ((? list?) (set-box! predicate-store 'list?) val)
            (else
             (raise-blame-error
@@ -212,7 +212,7 @@
              #:missing-party
              neg-party
              val
-             '(expected "(or/c string? vector? list?)" given: "~e")
+             '(expected "(or/c string? my-vector? list?)" given: "~e")
              val)))))))
     #:generate
     (λ (fuel)
@@ -227,12 +227,12 @@
           (set-box! generator-store #f)
           (case stored-type
             ((string?) (string-generator))
-            ((vector?) (vector-generator))
+            ((my-vector?) (vector-generator))
             ((list?) (list-generator))))
          (#f
           (case (random 3)
             ((0) (set-box! generator-store 'string?) (string-generator))
-            ((1) (set-box! generator-store 'vector?) (vector-generator))
+            ((1) (set-box! generator-store 'my-vector?) (vector-generator))
             ((2) (set-box! generator-store 'list?) (list-generator)))))))))
  (cons ctc clean-predicate-store!?))
 
@@ -243,7 +243,7 @@
 (define/ctc-helper reset-vsl!? (cdr fixed-vsl/c**))
 
 (define/ctc-helper
- (levenshtein-variant/pred/c #:at level #:sequence-type (seq? vector?))
+ (levenshtein-variant/pred/c #:at level #:sequence-type (seq? my-vector?))
  (match
   level
   ('max
@@ -263,7 +263,7 @@
   #:at
   level
   #:sequence-type
-  (seq? vector?)
+  (seq? my-vector?)
   #:clean-seqtype-env!?
   (clean-seqtype-env!? (lambda () (void))))
  (match
@@ -428,7 +428,7 @@
     #:at
     'types
     #:sequence-type
-    (or/c string? vector? list?))))
+    (or/c string? my-vector? list?))))
  (cond
   ((and (string? a) (string? b)) (string-levenshtein a b))
   ((and (vector? a) (vector? b)) (vector-levenshtein a b))

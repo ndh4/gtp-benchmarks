@@ -28,15 +28,22 @@
      (string->list target-str))))
  (string=? encoded-target morse-str))
 
+(define/ctc-helper
+ char-in-table?
+ (flat-named-contract
+  'char-in-table?
+  (lambda (c) (and (char? c) (hash-has-key? char-table (char-downcase c))))
+  (lambda (fuel)
+    (lambda ()
+      (define keys (hash-keys char-table))
+      (list-ref keys (random (length keys)))))))
+
 (define/contract
  (char->dit-dah-string letter)
  (configurable-ctc
   (max
    (->i
-    ((letter
-      (and/c
-       char?
-       (lambda (letter) (hash-has-key? char-table (char-downcase letter))))))
+    ((letter char-in-table?))
     (result (letter) (and/c morse-string? (morse-decodes-to? letter)))))
   (types (-> char? string?)))
  (define res (hash-ref char-table (char-downcase letter) #f))
@@ -49,9 +56,7 @@
  (configurable-ctc
   (max
    (->i
-    ((str
-      (stringof
-       (lambda (letter) (hash-has-key? char-table (char-downcase letter))))))
+    ((str (and/c non-empty-string? (stringof char-in-table?))))
     (result (str) (and/c morse-string? (morse-decodes-to? str)))
     #:post
     (str result)

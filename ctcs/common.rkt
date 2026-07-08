@@ -1,4 +1,4 @@
-#lang racket/base
+#lang racket
 
 (require racket/contract
          (for-syntax syntax/parse
@@ -50,7 +50,11 @@
  (flat-named-contract
   `(stringof ,(contract-name char-pred))
   (lambda (s)
-    (and (string? s) (for/and ((ch (in-string s))) (char-pred ch))))))
+    (and (string? s) (for/and ((ch (in-string s))) (char-pred ch))))
+  (lambda (fuel)
+    (define list-gen (contract-random-generate/choose (listof char-pred) fuel))
+    (thunk
+      (list->string (list-gen))))))
 
 (define stack? list?)
 
@@ -109,8 +113,10 @@
     (cons/c any/c
       list?)))
 
-(define ((equal?/c c/v) v)
-  (equal? c/v v))
+(define (equal?/c c/v)
+  (flat-named-contract
+    (string->symbol (format "(equal?/c ~s)" c/v))
+    (lambda (v) (equal? c/v v))))
 
 (define ((thunked-equal?/c c/v) v)
   (equal? (c/v) v))
@@ -137,3 +143,15 @@
 
 (define commutative-binary-function?
   (commutative-binary-function-proj))
+
+(define my-vector?
+  (make-contract
+   #:name 'my-vector?
+   #:late-neg-projection
+   (contract-late-neg-projection vector?)
+   #:generate
+   (λ (fuel)
+     (define list-generator
+       (contract-random-generate/choose list? fuel))
+     (thunk
+      (list->vector (list-generator))))))

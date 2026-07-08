@@ -57,29 +57,29 @@
  [%string-empty? ([max (->i ([v string?])
                             [result (v) (zero? (string-length v))])]
                   [types (-> string? boolean?)])]
- [%vector-empty? ([max (->i ([v vector?])
+ [%vector-empty? ([max (->i ([v my-vector?])
                             [result (v) (zero? (vector-length v))])]
-                  [types (-> vector? boolean?)])]
+                  [types (-> my-vector? boolean?)])]
  [%string->vector ([max (->i ([s string?])
                              [result (vectorof char?)]
                              #:post (s result)
                              (and (= (string-length s) (vector-length result))
                                   (andmap char=? (string->list s) (vector->list result))))]
                    [types (-> string? (vectorof char?))])]
- [vector-levenshtein/predicate/get-scratch ([max (->i ([a vector?]
-                                                       [b vector?]
+ [vector-levenshtein/predicate/get-scratch ([max (->i ([a my-vector?]
+                                                       [b my-vector?]
                                                        [pred (and/c (any/c any/c . -> . boolean?) commutative-binary-function?)]
                                                        [get-scratch (->i ([n natural?])
-                                                                         [result vector?]
+                                                                         [result my-vector?]
                                                                          #:post (n result)
                                                                          (= (vector-length result) n))])
                                                       [result natural?]
                                                       #:post (a b pred result)
                                                       (editable-to? a b result #:compare-with pred))]
-                                            [types (vector?
-                                                    vector?
+                                            [types (my-vector?
+                                                    my-vector?
                                                     (any/c any/c . -> . boolean?)
-                                                    (natural? . -> . vector?)
+                                                    (natural? . -> . my-vector?)
                                                     . -> .
                                                     natural?)])]
  [vector-levenshtein/predicate ([max (levenshtein-variant/pred/c #:at 'max)]
@@ -116,7 +116,7 @@
                                            #:clean-seqtype-env!? reset-vsl!?)]
                [types (levenshtein-variant/c equal?
                                              #:at 'types
-                                             #:sequence-type (or/c string? vector? list?))])])
+                                             #:sequence-type (or/c string? my-vector? list?))])])
 
 ;; (provide
 ;;  levenshtein
@@ -304,7 +304,7 @@
   (define ctc
     (make-contract
      #:name
-     (string->symbol "(fixed-or/c string? vector? list?)")
+     (string->symbol "(fixed-or/c string? my-vector? list?)")
      #:late-neg-projection
      (λ (blame)
        (λ (val neg-party)
@@ -314,14 +314,14 @@
             (define ctc-pred
               (case stored-type
                 [(string?) string?]
-                [(vector?) vector?]
+                [(my-vector?) my-vector?]
                 [(list?) list?]))
             (((contract-late-neg-projection ctc-pred) blame)
              val neg-party)]
            [#f
             (match val
               [(? string?) (set-box! predicate-store 'string?) val]
-              [(? vector?) (set-box! predicate-store 'vector?) val]
+              [(? vector?) (set-box! predicate-store 'my-vector?) val]
               [(? list?) (set-box! predicate-store 'list?) val]
               [else
                (raise-blame-error
@@ -329,7 +329,7 @@
                 #:missing-party
                 neg-party
                 val
-                '(expected "(or/c string? vector? list?)" given: "~e")
+                '(expected "(or/c string? my-vector? list?)" given: "~e")
                 val)])])))
      #:generate
      (λ (fuel)
@@ -343,13 +343,13 @@
            (set-box! generator-store #f)
            (case stored-type
              [(string?) (string-generator)]
-             [(vector?) (vector-generator)]
+             [(my-vector?) (vector-generator)]
              [(list?) (list-generator)])]
           [#f
            (case (random 3)
              [(0) (set-box! generator-store 'string?)
                   (string-generator)]
-             [(1) (set-box! generator-store 'vector?)
+             [(1) (set-box! generator-store 'my-vector?)
                   (vector-generator)]
              [(2) (set-box! generator-store 'list?)
                   (list-generator)])])))))
@@ -360,7 +360,7 @@
 (define/ctc-helper reset-vsl!? (cdr fixed-vsl/c**))
 
 (define/ctc-helper (levenshtein-variant/pred/c #:at level
-                                               #:sequence-type [seq? vector?])
+                                               #:sequence-type [seq? my-vector?])
   (match level
     ['max (->i ([a seq?]
                 [b seq?]
@@ -376,7 +376,7 @@
 
 (define/ctc-helper (levenshtein-variant/c pred
                                           #:at level
-                                          #:sequence-type [seq? vector?]
+                                          #:sequence-type [seq? my-vector?]
                                           #:clean-seqtype-env!? [clean-seqtype-env!? (lambda () (void))])
   (match level
     ['max (->i ([a seq?]
