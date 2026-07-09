@@ -121,28 +121,39 @@
 (define ((thunked-equal?/c c/v) v)
   (equal? (c/v) v))
 
-(struct commutative-binary-function-proj ()
+(struct commutative-binary-predicate-proj ()
   #:property prop:contract
   (build-contract-property
-   #:name (λ (c) 'commutative-binary-function?)
+   #:name (λ (c) 'commutative-binary-predicate?)
    #:late-neg-projection (λ (c)
                            (λ (blame)
                              (λ (val neg-party)
                                (cond [(and (procedure? val) (procedure-arity-includes? val 2))
                                       (λ (x y)
                                         (define normal (val x y))
+                                        (unless (boolean? normal)
+                                          (raise-blame-error blame #:missing-party neg-party val
+                                                             "promised predicate, but output was non-boolean: ~e" normal))
                                         (define flipped (val y x))
                                         (if (equal? normal flipped)
                                             normal
                                             (raise-blame-error blame #:missing-party neg-party val
-                                                               "promised commutative function, but flipping input order changed the outputs: ~e and ~e for inputs ~e and ~e"
+                                                               "promised commutative predicate, but flipping input order changed the outputs: ~e and ~e for inputs ~e and ~e"
                                                                normal flipped x y)))]
                                      [else
                                       (raise-blame-error blame #:missing-party neg-party val
-                                                         "promised: a binary function~n  produced: ~e" val)]))))))
+                                                         "promised: a binary predicate~n  produced: ~e" val)]))))
+   #:generate
+   (lambda (c)
+     (lambda (fuel)
+       (define cbfs (list eq? equal? eqv? equal-always? (lambda (a b) (and a b #t)) (lambda (a b) (not (or a b)))))
+       (thunk (get-random-element cbfs))))))
 
-(define commutative-binary-function?
-  (commutative-binary-function-proj))
+(define (get-random-element l [rand-gen (current-pseudo-random-generator)])
+  (list-ref l (random (length l) rand-gen)))
+
+(define commutative-binary-predicate?
+  (commutative-binary-predicate-proj))
 
 (define my-vector?
   (make-contract

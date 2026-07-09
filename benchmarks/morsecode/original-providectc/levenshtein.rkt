@@ -68,11 +68,8 @@
                    [types (-> string? (vectorof char?))])]
  [vector-levenshtein/predicate/get-scratch ([max (->i ([a my-vector?]
                                                        [b my-vector?]
-                                                       [pred (and/c (any/c any/c . -> . boolean?) commutative-binary-function?)]
-                                                       [get-scratch (->i ([n natural?])
-                                                                         [result my-vector?]
-                                                                         #:post (n result)
-                                                                         (= (vector-length result) n))])
+                                                       [pred commutative-binary-predicate?]
+                                                       [get-scratch get-scratch/c])
                                                       [result natural?]
                                                       #:post (a b pred result)
                                                       (editable-to? a b result #:compare-with pred))]
@@ -244,6 +241,29 @@
          (elt-equal? a-el b-el))
        (editable-to?/DP/memo a/vec b/vec edits #:compare-with elt-equal?))))
 
+(define/ctc-helper
+  get-scratch/c
+  (make-contract
+   #:name 'get-scratch/c
+   #:late-neg-projection
+   (contract-late-neg-projection
+    (->i
+     ((n natural?))
+     (result (and/c my-vector? (not/c immutable?)))
+     #:post
+     (n result)
+     (= (vector-length result) n)))
+   #:generate
+   (λ (fuel)
+     (define any-generator (contract-random-generate/choose any/c fuel))
+     (define eni-function-gen (contract-random-generate/choose (-> exact-nonnegative-integer? any/c) fuel))
+     (lambda ()
+      (define choices (list
+                       make-vector
+                       (lambda (size) (make-vector size (any-generator)))
+                       (lambda (size) (build-vector size (eni-function-gen)))))
+      (get-random-element choices)))))
+
 (define (vector-levenshtein/predicate/get-scratch a b pred get-scratch)
   (let ((a-len (vector-length a))
         (b-len (vector-length b)))
@@ -364,7 +384,7 @@
   (match level
     ['max (->i ([a seq?]
                 [b seq?]
-                [pred (and/c (any/c any/c . -> . boolean?) commutative-binary-function?)])
+                [pred commutative-binary-predicate?])
                [result natural?]
                #:post (a b pred result)
                (editable-to? a b result #:compare-with pred))]
