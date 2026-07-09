@@ -28,8 +28,7 @@
                      [sandbox-eval-limits (list TIME_LIMIT_SECONDS MEMORY_LIMIT_MB)]
                      [sandbox-propagate-exceptions #t])     ; Pass all errors through
         (with-handlers ([exn:fail? (lambda (e) (printf "[Reached error~n-------------~n~a]~n" (exn-message e)))])
-          (define eval (make-module-evaluator wiretap-runner))
-          (eval (make-base-namespace)))))))
+          (void (make-module-evaluator wiretap-runner)))))))
 
 (for* ([contract-level contract-levels]
        [benchmark benchmarks])
