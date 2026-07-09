@@ -113,10 +113,58 @@
     (cons/c any/c
       list?)))
 
+(define (not-unequal? v1 v2)
+  (match (list v1 v2)
+    [(list a b) #:when (eq? a b) #t]
+    [(list (? string?) (? string?))
+     (string=? v1 v2)]
+    [(list (? bytes?) (? bytes?))
+     (bytes=? v1 v2)]
+    [(list (? number?) (? number?))
+     (= v1 v2)]
+    [(list (? pair?) (? pair?))
+     (and (not-unequal? (car v1)
+                         (car v2))
+          (not-unequal? (cdr v1)
+                         (cdr v2)))]
+    [(list (? mpair?) (? mpair?))
+     (and (not-unequal? (mcar v1)
+                         (mcar v2))
+          (not-unequal? (mcdr v1)
+                         (mcdr v2)))]
+    [(list (? vector?) (? vector?))
+     (not-unequal? (vector->list v1)
+                    (vector->list v2))]
+    [(list (? hash?) (? hash?))
+     (define v2-as-list (hash->list v2))
+     (and (= (hash-count v1)
+             (hash-count v2))
+          (andmap (λ (pair1)
+                    (ormap (λ (pair2) (not-unequal? pair1 pair2)) v2-as-list)) (hash->list v1)))]
+    [(list (? generic-set?) (? generic-set?))
+     (define v2-as-list (set->list v2))
+     (and (= (set-count v1)
+             (set-count v2))
+          (andmap (λ (elem1)
+                    (ormap (λ (elem2) (not-unequal? elem1 elem2)) v2-as-list)) (set->list v1)))]
+    [(list (? object?) (? object?))
+     (not-unequal? (object->vector v1) (object->vector v2))]
+    [(list (? struct?) (? struct?))
+     (not-unequal? (struct->vector v1) (struct->vector v2))]
+    [(list (? box?) (? box?))
+     (not-unequal? (unbox v1) (unbox v2))]
+    [(list (? procedure?) (? procedure?))
+     (and (arity=? (procedure-arity v1)
+                   (procedure-arity v2))
+          ;; FIXME: I can make this stricter.
+          ;; Obviously the halting problem is a thing, but perhaps we can random test these two procedures.
+          )]
+    [else #f]))
+
 (define (equal?/c c/v)
   (flat-named-contract
     (string->symbol (format "(equal?/c ~s)" c/v))
-    (lambda (v) (equal? c/v v))))
+    (lambda (v) (not-unequal? c/v v))))
 
 (define ((thunked-equal?/c c/v) v)
   (equal? (c/v) v))
@@ -166,3 +214,10 @@
        (contract-random-generate/choose list? fuel))
      (thunk
       (list->vector (list-generator))))))
+
+(define exact-nonnegative-integer?/small-gen
+  (flat-named-contract
+   'exact-nonnegative-integer?/small-gen
+   exact-nonnegative-integer?
+   (lambda (fuel)
+     (thunk (* fuel (random 0 (random 1 (random 2 (random 3 (random 4 (random 5 (random 6 3000))))))))))))

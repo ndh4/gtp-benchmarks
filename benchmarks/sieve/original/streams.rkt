@@ -23,11 +23,55 @@
 
 (define/ctc-helper
  (simple-streamof el/c)
- (letrec ((this-ctc
-           (simple-stream/c
-            el/c
-            (-> (recursive-contract this-ctc #:chaperone)))))
-   this-ctc))
+ (struct
+  make-sso-contract
+  ()
+  #:property
+  prop:chaperone-contract
+  (build-chaperone-contract-property
+   #:name
+   (λ (c)
+     (string->symbol (format "(simple-streamof ~a)" (contract-name el/c))))
+   #:late-neg-projection
+   (λ (c)
+     (λ (blame)
+       (λ (val missing-party)
+         (cond
+          ((simple-stream? val)
+           (chaperone-struct
+            val
+            struct:simple-stream
+            simple-stream-first
+            (λ (orig-struct first-val)
+              (((contract-late-neg-projection el/c) blame)
+               first-val
+               missing-party))
+            simple-stream-rest
+            (λ (orig-struct rest-val)
+              (((contract-late-neg-projection (-> c)) blame)
+               rest-val
+               missing-party))))
+          (else
+           (raise-blame-error
+            blame
+            #:missing-party
+            missing-party
+            val
+            '(expected "simple-stream?" given: "~e")
+            val))))))
+   #:generate
+   (λ (c)
+     (λ (fuel)
+       (define el-gen (contract-random-generate/choose el/c fuel))
+       (define (stream-gen seed)
+         (random-seed seed)
+         (rand-seed seed)
+         (define elem (el-gen))
+         (define new-seed (random (sub1 (expt 2 31)) my-generator))
+         (define (get-rest) (stream-gen new-seed))
+         (simple-stream elem get-rest))
+       (thunk (stream-gen (random (sub1 (expt 2 31)))))))))
+ (make-sso-contract))
 
 (define/ctc-helper
  (simple-stream/dc* first/c next/c-maker)
@@ -44,9 +88,9 @@
  (configurable-ctc
   (max
    (->i
-    ((hd any/c) (thunk (-> simple-stream?)))
+    ((hd any/c) (thunk (-> (simple-streamof any/c))))
     (result (hd thunk) (simple-stream/c (equal?/c hd) (equal?/c thunk)))))
-  (types (-> any/c (-> simple-stream?) simple-stream?)))
+  (types (-> any/c (-> (simple-streamof any/c)) (simple-streamof any/c))))
  (simple-stream hd thunk))
 
 (define/contract
@@ -54,11 +98,11 @@
  (configurable-ctc
   (max
    (->i
-    ((st simple-stream?))
+    ((st (simple-streamof any/c)))
     (values
      (r1 (st) (equal?/c (simple-stream-first st)))
-     (r2 simple-stream?))))
-  (types (-> simple-stream? (values any/c simple-stream?))))
+     (r2 (simple-streamof any/c)))))
+  (types (-> (simple-streamof any/c) (values any/c (simple-streamof any/c)))))
  (values (simple-stream-first st) ((simple-stream-rest st))))
 
 (define/contract
@@ -66,7 +110,7 @@
  (configurable-ctc
   (max
    (->i
-    ((st simple-stream?) (i exact-nonnegative-integer?))
+    ((st (simple-streamof any/c)) (i exact-nonnegative-integer?/small-gen))
     (result
      (st i)
      (equal?/c
@@ -74,7 +118,8 @@
        ((current-st st) #:result (simple-stream-first current-st))
        ((_ (in-range i)))
        ((simple-stream-rest current-st)))))))
-  (types (-> simple-stream? exact-nonnegative-integer? any/c)))
+  (types
+   (-> (simple-streamof any/c) exact-nonnegative-integer?/small-gen any/c)))
  (define-values (hd tl) (simple-stream-unfold st))
  (cond ((= i 0) hd) (else (simple-stream-get tl (sub1 i)))))
 
@@ -83,7 +128,7 @@
  (configurable-ctc
   (max
    (->i
-    ((st simple-stream?) (n exact-nonnegative-integer?))
+    ((st (simple-streamof any/c)) (n exact-nonnegative-integer?/small-gen))
     (result
      (st n)
      (and/c
@@ -95,7 +140,11 @@
         (values
          (cons (simple-stream-first current-st) lst)
          ((simple-stream-rest current-st)))))))))
-  (types (-> simple-stream? exact-nonnegative-integer? (listof any/c))))
+  (types
+   (->
+    (simple-streamof any/c)
+    exact-nonnegative-integer?/small-gen
+    (listof any/c))))
  (cond
   ((= n 0) '())
   (else

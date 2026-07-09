@@ -28,12 +28,12 @@
 ;; Return a new simple-stream.
 (define/contract (sift n st)
   (configurable-ctc
-   [max (->i ([n integer?]
-              [st (simple-streamof number?)])
+   [max (->i ([n natural?]
+              [st (simple-streamof natural?)])
              [result (n)
-                     (simple-streamof (and/c number?
+                     (simple-streamof (and/c natural?
                                              (not/c (divisible-by/c n))))])]
-   [types (-> integer? (simple-streamof number?) (simple-streamof number?))])
+   [types (-> natural? (simple-streamof natural?) (simple-streamof natural?))])
   (define-values (hd tl) (simple-stream-unfold st))
   (cond [(= 0 (modulo hd n)) (sift n tl)]
         [else (make-simple-stream hd (lambda () (sift n tl)))]))
@@ -49,20 +49,20 @@
 ;; `sieve st` Sieve of Eratosthenes
 (define/contract (sieve st)
   (configurable-ctc
-   [max (->i ([st (simple-streamof integer?)])
+   [max (->i ([st (simple-streamof natural?)])
              [result (st)
                      (let ([first (simple-stream-first st)])
-                       (simple-stream/c (and/c integer? (=/c first))
+                       (simple-stream/c (and/c natural? (=/c first))
                                         (-> (sieved-simple-stream-following/c first))))])]
-   [types (-> (simple-streamof integer?) (simple-streamof integer?))])
+   [types (-> (simple-streamof natural?) (simple-streamof natural?))])
   (define-values (hd tl) (simple-stream-unfold st))
   (make-simple-stream hd (lambda () (sieve (sift hd tl)))))
 
 ;; simple-stream of prime numbers
 (define/contract primes
   (configurable-ctc
-   [max (simple-streamof (and/c integer? prime?))]
-   [types (simple-streamof integer?)])
+   [max (simple-streamof (and/c natural? prime?))]
+   [types (simple-streamof natural?)])
   (sieve (count-from 2)))
 
 (define/contract N-1
