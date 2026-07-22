@@ -105,7 +105,7 @@
 
 ;; -- public
 
-(define (lists-eqlen/c* c1 c2)
+(define/ctc-helper (lists-eqlen/c* c1 c2)
 
   (define generator-store (box #f))
   (define predicate-store (box #f))

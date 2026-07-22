@@ -39,66 +39,67 @@
 
 (define/ctc-helper Closure-type/c (Closure/c Lam-type/c BEnv?))
 
-(define (lists-eqlen/c* c1 c2)
-  (define generator-store (box #f))
-  (define predicate-store (box #f))
-  (define (reset-predicate-store! . _) (set-box! predicate-store #f) #t)
-  (define (make-list-ctc this-elem/c other-elem/c)
-    (define name
-      (format
-       "~a-list?-eqlen-~a-list"
-       (contract-name this-elem/c)
-       (contract-name other-elem/c)))
-    (make-contract
-     #:name
-     (string->symbol name)
-     #:late-neg-projection
-     (λ (blame)
-       (λ (val neg-party)
-         (unless (list? val)
-           (raise-blame-error
-            blame
-            #:missing-party
-            neg-party
-            val
-            '(expected "list?" given: "~e")
-            val))
-         (let ((len (length val)) (stored-len (unbox predicate-store)))
-           (match
-            stored-len
-            ((? number?)
-             (unless (= len stored-len)
-               (raise-blame-error
-                blame
-                #:missing-party
-                neg-party
-                val
-                (list 'expected name 'given: "~e")
-                val)))
-            (#f (set-box! predicate-store len))))
-         (((contract-late-neg-projection (listof this-elem/c)) blame)
-          val
-          neg-party)))
-     #:generate
-     (λ (fuel)
-       (define list-generator
-         (contract-random-generate/choose (listof this-elem/c) fuel))
-       (define elem-generator
-         (contract-random-generate/choose this-elem/c (sub1 fuel)))
-       (thunk
-        (define stored-len (unbox generator-store))
-        (match
-         stored-len
-         ((? number?)
-          (set-box! generator-store #f)
-          (for/list ((_ (in-range stored-len))) (elem-generator)))
-         (#f
-          (define result (list-generator))
-          (set-box! generator-store (length result))
-          result))))))
-  (define ctc1 (make-list-ctc c1 c2))
-  (define ctc2 (make-list-ctc c2 c1))
-  (list ctc1 ctc2 reset-predicate-store!))
+(define/ctc-helper
+ (lists-eqlen/c* c1 c2)
+ (define generator-store (box #f))
+ (define predicate-store (box #f))
+ (define (reset-predicate-store! . _) (set-box! predicate-store #f) #t)
+ (define (make-list-ctc this-elem/c other-elem/c)
+   (define name
+     (format
+      "~a-list?-eqlen-~a-list"
+      (contract-name this-elem/c)
+      (contract-name other-elem/c)))
+   (make-contract
+    #:name
+    (string->symbol name)
+    #:late-neg-projection
+    (λ (blame)
+      (λ (val neg-party)
+        (unless (list? val)
+          (raise-blame-error
+           blame
+           #:missing-party
+           neg-party
+           val
+           '(expected "list?" given: "~e")
+           val))
+        (let ((len (length val)) (stored-len (unbox predicate-store)))
+          (match
+           stored-len
+           ((? number?)
+            (unless (= len stored-len)
+              (raise-blame-error
+               blame
+               #:missing-party
+               neg-party
+               val
+               (list 'expected name 'given: "~e")
+               val)))
+           (#f (set-box! predicate-store len))))
+        (((contract-late-neg-projection (listof this-elem/c)) blame)
+         val
+         neg-party)))
+    #:generate
+    (λ (fuel)
+      (define list-generator
+        (contract-random-generate/choose (listof this-elem/c) fuel))
+      (define elem-generator
+        (contract-random-generate/choose this-elem/c (sub1 fuel)))
+      (thunk
+       (define stored-len (unbox generator-store))
+       (match
+        stored-len
+        ((? number?)
+         (set-box! generator-store #f)
+         (for/list ((_ (in-range stored-len))) (elem-generator)))
+        (#f
+         (define result (list-generator))
+         (set-box! generator-store (length result))
+         result))))))
+ (define ctc1 (make-list-ctc c1 c2))
+ (define ctc2 (make-list-ctc c2 c1))
+ (list ctc1 ctc2 reset-predicate-store!))
 
 (define/ctc-helper benv-extend*-args/c* (lists-eqlen/c* Var? Addr?))
 
