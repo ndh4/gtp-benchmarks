@@ -99,7 +99,7 @@
                [_
                 (pretty-write expr out)])
              '()))
-          (newline out)
+          (fprintf out "~a~n" "(eprintf \"(begin-random-tests)~n~n\")")
           (pretty-write (make-exercise identifier) out))))))
 
 (define (make-exercise identifier)

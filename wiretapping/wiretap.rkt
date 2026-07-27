@@ -4,6 +4,7 @@
 
 (provide (struct-out call)
          add-arg-recorder
+         execute-call/namespace
          print-and-execute-call)
 
 (define (print-and-execute-call proc the-call)
@@ -12,12 +13,20 @@
                             (map bug-arg (call-kw-args the-call))
                             (map bug-arg (call-pos-args the-call))))
   (begin0
-    (keyword-apply proc
-                   (call-proc-kws bugged-call)
-                   (call-kw-args bugged-call)
-                   (call-pos-args bugged-call))
+    (execute-call/proc bugged-call proc)
     (my-print bugged-call (current-error-port))
     (eprintf "~n~n")))
+
+(define (execute-call/proc the-call proc)
+  (keyword-apply proc
+    (call-proc-kws the-call)
+    (call-kw-args the-call)
+    (call-pos-args the-call)))
+
+(define (execute-call/namespace the-call namespace)
+  (execute-call/proc
+    the-call
+    (eval (call-proc-name the-call) namespace)))
 
 (struct arg-recorder ()
   #:property prop:contract
