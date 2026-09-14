@@ -131,7 +131,11 @@
    (list->set new-states))
   (else (set))))
 
-(define/ctc-helper ((subset?/c sub) s) (subset? sub s))
+(define/ctc-helper
+ ((subset?/c sub) s)
+ (define sublist (set->list sub))
+ (define slist (set->list s))
+ (not (not (for/and ((elem sublist)) (member elem slist)))))
 
 (define/contract
  (explore seen todo)

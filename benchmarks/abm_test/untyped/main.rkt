@@ -1,6 +1,11 @@
 #lang racket
 
-(define (inverse a) (if (= a 0) 1000 (/ 1 a)))
+(require "../../../ctcs/configurable.rkt" "../../../ctcs/precision-config.rkt")
+
+(define/contract
+ (inverse a)
+ (configurable-ctc (max (-> integer? number?)) (types (-> integer? number?)))
+ (if (= a 0) 1000 (/ 1 a)))
 
 #;(module+
  test

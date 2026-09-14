@@ -1,7 +1,6 @@
 #lang racket
 
-(require require-typed-check
-         racket/set
+(require racket/set
          racket/list
          "structs.rkt"
          (only-in

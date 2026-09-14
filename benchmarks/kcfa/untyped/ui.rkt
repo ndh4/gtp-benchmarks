@@ -1,7 +1,6 @@
 #lang racket
 
-(require require-typed-check
-         racket/set
+(require racket/set
          "structs.rkt"
          (only-in
           "benv.rkt"
