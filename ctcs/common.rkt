@@ -215,9 +215,32 @@
      (thunk
       (list->vector (list-generator))))))
 
+(define (my-vector/c . args)
+  (make-contract
+   #:name (string->symbol (format "(my-vector/c ~a)" (string-join (map ~a args) " ")))
+   #:late-neg-projection
+   (contract-late-neg-projection (apply vector/c args))
+   #:generate
+   (λ (fuel)
+     (define list-generator
+       (contract-random-generate/choose (apply list/c args) fuel))
+     (thunk
+      (list->vector (list-generator))))))
+
 (define exact-nonnegative-integer?/small-gen
   (flat-named-contract
    'exact-nonnegative-integer?/small-gen
    exact-nonnegative-integer?
    (lambda (fuel)
      (thunk (* fuel (random 0 (random 1 (random 2 (random 3 (random 4 (random 5 (random 6 3000))))))))))))
+
+;; "Prix fixe" generator selects from premade values rather than
+;; generating new ones.
+(define (with-prxfx-gen ctc get-vals)
+  (make-contract
+   #:name (contract-name ctc)
+   #:late-neg-projection
+   (contract-late-neg-projection ctc)
+   #:generate
+   (λ (fuel)
+     (thunk (get-random-element (get-vals))))))
