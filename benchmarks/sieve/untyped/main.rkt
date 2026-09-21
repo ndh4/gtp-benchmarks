@@ -11,12 +11,12 @@
  (configurable-ctc
   (max
    (->i
-    ((n number?))
+    ((n integer?))
     (result
      (n)
      (simple-stream/dc*
-      (and/c number? (=/c n))
-      (λ (last) (and/c number? (=/c (add1 last))))))))
+      (and/c integer? (=/c n))
+      (λ (last) (and/c integer? (=/c (add1 last))))))))
   (types (-> number? (simple-streamof number?))))
  (make-simple-stream n (lambda () (count-from (add1 n)))))
 
@@ -27,9 +27,11 @@
  (configurable-ctc
   (max
    (->i
-    ((n integer?) (st (simple-streamof number?)))
-    (result (n) (simple-streamof (and/c number? (not/c (divisible-by/c n)))))))
-  (types (-> integer? (simple-streamof number?) (simple-streamof number?))))
+    ((n natural?) (st (simple-streamof natural?)))
+    (result
+     (n)
+     (simple-streamof (and/c natural? (not/c (divisible-by/c n)))))))
+  (types (-> natural? (simple-streamof natural?) (simple-streamof natural?))))
  (define-values (hd tl) (simple-stream-unfold st))
  (cond
   ((= 0 (modulo hd n)) (sift n tl))
@@ -50,22 +52,22 @@
  (configurable-ctc
   (max
    (->i
-    ((st (simple-streamof integer?)))
+    ((st (simple-streamof natural?)))
     (result
      (st)
      (let ((first (simple-stream-first st)))
        (simple-stream/c
-        (and/c integer? (=/c first))
+        (and/c natural? (=/c first))
         (-> (sieved-simple-stream-following/c first)))))))
-  (types (-> (simple-streamof integer?) (simple-streamof integer?))))
+  (types (-> (simple-streamof natural?) (simple-streamof natural?))))
  (define-values (hd tl) (simple-stream-unfold st))
  (make-simple-stream hd (lambda () (sieve (sift hd tl)))))
 
 (define/contract
  primes
  (configurable-ctc
-  (max (simple-streamof (and/c integer? prime?)))
-  (types (simple-streamof integer?)))
+  (max (simple-streamof (and/c natural? prime?)))
+  (types (simple-streamof natural?)))
  (sieve (count-from 2)))
 
 (define/contract

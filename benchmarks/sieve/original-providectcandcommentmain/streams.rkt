@@ -1,6 +1,6 @@
 #lang racket
 
-(require #;racket/contract
+(require racket/contract
          "../../../ctcs/precision-config.rkt"
          "../../../ctcs/common.rkt"
          "../../../ctcs/configurable.rkt")
@@ -89,10 +89,10 @@
          (define el-gen (contract-random-generate/choose el/c fuel))
          (define (stream-gen seed)
            (random-seed seed)
-           (rand-seed seed)
+           (parameterize ((current-pseudo-random-generator (current-contract-pseudo-random-generator))) (random-seed seed))
            (define elem (el-gen))
            (define new-seed
-             (random (sub1 (expt 2 31)) my-generator))
+             (random (sub1 (expt 2 31)) (current-contract-pseudo-random-generator)))
            (define (get-rest)
              (stream-gen new-seed))
            (simple-stream elem get-rest))
