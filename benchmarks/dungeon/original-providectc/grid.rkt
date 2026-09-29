@@ -4,7 +4,7 @@
   "../base/un-types.rkt"
   ;math/array ;; TODO it'd be nice to use this
  racket/contract
- (only-in "../../../ctcs/common.rkt" or-#f/c)
+ (only-in "../../../ctcs/common.rkt" or-#f/c stringof my-vector/c my-vectorof)
  "../../../ctcs/configurable.rkt"
  "../../../ctcs/precision-config.rkt"
 )
@@ -13,6 +13,7 @@
 ;;   void-cell%
   cell%?
   class-equal?
+  registered-char?
 ))
 (require/configurable-contract "cell.rkt" void-cell% char->cell% chars->cell%s)
 
@@ -35,19 +36,19 @@
                            (equal? (f xy)
                                    (grid-ref result xy))))]
                [types (array-coord? (array-coord? . -> . cell%?) . -> . (arrayof cell%?))])]
- [parse-grid ([max ((listof (stringof (curry dict-has-key? chars->cell%s))) . -> . grid?)]
+ [parse-grid ([max ((non-empty-listof (stringof registered-char? #:non-empty? #t)) . -> . grid?)]
               [types ((listof string?) . -> . grid?)])]
  [show-grid ([max (grid? . -> . string?)]
              [types (grid? . -> . string?)])]
  [grid-height ([max (->i ([g grid?])
-                         [result (g) (and/c index?
+                         [result (g) (and/c index/c
                                             (curry equal? (vector-length g)))])]
-               [types (grid? . -> . index?)])]
+               [types (grid? . -> . index/c)])]
  [grid-width ([max (->i ([g grid?])
-                        [result (g) (and/c index?
+                        [result (g) (and/c index/c
                                            (curry equal? 
                                                   (vector-length (vector-ref g 0))))])]
-              [types (grid? . -> . index?)])]
+              [types (grid? . -> . index/c)])]
  [within-grid? ([max (->i ([g grid?]
                            [pos array-coord?])
                           [result 
@@ -72,7 +73,7 @@
                          ([n exact-nonnegative-integer?])
                          [result
                           (pos n)
-                          (vector/c (vector-ref pos 0)
+                          (my-vector/c (vector-ref pos 0)
                                     (max (- (vector-ref pos 1) (if (unsupplied-arg? n) 1 n)) 0))]))]
         [types direction?])]
  [right ([max (and/c direction?
@@ -80,13 +81,13 @@
                           ([n exact-nonnegative-integer?])
                           [result
                            (pos n)
-                           (vector/c (vector-ref pos 0)
+                           (my-vector/c (vector-ref pos 0)
                                      (max (+ (vector-ref pos 1) (if (unsupplied-arg? n) 1 n)) 0))]))]
          [types direction?])]
  [up ([max (and/c direction?
                   (->i ([pos array-coord?])
                        ([n exact-nonnegative-integer?])
-                       [result (pos n) (vector/c (max (- (vector-ref pos 0)
+                       [result (pos n) (my-vector/c (max (- (vector-ref pos 0)
                                                          (if (unsupplied-arg? n) 1 n))
                                                       0)
                                                  (vector-ref pos 1))]))]
@@ -94,7 +95,7 @@
  [down ([max (and/c direction?
                     (->i ([pos array-coord?])
                          ([n exact-nonnegative-integer?])
-                         [result (pos n) (vector/c (max (+ (vector-ref pos 0)
+                         [result (pos n) (my-vector/c (max (+ (vector-ref pos 0)
                                                            (if (unsupplied-arg? n) 1 n))
                                                         0)
                                                    (vector-ref pos 1))]))]
@@ -121,9 +122,69 @@
 
 ;; =============================================================================
 
-(define/ctc-helper array-coord? (vector/c index? index?))
-(define/ctc-helper (arrayof val-ctc)
-  (vectorof (vectorof val-ctc)))
+(define/ctc-helper array-coord? (my-vector/c index/c index/c))
+
+(struct array-of-contract (val-ctc)
+  #:property prop:chaperone-contract
+  (build-chaperone-contract-property
+   #:name
+   (lambda (c) `(arrayof ,(contract-name (array-of-contract-val-ctc c))))
+
+   #:first-order
+   (lambda (c)
+     (lambda (x)
+       (and (vector? x)
+            (> (vector-length x) 0)
+            (let ([first-row (vector-ref x 0)])
+              (and (vector? first-row)
+                   (for/and ([row (in-vector x)])
+                     (and (vector? row)
+                          (= (vector-length row) (vector-length first-row))
+                          (for/and ([val (in-vector row)])
+                            (contract-first-order-passes? (array-of-contract-val-ctc c) val)))))))))
+
+   #:late-neg-projection
+   (lambda (c)
+     (lambda (blame)
+       (lambda (x missing-party)
+         (unless (and (vector? x) (> (vector-length x) 0))
+           (raise-blame-error blame #:missing-party missing-party x "expected a non-empty vector of vectors"))
+         (define first-row (vector-ref x 0))
+         (unless (vector? first-row)
+           (raise-blame-error blame #:missing-party missing-party x "expected rows to be vectors"))
+         (define expected-len (vector-length first-row))
+
+         (define elem-proj ((contract-late-neg-projection (array-of-contract-val-ctc c)) blame))
+
+         (chaperone-vector
+          x
+          (lambda (vec idx row)
+            (unless (and (vector? row) (= (vector-length row) expected-len))
+              (raise-blame-error blame #:missing-party missing-party vec "row ~a does not match the length of the first row (~a)" idx expected-len))
+            (chaperone-vector
+             row
+             (lambda (r-vec r-idx val) (elem-proj val missing-party))
+             (lambda (r-vec r-idx val) (elem-proj val missing-party)))
+            row)
+          (lambda (vec idx row)
+            (unless (and (vector? row) (= (vector-length row) expected-len))
+              (raise-blame-error blame #:missing-party missing-party vec "row ~a does not match the length of the first row (~a)" idx expected-len))
+            row)))))
+
+   #:generate
+   (lambda (c)
+     (lambda (fuel)
+       ;; contract-random-generate/choose accepts the core sub-contract and fuel.
+       ;; It evaluates to an element-producing thunk during this dynamic extent.
+       (define element-thunk (contract-random-generate/choose (array-of-contract-val-ctc c) fuel))
+       (lambda ()
+         (define rows (add1 (random 5)))
+         (define cols (add1 (random 5)))
+         (build-vector rows (lambda (_)
+                              (build-vector cols (lambda (_) (element-thunk))))))))))
+
+(define (arrayof val-ctc)
+  (array-of-contract (coerce-contract 'array-of val-ctc)))
 
 (define (array-set! g p v)
   (vector-set! (vector-ref g (vector-ref p 0)) (vector-ref p 1) v))
@@ -144,14 +205,6 @@
 ;; a Grid is a math/array Mutable-Array of cell%
 ;; (mutability is required for dungeon generation)
 (define/ctc-helper grid? (arrayof cell%?))
-
-(define/ctc-helper (stringof char-pred)
-  (flat-named-contract
-   `(stringof ,(contract-name char-pred))
-   (lambda (s)
-     (and (string? s)
-          (for/and ([ch (in-string s)])
-            (char-pred ch))))))
 
 ;; parses a list of strings into a grid, based on the printed representation
 ;; of each cell
@@ -193,7 +246,7 @@
   (and (within-grid? g pos)
        (vector-ref (vector-ref g (vector-ref pos 0)) (vector-ref pos 1))))
 
-(define/ctc-helper direction? (->* (array-coord?) [index?]
+(define/ctc-helper direction? (->* (array-coord?) [index/c]
                         array-coord?))
 
 (define (left pos [n 1])

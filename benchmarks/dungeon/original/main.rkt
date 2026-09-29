@@ -92,8 +92,8 @@
  (room-with/c height/c width/c poss->cells/c free-cells/c extension-points/c)
  (struct/c
   room
-  (and/c index? height/c)
-  (and/c index? width/c)
+  (and/c index/c height/c)
+  (and/c index/c width/c)
   (and/c (alistof array-coord? cell%/c) poss->cells/c)
   (and/c (listof array-coord?) free-cells/c)
   (and/c (listof array-coord?) extension-points/c)))
@@ -177,8 +177,8 @@
    (->i
     ((grid grid?)
      (pos (grid) (and/c array-coord? (within-grid/c grid)))
-     (height index?)
-     (width index?)
+     (height index/c)
+     (width index/c)
      (direction direction?))
     (result
      (pos height width direction)
@@ -191,7 +191,8 @@
         cell%/c)
        any/c
        any/c)))))
-  (types (-> grid? array-coord? index? index? direction? (or-#f/c any-room?))))
+  (types
+   (-> grid? array-coord? index/c index/c direction? (or-#f/c any-room?))))
  (match-define (vector x y) pos)
  (define min-x
    (match

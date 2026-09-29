@@ -46,13 +46,13 @@
 
 
 (define
- (stringof char-pred)
+ (stringof char-pred #:non-empty? [non-empty? #f])
  (flat-named-contract
-  `(stringof ,(contract-name char-pred))
+  `(stringof ,(contract-name char-pred) ,@(if non-empty? '(#:non-empty? #t) '()))
   (lambda (s)
-    (and (string? s) (for/and ((ch (in-string s))) (char-pred ch))))
+    (and ((if non-empty? non-empty-string? string?) s) (for/and ((ch (in-string s))) (char-pred ch))))
   (lambda (fuel)
-    (define list-gen (contract-random-generate/choose (listof char-pred) fuel))
+    (define list-gen (contract-random-generate/choose ((if non-empty? non-empty-listof listof) char-pred) fuel))
     (thunk
       (list->string (list-gen))))))
 
@@ -215,15 +215,39 @@
      (thunk
       (list->vector (list-generator))))))
 
-(define (my-vector/c . args)
-  (make-contract
-   #:name (string->symbol (format "(my-vector/c ~a)" (string-join (map ~a args) " ")))
+(struct my-vector-contract (args)
+  #:property prop:chaperone-contract
+  (build-chaperone-contract-property
+   #:name
+   (λ (c)
+     (string->symbol
+      (format "(my-vector/c ~a)"
+              (string-join (map ~a (my-vector-contract-args c)) " "))))
+
    #:late-neg-projection
-   (contract-late-neg-projection (apply vector/c args))
+   (λ (c)
+     (contract-late-neg-projection (apply vector/c (my-vector-contract-args c))))
+
+   #:generate
+   (λ (c)
+     (λ (fuel)
+       (define args (my-vector-contract-args c))
+       (define list-generator
+         (contract-random-generate/choose (apply list/c args) fuel))
+       (thunk (list->vector (list-generator)))))))
+
+(define (my-vector/c . args)
+  (my-vector-contract args))
+
+(define (my-vectorof arg)
+  (make-contract
+   #:name (string->symbol (format "(my-vectorof ~a)" arg))
+   #:late-neg-projection
+   (contract-late-neg-projection (vectorof arg))
    #:generate
    (λ (fuel)
      (define list-generator
-       (contract-random-generate/choose (apply list/c args) fuel))
+       (contract-random-generate/choose (listof arg) fuel))
      (thunk
       (list->vector (list-generator))))))
 
@@ -234,13 +258,15 @@
    (lambda (fuel)
      (thunk (* fuel (random 0 (random 1 (random 2 (random 3 (random 4 (random 5 (random 6 3000))))))))))))
 
-;; "Prix fixe" generator selects from premade values rather than
-;; generating new ones.
-(define (with-prxfx-gen ctc get-vals)
+(define (class-ctc->instance-ctc class-ctc)
   (make-contract
-   #:name (contract-name ctc)
-   #:late-neg-projection
-   (contract-late-neg-projection ctc)
-   #:generate
-   (λ (fuel)
-     (thunk (get-random-element (get-vals))))))
+   #:name `(class-ctc->instance-ctc ,(contract-name class-ctc))
+   #:first-order (λ (v)
+                   (and (object? v)
+                        (let-values ([(cls skipped?) (object-info v)])
+                          (and cls (contract-first-order-passes? class-ctc cls)))))
+   #:generate (λ (fuel)
+                (define gen-class-thunk (contract-random-generate/choose class-ctc fuel))
+                (λ ()
+                  (define generated-class (gen-class-thunk))
+                  (new generated-class)))))

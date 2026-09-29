@@ -2,11 +2,16 @@
 
 (require "../base/un-types.rkt"
          racket/contract
-         (only-in "../../../ctcs/common.rkt" or-#f/c)
+         (only-in
+          "../../../ctcs/common.rkt"
+          or-#f/c
+          stringof
+          my-vector/c
+          my-vectorof)
          "../../../ctcs/configurable.rkt"
          "../../../ctcs/precision-config.rkt")
 
-(require (only-in "cell.rkt" cell%? class-equal?))
+(require (only-in "cell.rkt" cell%? class-equal? registered-char?))
 
 (require (only-in "cell.rkt" void-cell% char->cell% chars->cell%s))
 
@@ -25,9 +30,96 @@
 
 (provide array-coord? direction? arrayof grid? within-grid/c)
 
-(define/ctc-helper array-coord? (vector/c index? index?))
+(define/ctc-helper array-coord? (my-vector/c index/c index/c))
 
-(define/ctc-helper (arrayof val-ctc) (vectorof (vectorof val-ctc)))
+(struct
+ array-of-contract
+ (val-ctc)
+ #:property
+ prop:chaperone-contract
+ (build-chaperone-contract-property
+  #:name
+  (lambda (c) `(arrayof ,(contract-name (array-of-contract-val-ctc c))))
+  #:first-order
+  (lambda (c)
+    (lambda (x)
+      (and (vector? x)
+           (> (vector-length x) 0)
+           (let ((first-row (vector-ref x 0)))
+             (and (vector? first-row)
+                  (for/and
+                   ((row (in-vector x)))
+                   (and (vector? row)
+                        (= (vector-length row) (vector-length first-row))
+                        (for/and
+                         ((val (in-vector row)))
+                         (contract-first-order-passes?
+                          (array-of-contract-val-ctc c)
+                          val)))))))))
+  #:late-neg-projection
+  (lambda (c)
+    (lambda (blame)
+      (lambda (x missing-party)
+        (unless (and (vector? x) (> (vector-length x) 0))
+          (raise-blame-error
+           blame
+           #:missing-party
+           missing-party
+           x
+           "expected a non-empty vector of vectors"))
+        (define first-row (vector-ref x 0))
+        (unless (vector? first-row)
+          (raise-blame-error
+           blame
+           #:missing-party
+           missing-party
+           x
+           "expected rows to be vectors"))
+        (define expected-len (vector-length first-row))
+        (define elem-proj
+          ((contract-late-neg-projection (array-of-contract-val-ctc c)) blame))
+        (chaperone-vector
+         x
+         (lambda (vec idx row)
+           (unless (and (vector? row) (= (vector-length row) expected-len))
+             (raise-blame-error
+              blame
+              #:missing-party
+              missing-party
+              vec
+              "row ~a does not match the length of the first row (~a)"
+              idx
+              expected-len))
+           (chaperone-vector
+            row
+            (lambda (r-vec r-idx val) (elem-proj val missing-party))
+            (lambda (r-vec r-idx val) (elem-proj val missing-party)))
+           row)
+         (lambda (vec idx row)
+           (unless (and (vector? row) (= (vector-length row) expected-len))
+             (raise-blame-error
+              blame
+              #:missing-party
+              missing-party
+              vec
+              "row ~a does not match the length of the first row (~a)"
+              idx
+              expected-len))
+           row)))))
+  #:generate
+  (lambda (c)
+    (lambda (fuel)
+      (define element-thunk
+        (contract-random-generate/choose (array-of-contract-val-ctc c) fuel))
+      (lambda ()
+        (define rows (add1 (random 5)))
+        (define cols (add1 (random 5)))
+        (build-vector
+         rows
+         (lambda (_) (build-vector cols (lambda (_) (element-thunk))))))))))
+
+(define (arrayof val-ctc)
+  (array-of-contract (coerce-contract 'array-of val-ctc)))
 
 (define/contract
  (array-set! g p v)
@@ -70,17 +162,11 @@
 
 (define/ctc-helper grid? (arrayof cell%?))
 
-(define/ctc-helper
- (stringof char-pred)
- (flat-named-contract
-  `(stringof ,(contract-name char-pred))
-  (lambda (s)
-    (and (string? s) (for/and ((ch (in-string s))) (char-pred ch))))))
-
 (define/contract
  (parse-grid los)
  (configurable-ctc
-  (max (-> (listof (stringof (curry dict-has-key? chars->cell%s))) grid?))
+  (max
+   (-> (non-empty-listof (stringof registered-char? #:non-empty? #t)) grid?))
   (types (-> (listof string?) grid?)))
  (for/vector
   ((s (in-list los)))
@@ -102,8 +188,8 @@
   (max
    (->i
     ((g grid?))
-    (result (g) (and/c index? (curry equal? (vector-length g))))))
-  (types (-> grid? index?)))
+    (result (g) (and/c index/c (curry equal? (vector-length g))))))
+  (types (-> grid? index/c)))
  (vector-length g))
 
 (define/contract
@@ -114,8 +200,8 @@
     ((g grid?))
     (result
      (g)
-     (and/c index? (curry equal? (vector-length (vector-ref g 0)))))))
-  (types (-> grid? index?)))
+     (and/c index/c (curry equal? (vector-length (vector-ref g 0)))))))
+  (types (-> grid? index/c)))
  (vector-length (vector-ref g 0)))
 
 (define/contract
@@ -157,7 +243,7 @@
  (and (within-grid? g pos)
       (vector-ref (vector-ref g (vector-ref pos 0)) (vector-ref pos 1))))
 
-(define/ctc-helper direction? (->* (array-coord?) (index?) array-coord?))
+(define/ctc-helper direction? (->* (array-coord?) (index/c) array-coord?))
 
 (define/contract
  (left pos (n 1))
@@ -170,7 +256,7 @@
      ((n exact-nonnegative-integer?))
      (result
       (pos n)
-      (vector/c
+      (my-vector/c
        (vector-ref pos 0)
        (max (- (vector-ref pos 1) (if (unsupplied-arg? n) 1 n)) 0))))))
   (types direction?))
@@ -187,7 +273,7 @@
      ((n exact-nonnegative-integer?))
      (result
       (pos n)
-      (vector/c
+      (my-vector/c
        (vector-ref pos 0)
        (max (+ (vector-ref pos 1) (if (unsupplied-arg? n) 1 n)) 0))))))
   (types direction?))
@@ -204,7 +290,7 @@
      ((n exact-nonnegative-integer?))
      (result
       (pos n)
-      (vector/c
+      (my-vector/c
        (max (- (vector-ref pos 0) (if (unsupplied-arg? n) 1 n)) 0)
        (vector-ref pos 1))))))
   (types direction?))
@@ -221,7 +307,7 @@
      ((n exact-nonnegative-integer?))
      (result
       (pos n)
-      (vector/c
+      (my-vector/c
        (max (+ (vector-ref pos 0) (if (unsupplied-arg? n) 1 n)) 0)
        (vector-ref pos 1))))))
   (types direction?))

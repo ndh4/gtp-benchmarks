@@ -8,7 +8,7 @@
  racket/class
  "../base/un-types.rkt"
  racket/contract
- (only-in "../../../ctcs/common.rkt" class/c*)
+ (only-in "../../../ctcs/common.rkt" class/c* get-random-element class-ctc->instance-ctc)
  "../../../ctcs/configurable.rkt"
  "../../../ctcs/precision-config.rkt"
  )
@@ -35,7 +35,7 @@
                                  #:post (c% char) (class-equal? (dict-ref chars->cell%s char void)
                                                                 c%))]
                        [types (cell%/c char? . -> . void?)])]
- [char->cell% ([max (->i ([char (and/c char? (curry dict-has-key? chars->cell%s))])
+ [char->cell% ([max (->i ([char registered-char?])
                          [result (char)
                                  (and/c cell%/c
                                         (curry class-equal? (dict-ref chars->cell%s char)))])]
@@ -92,6 +92,7 @@
  cell%?
  cell%/c
  class-equal?
+ registered-char?
 ;;  cell%
  )
 
@@ -123,7 +124,14 @@
                                                   self-id))])]))
 
 (define/ctc-helper cell%/c (make-cell%/c-with self any/c (λ x #t)))
-(define/ctc-helper cell%? (instanceof/c cell%/c))
+(define/ctc-helper cell%?
+  (let ([base-ctc (instanceof/c cell%/c)])
+    (make-contract
+     #:name 'cell%?
+     #:first-order (contract-first-order base-ctc)
+     #:late-neg-projection (contract-late-neg-projection base-ctc)
+     #:generate
+     (lambda (fuel) (lambda () (new (get-random-element (dict-values chars->cell%s))))))))
 
 (define cell% ; some kind of obstacle by default
   (class object%
@@ -144,6 +152,15 @@
 ;; for map parsing
 (define chars->cell%s
   (make-hash))
+
+(define/ctc-helper
+ registered-char?
+ (flat-named-contract
+  'registered-char?
+  (lambda (c) (and (char? c) (dict-has-key? chars->cell%s c)))
+  (lambda (fuel)
+    (lambda ()
+      (get-random-element (dict-keys chars->cell%s))))))
 
 ;; Workaround for bug(?) in class comparison:
 ;; (subclass? cell% (dict-ref chars->cell%s #\*)) => #f

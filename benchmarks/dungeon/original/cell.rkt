@@ -3,7 +3,11 @@
 (require racket/class
          "../base/un-types.rkt"
          racket/contract
-         (only-in "../../../ctcs/common.rkt" class/c*)
+         (only-in
+          "../../../ctcs/common.rkt"
+          class/c*
+          get-random-element
+          class-ctc->instance-ctc)
          "../../../ctcs/configurable.rkt"
          "../../../ctcs/precision-config.rkt")
 
@@ -27,7 +31,7 @@
          horizontal-door%
          other-horizontal-door%)
 
-(provide cell%? cell%/c class-equal?)
+(provide cell%? cell%/c class-equal? registered-char?)
 
 (define/ctc-helper (not-equal? x y) (not (equal? x y)))
 
@@ -47,7 +51,19 @@
 
 (define/ctc-helper cell%/c (make-cell%/c-with self any/c (λ x #t)))
 
-(define/ctc-helper cell%? (instanceof/c cell%/c))
+(define/ctc-helper
+ cell%?
+ (let ((base-ctc (instanceof/c cell%/c)))
+   (make-contract
+    #:name
+    'cell%?
+    #:first-order
+    (contract-first-order base-ctc)
+    #:late-neg-projection
+    (contract-late-neg-projection base-ctc)
+    #:generate
+    (lambda (fuel)
+      (lambda () (new (get-random-element (dict-values chars->cell%s))))))))
 
 (define/contract
  cell%
@@ -65,6 +81,13 @@
  chars->cell%s
  (configurable-ctc (max (hash/c char? cell%/c)) (types hash?))
  (make-hash))
+
+(define/ctc-helper
+ registered-char?
+ (flat-named-contract
+  'registered-char?
+  (lambda (c) (and (char? c) (dict-has-key? chars->cell%s c)))
+  (lambda (fuel) (lambda () (get-random-element (dict-keys chars->cell%s))))))
 
 (define/ctc-helper
  (class-equal? a% b%)
@@ -88,7 +111,7 @@
  (configurable-ctc
   (max
    (->i
-    ((char (and/c char? (curry dict-has-key? chars->cell%s))))
+    ((char registered-char?))
     (result
      (char)
      (and/c cell%/c (curry class-equal? (dict-ref chars->cell%s char))))))

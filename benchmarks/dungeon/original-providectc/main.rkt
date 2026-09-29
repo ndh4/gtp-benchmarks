@@ -87,8 +87,8 @@
   [try-add-rectangle ([max (->i ([grid grid?]
                                  [pos (grid) (and/c array-coord?
                                                     (within-grid/c grid))]
-                                 [height index?]
-                                 [width index?]
+                                 [height index/c]
+                                 [width index/c]
                                  [direction direction?])
                                 [result (pos height width direction)
                                         (or-#f/c
@@ -106,7 +106,7 @@
                                           ;; room contract, see definition of room-with/c)
                                           any/c
                                           any/c))])]
-                      [types (grid? array-coord? index? index? direction?
+                      [types (grid? array-coord? index/c index/c direction?
                                     . -> .
                                     (or-#f/c any-room?))])]
   [commit-room ([max (->i ([grid grid?]
@@ -221,9 +221,9 @@
                      free-cells/c
                      extension-points/c)
   (struct/c room
-            (and/c index?
+            (and/c index/c
                    height/c)
-            (and/c index?
+            (and/c index/c
                    width/c)
             (and/c (alistof array-coord? cell%/c)
                    poss->cells/c)
