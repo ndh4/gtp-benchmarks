@@ -270,3 +270,8 @@
                 (λ ()
                   (define generated-class (gen-class-thunk))
                   (new generated-class)))))
+
+(define (action/c action)
+  (flat-named-contract
+   'action/c
+   (lambda (x) (action) #t)))

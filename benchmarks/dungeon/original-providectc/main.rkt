@@ -584,7 +584,7 @@
                              [(force fu)  horizontal-wall%]
                              [(force fdl) north-east-wall%]
                              [(force fdr) north-west-wall%]
-                             [else (raise-user-error 'cond)])]
+                             [else north-tee-wall%])]
         [(#T #F #F #F) vertical-wall%]
         [(#T #F #F #T) south-west-wall%]
         [(#T #F #T #F) south-east-wall%]
@@ -593,20 +593,20 @@
                              [(force fd)  horizontal-wall%]
                              [(force ful) south-east-wall%]
                              [(force fur) south-west-wall%]
-                             [else (raise-user-error 'cond)])]
+                             [else south-tee-wall%])]
         [(#T #T #F #F) vertical-wall%]
         [(#T #T #F #T) (cond [(2-of-3? (force fl) (force fur) (force fdr))
                               west-tee-wall%]
                              [(force fl)  vertical-wall%]
                              [(force fur) south-west-wall%]
                              [(force fdr) north-west-wall%]
-                             [else (raise-user-error 'cond)])]
+                             [else west-tee-wall%])]
         [(#T #T #T #F) (cond [(2-of-3? (force fr) (force ful) (force fdl))
                               east-tee-wall%]
                              [(force fr)  vertical-wall%]
                              [(force ful) south-east-wall%]
                              [(force fdl) north-east-wall%]
-                             [else (raise-user-error 'nocd)])]
+                             [else east-tee-wall%])]
         [(#T #T #T #T) (cond ; similar to the tee cases
                         [(or (and (force ful) (force fdr))
                              (and (force fur) (force fdl)))
@@ -620,7 +620,7 @@
                         [(force fur)                   south-west-wall%]
                         [(force fdl)                   north-east-wall%]
                         [(force fdr)                   north-west-wall%]
-                        [else (raise-user-error 'cond)])]
+                        [else pillar%])]
         [(_ _ _ _) (raise-user-error 'voidcase)])))))
 
 

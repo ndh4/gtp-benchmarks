@@ -541,7 +541,7 @@
         ((force fu) horizontal-wall%)
         ((force fdl) north-east-wall%)
         ((force fdr) north-west-wall%)
-        (else (raise-user-error 'cond))))
+        (else north-tee-wall%)))
       ((#t #f #f #f) vertical-wall%)
       ((#t #f #f #t) south-west-wall%)
       ((#t #f #t #f) south-east-wall%)
@@ -551,7 +551,7 @@
         ((force fd) horizontal-wall%)
         ((force ful) south-east-wall%)
         ((force fur) south-west-wall%)
-        (else (raise-user-error 'cond))))
+        (else south-tee-wall%)))
       ((#t #t #f #f) vertical-wall%)
       ((#t #t #f #t)
        (cond
@@ -559,14 +559,14 @@
         ((force fl) vertical-wall%)
         ((force fur) south-west-wall%)
         ((force fdr) north-west-wall%)
-        (else (raise-user-error 'cond))))
+        (else west-tee-wall%)))
       ((#t #t #t #f)
        (cond
         ((2-of-3? (force fr) (force ful) (force fdl)) east-tee-wall%)
         ((force fr) vertical-wall%)
         ((force ful) south-east-wall%)
         ((force fdl) north-east-wall%)
-        (else (raise-user-error 'nocd))))
+        (else east-tee-wall%)))
       ((#t #t #t #t)
        (cond
         ((or (and (force ful) (force fdr)) (and (force fur) (force fdl)))
@@ -579,7 +579,7 @@
         ((force fur) south-west-wall%)
         ((force fdl) north-east-wall%)
         ((force fdr) north-west-wall%)
-        (else (raise-user-error 'cond))))
+        (else pillar%)))
       ((_ _ _ _) (raise-user-error 'voidcase)))))))
 
 (define/contract

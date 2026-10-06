@@ -3,16 +3,17 @@
 (require racket/contract
          (only-in racket/list first empty? rest)
          "../../../ctcs/precision-config.rkt"
-         "../../../ctcs/configurable.rkt")
+         "../../../ctcs/configurable.rkt"
+         (only-in "../../../ctcs/common.rkt" action/c))
 
 (provide/configurable-contract
  [message-queue ([max (box/c (listof string?))]
    [types (box/c (listof string?))])]
  [enqueue-message! ([max (let ([pre/queue-len #f]
-              [pre/queue message-queue])
-          (->i ([m string?])
-               #:pre () (begin (set! pre/queue-len (length (unbox message-queue)))
-                               (set! pre/queue (unbox message-queue)))
+                               [pre/queue message-queue])
+          (->i ([m (and/c string?
+                     (action/c (lambda () (set! pre/queue-len (length (unbox message-queue)))
+                                          (set! pre/queue (unbox message-queue)))))])
                [result void?]
                #:post (m) (and (equal? pre/queue (rest (unbox message-queue)))
                                (= (length (unbox message-queue))
