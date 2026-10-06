@@ -162,15 +162,16 @@
 (define-syntax-rule
  (define-wall name single-bar double-bar)
  (begin
-   (define/contract name
+   (define/contract
+    name
     (configurable-ctc
      (max
       (make-cell%/c-with self (if double-bar? double-bar single-bar) equal?))
      (types cell%/c))
-     (class wall%
-       (inspect #f)
-       (define/override (show) (if double-bar? double-bar single-bar))
-       (super-new)))
+    (class wall%
+      (inspect #f)
+      (define/override (show) (if double-bar? double-bar single-bar))
+      (super-new)))
    (register-cell-type! name single-bar)
    (register-cell-type! name double-bar)
    (provide name)))

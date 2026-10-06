@@ -24,6 +24,38 @@
                 ;; Continue processing expressions
                 (begin
                   (match expr
+                    ;; 0.5. Special case
+                    ['(define-syntax-rule (define-wall name single-bar double-bar)
+                        (begin (define name
+                                 (class wall%
+                                   (inspect #f)
+                                   (define/override (show) (if double-bar? double-bar single-bar))
+                                   (super-new)))
+                               ;; parse either kind
+                               (register-cell-type! name single-bar)
+                               (register-cell-type! name double-bar)
+                               (provide/configurable-contract [name ([max (make-cell%/c-with self
+                                                                                             (if double-bar? double-bar single-bar)
+                                                                                             equal?)]
+                                               [types cell%/c])])))
+
+                     (define dsr-expr '(define-syntax-rule
+                                         (define-wall name single-bar double-bar)
+                                         (begin
+                                           (define/contract name
+                                             (configurable-ctc
+                                              (max
+                                               (make-cell%/c-with self (if double-bar? double-bar single-bar) equal?))
+                                              (types cell%/c))
+                                             (class wall%
+                                               (inspect #f)
+                                               (define/override (show) (if double-bar? double-bar single-bar))
+                                               (super-new)))
+                                           (register-cell-type! name single-bar)
+                                           (register-cell-type! name double-bar)
+                                           (provide name))))
+                     (pretty-write dsr-expr out)
+                     (newline out)]
                     
                     ;; 1. Match the provide/configurable-contract block
                     [(list 'provide/configurable-contract (list ids ctcs) ...)
@@ -84,8 +116,8 @@
         #:exists 'replace))))
 
 
-(define bmname "kcfa")
-(define fname "time")
+(define bmname "dungeon")
+(define fname "cell")
 
 ;; Example usage:
-(transform-contracts (format "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks/~a/original/~a.rkt" bmname fname) (format "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks/~a/original-definectc/~a.rkt" bmname fname))
+(transform-contracts (format "/Users/nhejduk/Research-Local/teco-parent/gtp-benchmarks/benchmarks/~a/original-providectc/~a.rkt" bmname fname) (format "/Users/nhejduk/Research-Local/teco-parent/gtp-benchmarks/benchmarks/~a/original/~a.rkt" bmname fname))
