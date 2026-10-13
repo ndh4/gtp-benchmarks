@@ -4,7 +4,7 @@
          "../base/un-types.rkt"
          racket/match
          racket/contract
-         (only-in "../../../ctcs/common.rkt" or-#f/c)
+         (only-in "../../../ctcs/common.rkt" make-dependent-contract or-#f/c)
          "../../../ctcs/precision-config.rkt"
          "../../../ctcs/configurable.rkt")
 
@@ -84,7 +84,56 @@
          LOOPS
          main)
 
-(define/ctc-helper (alistof key/c val/c) (listof (cons/c key/c val/c)))
+(struct
+ unique-alist-contract
+ (key-ctc val-ctc)
+ #:property
+ prop:contract
+ (build-contract-property
+  #:name
+  (λ (c) 'alistof-no-duplicates)
+  #:first-order
+  (λ (c)
+    (λ (al)
+      (define base
+        (listof
+         (cons/c
+          (unique-alist-contract-key-ctc c)
+          (unique-alist-contract-val-ctc c))))
+      (and (contract-first-order-passes? base al)
+           (not (check-duplicates (map car al))))))
+  #:late-neg-projection
+  (λ (c)
+    (λ (blame)
+      (λ (val neg-blame)
+        (define base
+          (listof
+           (cons/c
+            (unique-alist-contract-key-ctc c)
+            (unique-alist-contract-val-ctc c))))
+        (define base-proj (contract-late-neg-projection base))
+        (define projected-val ((base-proj blame) val neg-blame))
+        (if (not (check-duplicates (map car projected-val)))
+          projected-val
+          (raise-blame-error blame val '(expected "no duplicate keys"))))))
+  #:generate
+  (λ (c)
+    (λ (fuel)
+      (define base
+        (listof
+         (cons/c
+          (unique-alist-contract-key-ctc c)
+          (unique-alist-contract-val-ctc c))))
+      (define raw-gen (contract-random-generate/choose base fuel))
+      (λ ()
+        (remove-duplicates
+         (raw-gen)
+         (lambda (a b) (equal? (car a) (car b)))))))))
+
+(define (alistof key/c val/c)
+  (unique-alist-contract
+   (coerce-contract 'key/c key/c)
+   (coerce-contract 'val/c val/c)))
 
 (struct room (height width poss->cells free-cells extension-points) #:mutable)
 
@@ -99,6 +148,47 @@
   (and/c (listof array-coord?) extension-points/c)))
 
 (define/ctc-helper any-room? (room-with/c any/c any/c any/c any/c any/c))
+
+(define (generate-room-for-grid grid fuel)
+  (define gh (grid-height grid))
+  (define gw (grid-width grid))
+  (define r-height (if (> gh 1) (+ 1 (random (sub1 gh))) 1))
+  (define r-width (if (> gw 1) (+ 1 (random (sub1 gw))) 1))
+  (define absolute-coords
+    (for*/list
+     ((r (in-range 0 r-height)) (c (in-range 0 r-width)))
+     (vector r c)))
+  (define raw-alist
+    (for/list
+     ((pos (in-list absolute-coords)) #:when (zero? (random 2)))
+     (cons pos cell%)))
+  (define unique-poss->cells
+    (remove-duplicates raw-alist (lambda (a b) (equal? (car a) (car b)))))
+  (room
+   r-height
+   r-width
+   unique-poss->cells
+   (take absolute-coords (random (add1 (length absolute-coords))))
+   (if (null? absolute-coords) null (list (first absolute-coords)))))
+
+(define/ctc-helper
+ commit-room-args/c*
+ (make-dependent-contract
+  grid?
+  (lambda (grid)
+    (room-with/c
+     (</c (grid-height grid))
+     (</c (grid-width grid))
+     (alistof (within-grid/c grid) cell%/c)
+     (listof (within-grid/c grid))
+     (listof (within-grid/c grid))))
+  generate-room-for-grid))
+
+(define/ctc-helper commit-room-grid-ctc (first commit-room-args/c*))
+
+(define/ctc-helper commit-room-room-ctc (second commit-room-args/c*))
+
+(define/ctc-helper commit-room-ctc-reset!? (third commit-room-args/c*))
 
 (define/contract
  N
@@ -288,22 +378,15 @@
  (configurable-ctc
   (max
    (->i
-    ((grid grid?)
-     (room
-      (grid)
-      (room-with/c
-       (</c (grid-height grid))
-       (</c (grid-width grid))
-       any/c
-       any/c
-       any/c)))
+    ((grid commit-room-grid-ctc) (room commit-room-room-ctc))
     (result void?)
     #:post
     (grid room)
-    (for/and
-     ((pos+cell% (in-list (room-poss->cells room))))
-     (match-define (cons pos poss-cell%) pos+cell%)
-     (is-a? (grid-ref grid pos) poss-cell%))))
+    (and (commit-room-ctc-reset!?)
+         (for/and
+          ((pos+cell% (in-list (room-poss->cells room))))
+          (match-define (cons pos poss-cell%) pos+cell%)
+          (is-a? (grid-ref grid pos) poss-cell%)))))
   (types (-> grid? any-room? void?)))
  (for
   ((pos+cell% (in-list (room-poss->cells room))))
