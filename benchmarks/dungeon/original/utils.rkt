@@ -3,7 +3,11 @@
 (require (only-in racket/list first permutations)
          (only-in racket/file file->value)
          racket/contract
-         (only-in "../../../ctcs/common.rkt" memberof/c permutationof/c)
+         (only-in
+          "../../../ctcs/common.rkt"
+          make-dependent-contract
+          memberof/c
+          permutationof/c)
          "../../../ctcs/precision-config.rkt"
          "../../../ctcs/configurable.rkt"
          "../base/random-number-table.rkt")
@@ -22,64 +26,12 @@
 (provide random-result-between/c)
 
 (define/ctc-helper
- (bounds-ordered/c*)
- (define generator-store (box #f))
- (define predicate-store (box #f))
- (define (reset-predicate-store! . _) (set-box! predicate-store #f) #t)
- (define min-ctc
-   (make-contract
-    #:name
-    'min-bound?
-    #:late-neg-projection
-    (λ (blame)
-      (λ (val neg-party)
-        (if (exact-nonnegative-integer? val)
-          (begin0 val (set-box! predicate-store val))
-          (raise-blame-error
-           blame
-           #:missing-party
-           neg-party
-           val
-           '(expected "exact-nonnegative-integer?")))))
-    #:generate
-    (λ (fuel)
-      (define eni-gen
-        (contract-random-generate/choose exact-nonnegative-integer? fuel))
-      (λ ()
-        (define result (eni-gen))
-        (begin0 result (set-box! generator-store result))))))
- (define max-ctc
-   (make-contract
-    #:name
-    'max-bound?
-    #:late-neg-projection
-    (λ (blame)
-      (λ (val neg-party)
-        (match
-         (unbox predicate-store)
-         ((? exact-nonnegative-integer? stored-min)
-          (if (and (exact-nonnegative-integer? val) (> val stored-min))
-            val
-            (raise-blame-error
-             blame
-             #:missing-party
-             neg-party
-             val
-             (list 'expected (format "integer > ~a" stored-min))))))))
-    #:generate
-    (λ (fuel)
-      (define eni-gen
-        (contract-random-generate/choose exact-nonnegative-integer? fuel))
-      (λ ()
-        (match
-         (unbox generator-store)
-         ((? number? stored-min)
-          (begin0
-            (+ stored-min 1 (eni-gen))
-            (set-box! generator-store #f))))))))
- (list min-ctc max-ctc reset-predicate-store!))
-
-(define/ctc-helper bounds-args/c* (bounds-ordered/c*))
+ bounds-args/c*
+ (make-dependent-contract
+  exact-nonnegative-integer?
+  (lambda (arg1) (and/c exact-nonnegative-integer? (>/c arg1)))
+  (lambda (arg1 fuel)
+    (+ arg1 1 (contract-random-generate exact-nonnegative-integer? fuel)))))
 
 (define/ctc-helper random-between-min-ctc (first bounds-args/c*))
 

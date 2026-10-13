@@ -251,12 +251,16 @@
      (thunk
       (list->vector (list-generator))))))
 
+(define (generate-small-eni lowness high)
+  (if (negative? lowness)
+      high
+      (generate-small-eni (sub1 lowness) (random lowness high))))
+
 (define exact-nonnegative-integer?/small-gen
   (flat-named-contract
    'exact-nonnegative-integer?/small-gen
    exact-nonnegative-integer?
-   (lambda (fuel)
-     (thunk (* fuel (random 0 (random 1 (random 2 (random 3 (random 4 (random 5 (random 6 3000))))))))))))
+   (lambda (fuel) (thunk (* fuel (generate-small-eni 6 3000))))))
 
 (define (class-ctc->instance-ctc class-ctc)
   (make-contract
@@ -275,3 +279,62 @@
   (flat-named-contract
    'action/c
    (lambda (x) (action) #t)))
+
+(define (make-dependent-contract ctc1 ctc2 [custom-second-gen #f])
+  (define base-ctc (coerce-contract 'make-dependent-contract ctc1))
+
+  (define predicate-store (box #f))
+  (define generator-store (box #f))
+
+  (define (reset-predicate-store! . _)
+    (set-box! predicate-store #f)
+    #t)
+
+  (define dependent-first-ctc
+    (make-contract
+     #:name (contract-name base-ctc)
+     #:late-neg-projection
+     (λ (blame)
+       (define base-proj ((contract-late-neg-projection base-ctc) blame))
+       (λ (val neg-party)
+         (define checked-val (base-proj val neg-party))
+         (set-box! predicate-store checked-val)
+         checked-val))
+     #:generate
+     (λ (fuel)
+       (define base-gen (contract-random-generate/choose base-ctc fuel))
+       (λ ()
+         (define result (base-gen))
+         (set-box! generator-store result)
+         result))))
+
+  (define dependent-second-ctc
+    (make-contract
+     #:name 'dependent-second?
+     #:late-neg-projection
+     (λ (blame)
+       (λ (val neg-party)
+         (match (unbox predicate-store)
+           [#f (raise-blame-error blame #:missing-party neg-party val
+                                  "dependent contract lifecycle out of order")]
+           [stored-val
+            (define dynamic-ctc2 (coerce-contract 'make-dependent-contract (ctc2 stored-val)))
+            (define ctc2-proj ((contract-late-neg-projection dynamic-ctc2) blame))
+            (ctc2-proj val neg-party)])))
+     #:generate
+     (λ (fuel)
+       (λ ()
+         (match (unbox generator-store)
+           [#f (error 'make-dependent-contract "generator lifecycle out of order")]
+           [stored-val
+            ;; Clear the store state immediately
+            (set-box! generator-store #f)
+            (cond
+              ;; If a custom sampling macro/function is provided, bypass blind generation
+              [custom-second-gen
+               (custom-second-gen stored-val fuel)]
+              [else
+               (define dynamic-ctc2 (coerce-contract 'make-dependent-contract (ctc2 stored-val)))
+               (contract-random-generate dynamic-ctc2 fuel)])])))))
+
+  (list dependent-first-ctc dependent-second-ctc reset-predicate-store!))

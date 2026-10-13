@@ -24,18 +24,12 @@
                         [result void?]
                         #:post (g p v) (equal? v (grid-ref g p)))]
               [types ((arrayof cell%?) array-coord? cell%? . -> . void?)])]
- [build-array ([max (->i ([p array-coord?]
+ [build-array ([max (->i ([p array-size?]
                           [f (array-coord? . -> . cell%?)])
                          [result (p)
                                  (and/c (arrayof cell%?)
-                                        (array-size=/c p))]
-                         #:post (p f result)
-                         (for*/and ([x (in-range (vector-ref p 0))]
-                                    [y (in-range (vector-ref p 1))])
-                           (define xy (vector x y))
-                           (equal? (f xy)
-                                   (grid-ref result xy))))]
-               [types (array-coord? (array-coord? . -> . cell%?) . -> . (arrayof cell%?))])]
+                                        (array-size=/c p))])]
+               [types (array-size? (array-coord? . -> . cell%?) . -> . (arrayof cell%?))])]
  [parse-grid ([max ((non-empty-listof (stringof registered-char? #:non-empty? #t)) . -> . grid?)]
               [types ((listof string?) . -> . grid?)])]
  [show-grid ([max (grid? . -> . string?)]
@@ -123,6 +117,7 @@
 ;; =============================================================================
 
 (define/ctc-helper array-coord? (my-vector/c index/c index/c))
+(define/ctc-helper array-size? (my-vector/c size/c size/c))
 
 (struct array-of-contract (val-ctc)
   #:property prop:chaperone-contract
@@ -174,8 +169,6 @@
    #:generate
    (lambda (c)
      (lambda (fuel)
-       ;; contract-random-generate/choose accepts the core sub-contract and fuel.
-       ;; It evaluates to an element-producing thunk during this dynamic extent.
        (define element-thunk (contract-random-generate/choose (array-of-contract-val-ctc c) fuel))
        (lambda ()
          (define rows (add1 (random 5)))

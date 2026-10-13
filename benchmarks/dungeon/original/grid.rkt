@@ -32,6 +32,8 @@
 
 (define/ctc-helper array-coord? (my-vector/c index/c index/c))
 
+(define/ctc-helper array-size? (my-vector/c size/c size/c))
+
 (struct
  array-of-contract
  (val-ctc)
@@ -145,15 +147,9 @@
  (configurable-ctc
   (max
    (->i
-    ((p array-coord?) (f (-> array-coord? cell%?)))
-    (result (p) (and/c (arrayof cell%?) (array-size=/c p)))
-    #:post
-    (p f result)
-    (for*/and
-     ((x (in-range (vector-ref p 0))) (y (in-range (vector-ref p 1))))
-     (define xy (vector x y))
-     (equal? (f xy) (grid-ref result xy)))))
-  (types (-> array-coord? (-> array-coord? cell%?) (arrayof cell%?))))
+    ((p array-size?) (f (-> array-coord? cell%?)))
+    (result (p) (and/c (arrayof cell%?) (array-size=/c p)))))
+  (types (-> array-size? (-> array-coord? cell%?) (arrayof cell%?))))
  (for/vector
   ((x (in-range (vector-ref p 0))))
   (for/vector

@@ -110,7 +110,7 @@
                                     . -> .
                                     (or-#f/c any-room?))])]
   [commit-room ([max (->i ([grid grid?]
-                           [room any-room?])
+                           [room (grid) (room-with/c (</c (grid-height grid)) (</c (grid-width grid)) any/c any/c any/c)])
                           [result void?]
                           #:post (grid room)
                           (for/and ([pos+cell% (in-list (room-poss->cells room))])
@@ -177,7 +177,7 @@
                                 (and/c grid?
                                        (room-count>=/c (length encounters)))])]
                      [types ((listof exact-nonnegative-integer?) . -> . grid?)])]
-  [counts-as-free? ([max (->i ([grid grid?]
+  [counts-as-free? ([max (->i ([grid (valid-grid-for-cache/c)]
                                [pos array-coord?])
                               [result boolean?]
                               #:post (grid pos result) (let ([c (grid-ref grid pos)])
@@ -189,7 +189,7 @@
                 [types any/c])]
   [smooth-walls ([max (grid? . -> . grid?)]
                  [types (grid? . -> . grid?)])]
-  [smooth-single-wall ([max (grid? array-coord? . -> . void?)]
+  [smooth-single-wall ([max ((valid-grid-for-cache/c) array-coord? . -> . void?)]
                        [types (grid? array-coord? . -> . void?)])]
   [LOOPS ([max exact-nonnegative-integer?]
           [types exact-nonnegative-integer?])]
@@ -245,6 +245,51 @@
 (define free-cache
   ;; #:mutable
   (make-hash))
+
+(define/ctc-helper (valid-grid-for-cache/c)
+  (flat-named-contract
+   `(valid-grid-for-cache/c ,free-cache)
+   (lambda (grid)
+     (and (contract-first-order-passes? grid? grid)
+          (for/and ([(pos result) (in-hash free-cache)])
+            (define r (vector-ref pos 0))
+            (define c-idx (vector-ref pos 1))
+            (or (false? result)
+                (and (< r (vector-length grid))
+                     (< c-idx (vector-length (vector-ref grid 0)))
+                     (let ([cell (vector-ref (vector-ref grid r) c-idx)])
+                       (or (is-a? cell empty-cell%)
+                           (is-a? cell door%))))))))
+   (lambda (fuel)
+     (define random-cell (contract-random-generate/choose cell%? fuel))
+     (lambda ()
+       (define-values (max-r max-c)
+         (for/fold ([mr 0] [mc 0]) ([(pos result) (in-hash free-cache)])
+           (if result
+               (values (max mr (vector-ref pos 0))
+                       (max mc (vector-ref pos 1)))
+               (values mr mc))))
+
+       (define rows (+ max-r 1 (random 3)))
+       (define cols (+ max-c 1 (random 3)))
+
+       (define grid
+         (build-vector rows (lambda (_)
+           (build-vector cols (lambda (_) (random-cell))))))
+
+       (for ([(pos result) (in-hash free-cache)])
+         (define r (vector-ref pos 0))
+         (define c-idx (vector-ref pos 1))
+
+         (when (and (< r rows) (< c-idx cols))
+           (define row-vec (vector-ref grid r))
+           (if result
+               (if (zero? (random 2))
+                   (vector-set! row-vec c-idx (new empty-cell%))
+                   (vector-set! row-vec c-idx (new door%)))
+               (vector-set! row-vec c-idx (random-cell)))))
+
+       grid))))
 
 (define animate-generation? #f) ; to see intermediate steps
 (define ITERS 10)
