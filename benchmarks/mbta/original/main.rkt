@@ -11,12 +11,25 @@
 
 (provide dat->station-names BLUE-STATIONS ORANGE-STATIONS path enable disable)
 
+(define/ctc-helper
+ dat-file?
+ (flat-named-contract
+  'dat-file?
+  (and/c path-string? (λ (f) (file-exists? f)))
+  (lambda (fuel)
+    (thunk
+     (get-random-element
+      '("../base/orange.dat"
+        "../base/green.dat"
+        "../base/red.dat"
+        "../base/blue.dat"))))))
+
 (define/contract
  (dat->station-names fname)
  (configurable-ctc
   (max
    (->i
-    ((fname (and/c path-string? (λ (f) (file-exists? f)))))
+    ((fname dat-file?))
     (result
      (fname)
      (and/c (listof station?) (λ (lst) (sublist? lst (file->lines fname)))))))

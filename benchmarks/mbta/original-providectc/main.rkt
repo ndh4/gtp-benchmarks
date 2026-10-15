@@ -12,7 +12,7 @@
 (require/configurable-contract "run-t.rkt" run-t manage EOM DONE ENABLE DISABLE PATH )
 
 (provide/configurable-contract
- [dat->station-names ([max (->i ([fname (and/c path-string? (λ (f) (file-exists? f)))])
+ [dat->station-names ([max (->i ([fname dat-file?])
                                 [result (fname)
                                         (and/c (listof station?)
                                                (λ (lst)
@@ -61,7 +61,17 @@
                                       (substring? s res))])]
            [types (-> string? string?)])])
 
-
+(define/ctc-helper dat-file?
+  (flat-named-contract
+    'dat-file?
+    (and/c path-string? (λ (f) (file-exists? f)))
+    (lambda (fuel)
+      (thunk
+        (get-random-element
+          '("../base/orange.dat"
+            "../base/green.dat"
+            "../base/red.dat"
+            "../base/blue.dat"))))))
 ;; ===================================================================================================
 (define (dat->station-names fname)
   (for/list ([line (in-list (file->lines fname))]
