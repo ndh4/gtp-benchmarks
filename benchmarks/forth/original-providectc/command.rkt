@@ -21,12 +21,7 @@
  (only-in "../../../ctcs/common.rkt"
           class/c*
           or-#f/c
-          command%/c
-          command%?
-          command%-with-id/c
-          command%?-with-exec
           stack?
-          env?
           list-with-min-size/c
           equal?/c
           thunked-equal?/c)
@@ -178,6 +173,52 @@
 
 ;; =============================================================================
 ;; -- Commands
+
+(define command%/c
+  (class/c*
+   (init-field/all
+    [id symbol?]
+    [descr string?]
+    [exec ((listof
+            (instanceof/c
+             (recursive-contract command%/c)))
+           stack?
+           any/c
+           . -> .
+           (or/c (cons/c (listof
+                             (instanceof/c
+                              (recursive-contract command%/c)))
+                            stack?)
+                  'EXIT
+                  #f))])))
+
+
+(define command%? (instanceof/c command%/c))
+(define env? (listof command%?))
+(define (command%-with-id/c id-field)
+  (and/c command%?
+         (lambda (x) (eq? id-field (get-field id x)))))
+
+(define-syntax (command%?-with-exec stx)
+  (syntax-parse stx
+    #:datum-literals (args type result)
+    [(_ (~optional (type command%-c-type))
+        (args env-name stack-name val-name)
+        [result result-ctc]
+        (~optional (~seq (~datum #:post) post-condition)))
+     #'(and/c (instanceof/c
+               (~? command%-c-type command%/c))
+              (instanceof/c
+               (class/c*
+                (field/all
+                 [exec (->i ([env-name env?]
+                             [stack-name stack?]
+                             [val-name any/c])
+                            [result (env-name stack-name val-name)
+                                    result-ctc]
+                            (~? (~@ #:post
+                                    (env-name stack-name val-name)
+                                    post-condition)))]))))]))
 
 (define command%
   (class object%
