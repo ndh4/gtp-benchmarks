@@ -13,9 +13,12 @@
           class/c*
           or-#f/c
           stack?
+          get-random-element
           list-with-min-size/c
           equal?/c
           thunked-equal?/c))
+
+(provide command%? command%?-with-exec env?)
 
 (require (only-in
           "stack.rkt"
@@ -61,7 +64,18 @@
        'EXIT
        #f))))))
 
-(define command%? (instanceof/c command%/c))
+(define/ctc-helper
+ command%?
+ (let ((base-ctc (instanceof/c command%/c)))
+   (make-contract
+    #:name
+    'command%?
+    #:first-order
+    (contract-first-order base-ctc)
+    #:late-neg-projection
+    (contract-late-neg-projection base-ctc)
+    #:generate
+    (lambda (fuel) (lambda () (get-random-element CMD*))))))
 
 (define env? (listof command%?))
 

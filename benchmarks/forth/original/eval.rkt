@@ -5,16 +5,11 @@
          (only-in racket/port with-input-from-string)
          "../../../ctcs/configurable.rkt"
          "../../../ctcs/precision-config.rkt"
-         (only-in
-          "../../../ctcs/common.rkt"
-          command%?-with-exec
-          command%?
-          stack?
-          env?
-          equal?/c
-          or-#f/c)
+         (only-in "../../../ctcs/common.rkt" stack? equal?/c or-#f/c)
          (only-in racket/function curry)
          (only-in racket/list first))
+
+(require (only-in "command.rkt" command%? command%?-with-exec env?))
 
 (require (only-in "command.rkt" command% CMD*))
 
