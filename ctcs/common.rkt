@@ -262,6 +262,12 @@
    exact-nonnegative-integer?
    (lambda (fuel) (thunk (* fuel (generate-small-eni 6 3000))))))
 
+(define exact-nonnegative-integer?/tiny-gen
+  (flat-named-contract
+   'exact-nonnegative-integer?/tiny-gen
+   exact-nonnegative-integer?
+   (lambda (fuel) (thunk (random 4)))))
+
 (define (class-ctc->instance-ctc class-ctc)
   (make-contract
    #:name `(class-ctc->instance-ctc ,(contract-name class-ctc))
@@ -338,3 +344,70 @@
                (contract-random-generate dynamic-ctc2 fuel)])])))))
 
   (list dependent-first-ctc dependent-second-ctc reset-predicate-store!))
+
+(define (contract-with-generator base-contract custom-gen-proc)
+  (let ([ctc (coerce-contract 'contract-with-generator base-contract)])
+    (make-contract
+     #:name (contract-name ctc)
+     #:first-order (contract-first-order ctc)
+     #:late-neg-projection (contract-late-neg-projection ctc)
+     #:generate (lambda (fuel)
+                  (lambda ()
+                    (custom-gen-proc fuel))))))
+
+(struct array-of-contract (val-ctc)
+  #:property prop:chaperone-contract
+  (build-chaperone-contract-property
+   #:name
+   (lambda (c) `(arrayof ,(contract-name (array-of-contract-val-ctc c))))
+
+   #:first-order
+   (lambda (c)
+     (lambda (x)
+       (and (vector? x)
+            (> (vector-length x) 0)
+            (let ([first-row (vector-ref x 0)])
+              (and (vector? first-row)
+                   (for/and ([row (in-vector x)])
+                     (and (vector? row)
+                          (= (vector-length row) (vector-length first-row))
+                          (for/and ([val (in-vector row)])
+                            (contract-first-order-passes? (array-of-contract-val-ctc c) val)))))))))
+
+   #:late-neg-projection
+   (lambda (c)
+     (lambda (blame)
+       (lambda (x missing-party)
+         (unless (and (vector? x) (> (vector-length x) 0))
+           (raise-blame-error blame #:missing-party missing-party x "expected a non-empty vector of vectors"))
+         (define first-row (vector-ref x 0))
+         (unless (vector? first-row)
+           (raise-blame-error blame #:missing-party missing-party x "expected rows to be vectors"))
+         (define expected-len (vector-length first-row))
+
+         (define elem-proj ((contract-late-neg-projection (array-of-contract-val-ctc c)) blame))
+
+         (chaperone-vector
+          x
+          (lambda (vec idx row)
+            (unless (and (vector? row) (= (vector-length row) expected-len))
+              (raise-blame-error blame #:missing-party missing-party vec "row ~a does not match the length of the first row (~a)" idx expected-len))
+            (chaperone-vector
+             row
+             (lambda (r-vec r-idx val) (elem-proj val missing-party))
+             (lambda (r-vec r-idx val) (elem-proj val missing-party)))
+            row)
+          (lambda (vec idx row)
+            (unless (and (vector? row) (= (vector-length row) expected-len))
+              (raise-blame-error blame #:missing-party missing-party vec "row ~a does not match the length of the first row (~a)" idx expected-len))
+            row)))))
+
+   #:generate
+   (lambda (c)
+     (lambda (fuel)
+       (define element-thunk (contract-random-generate/choose (array-of-contract-val-ctc c) fuel))
+       (lambda ()
+         (define rows (add1 (random 5)))
+         (define cols (add1 (random 5)))
+         (build-vector rows (lambda (_)
+                              (build-vector cols (lambda (_) (element-thunk))))))))))

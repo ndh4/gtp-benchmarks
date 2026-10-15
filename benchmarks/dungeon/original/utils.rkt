@@ -53,9 +53,9 @@
  (configurable-ctc
   (max
    (->i
-    ((n exact-nonnegative-integer?))
+    ((n exact-positive-integer?))
     (result (n) (and/c exact-nonnegative-integer? (</c n)))))
-  (types (-> any/c exact-nonnegative-integer?)))
+  (types (-> any/c exact-positive-integer?)))
  (begin0
    (modulo (car (unbox r*)) n)
    (set-box! r* (cdr (unbox r*)))

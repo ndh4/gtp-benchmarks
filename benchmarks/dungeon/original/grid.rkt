@@ -4,10 +4,14 @@
          racket/contract
          (only-in
           "../../../ctcs/common.rkt"
+          make-dependent-contract
+          array-of-contract
           or-#f/c
           stringof
           my-vector/c
-          my-vectorof)
+          my-vectorof
+          contract-with-generator
+          get-random-element)
          "../../../ctcs/configurable.rkt"
          "../../../ctcs/precision-config.rkt")
 
@@ -28,112 +32,51 @@
          up
          down)
 
-(provide array-coord? direction? arrayof grid? within-grid/c)
+(provide array-coord?
+         direction?
+         arrayof
+         grid?
+         within-grid/c
+         generate-pos-within-grid)
 
 (define/ctc-helper array-coord? (my-vector/c index/c index/c))
 
 (define/ctc-helper array-size? (my-vector/c size/c size/c))
 
-(struct
- array-of-contract
- (val-ctc)
- #:property
- prop:chaperone-contract
- (build-chaperone-contract-property
-  #:name
-  (lambda (c) `(arrayof ,(contract-name (array-of-contract-val-ctc c))))
-  #:first-order
-  (lambda (c)
-    (lambda (x)
-      (and (vector? x)
-           (> (vector-length x) 0)
-           (let ((first-row (vector-ref x 0)))
-             (and (vector? first-row)
-                  (for/and
-                   ((row (in-vector x)))
-                   (and (vector? row)
-                        (= (vector-length row) (vector-length first-row))
-                        (for/and
-                         ((val (in-vector row)))
-                         (contract-first-order-passes?
-                          (array-of-contract-val-ctc c)
-                          val)))))))))
-  #:late-neg-projection
-  (lambda (c)
-    (lambda (blame)
-      (lambda (x missing-party)
-        (unless (and (vector? x) (> (vector-length x) 0))
-          (raise-blame-error
-           blame
-           #:missing-party
-           missing-party
-           x
-           "expected a non-empty vector of vectors"))
-        (define first-row (vector-ref x 0))
-        (unless (vector? first-row)
-          (raise-blame-error
-           blame
-           #:missing-party
-           missing-party
-           x
-           "expected rows to be vectors"))
-        (define expected-len (vector-length first-row))
-        (define elem-proj
-          ((contract-late-neg-projection (array-of-contract-val-ctc c)) blame))
-        (chaperone-vector
-         x
-         (lambda (vec idx row)
-           (unless (and (vector? row) (= (vector-length row) expected-len))
-             (raise-blame-error
-              blame
-              #:missing-party
-              missing-party
-              vec
-              "row ~a does not match the length of the first row (~a)"
-              idx
-              expected-len))
-           (chaperone-vector
-            row
-            (lambda (r-vec r-idx val) (elem-proj val missing-party))
-            (lambda (r-vec r-idx val) (elem-proj val missing-party)))
-           row)
-         (lambda (vec idx row)
-           (unless (and (vector? row) (= (vector-length row) expected-len))
-             (raise-blame-error
-              blame
-              #:missing-party
-              missing-party
-              vec
-              "row ~a does not match the length of the first row (~a)"
-              idx
-              expected-len))
-           row)))))
-  #:generate
-  (lambda (c)
-    (lambda (fuel)
-      (define element-thunk
-        (contract-random-generate/choose (array-of-contract-val-ctc c) fuel))
-      (lambda ()
-        (define rows (add1 (random 5)))
-        (define cols (add1 (random 5)))
-        (build-vector
-         rows
-         (lambda (_) (build-vector cols (lambda (_) (element-thunk))))))))))
+(define/ctc-helper
+ (arrayof val-ctc)
+ (array-of-contract (coerce-contract 'array-of val-ctc)))
 
-(define (arrayof val-ctc)
-  (array-of-contract (coerce-contract 'array-of val-ctc)))
+(define/ctc-helper grid? (arrayof cell%?))
+
+(define/ctc-helper
+ (generate-pos-within-grid grid fuel)
+ (vector (random (grid-height grid)) (random (grid-width grid))))
+
+(define/ctc-helper
+ array-set!-args/c*
+ (make-dependent-contract
+  grid?
+  (lambda (grid) (and/c array-coord? (within-grid/c grid)))
+  generate-pos-within-grid))
+
+(define/ctc-helper array-set!-grid-ctc (first array-set!-args/c*))
+
+(define/ctc-helper array-set!-pos-ctc (second array-set!-args/c*))
+
+(define/ctc-helper array-set!-ctc-reset!? (third array-set!-args/c*))
 
 (define/contract
  (array-set! g p v)
  (configurable-ctc
   (max
    (->i
-    ((g (arrayof cell%?)) (p array-coord?) (v cell%?))
+    ((g array-set!-grid-ctc) (p array-set!-pos-ctc) (v cell%?))
     (result void?)
     #:post
     (g p v)
-    (equal? v (grid-ref g p))))
-  (types (-> (arrayof cell%?) array-coord? cell%? void?)))
+    (and (array-set!-ctc-reset!?) (equal? v (grid-ref g p)))))
+  (types (-> grid? array-coord? cell%? void?)))
  (vector-set! (vector-ref g (vector-ref p 0)) (vector-ref p 1) v))
 
 (define/ctc-helper
@@ -148,15 +91,13 @@
   (max
    (->i
     ((p array-size?) (f (-> array-coord? cell%?)))
-    (result (p) (and/c (arrayof cell%?) (array-size=/c p)))))
-  (types (-> array-size? (-> array-coord? cell%?) (arrayof cell%?))))
+    (result (p) (and/c grid? (array-size=/c p)))))
+  (types (-> array-size? (-> array-coord? cell%?) grid?)))
  (for/vector
   ((x (in-range (vector-ref p 0))))
   (for/vector
    ((y (in-range (vector-ref p 1))))
    (f (vector (assert x index?) (assert y index?))))))
-
-(define/ctc-helper grid? (arrayof cell%?))
 
 (define/contract
  (parse-grid los)
@@ -239,7 +180,11 @@
  (and (within-grid? g pos)
       (vector-ref (vector-ref g (vector-ref pos 0)) (vector-ref pos 1))))
 
-(define/ctc-helper direction? (->* (array-coord?) (index/c) array-coord?))
+(define/ctc-helper
+ direction?
+ (contract-with-generator
+  (->* (array-coord?) (index/c) array-coord?)
+  (lambda (fuel) (get-random-element (list left right up down)))))
 
 (define/contract
  (left pos (n 1))

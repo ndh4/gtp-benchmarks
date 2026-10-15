@@ -4,7 +4,11 @@
          "../base/un-types.rkt"
          racket/match
          racket/contract
-         (only-in "../../../ctcs/common.rkt" make-dependent-contract or-#f/c)
+         (only-in
+          "../../../ctcs/common.rkt"
+          make-dependent-contract
+          or-#f/c
+          exact-nonnegative-integer?/tiny-gen)
          "../../../ctcs/precision-config.rkt"
          "../../../ctcs/configurable.rkt")
 
@@ -42,7 +46,8 @@
           arrayof
           grid?
           within-grid/c
-          direction?))
+          direction?
+          generate-pos-within-grid))
 
 (require (only-in
           "grid.rkt"
@@ -60,7 +65,7 @@
 
 (require (only-in "utils.rkt" random-result-between/c))
 
-(require (only-in "utils.rkt" reset! random-from random-between))
+(require (only-in "utils.rkt" reset! random random-from random-between))
 
 (provide N
          wall-cache
@@ -78,7 +83,6 @@
          new-corridor
          generate-dungeon
          counts-as-free?
-         hash-clear!
          smooth-walls
          smooth-single-wall
          LOOPS
@@ -189,6 +193,51 @@
 (define/ctc-helper commit-room-room-ctc (second commit-room-args/c*))
 
 (define/ctc-helper commit-room-ctc-reset!? (third commit-room-args/c*))
+
+(define/ctc-helper
+ try-add-rectangle-args/c*
+ (make-dependent-contract
+  grid?
+  (lambda (grid) (and/c array-coord? (within-grid/c grid)))
+  generate-pos-within-grid))
+
+(define/ctc-helper
+ try-add-rectangle-grid-ctc
+ (first try-add-rectangle-args/c*))
+
+(define/ctc-helper
+ try-add-rectangle-pos-ctc
+ (second try-add-rectangle-args/c*))
+
+(define/ctc-helper
+ try-add-rectangle-ctc-reset!?
+ (third try-add-rectangle-args/c*))
+
+(define/ctc-helper
+ new-corridor-args/c*
+ (make-dependent-contract
+  grid?
+  (lambda (grid) (and/c array-coord? (within-grid/c grid)))
+  generate-pos-within-grid))
+
+(define/ctc-helper new-corridor-grid-ctc (first new-corridor-args/c*))
+
+(define/ctc-helper new-corridor-pos-ctc (second new-corridor-args/c*))
+
+(define/ctc-helper new-corridor-ctc-reset!? (third new-corridor-args/c*))
+
+(define/ctc-helper
+ new-room-args/c*
+ (make-dependent-contract
+  grid?
+  (lambda (grid) (and/c array-coord? (within-grid/c grid)))
+  generate-pos-within-grid))
+
+(define/ctc-helper new-room-grid-ctc (first new-room-args/c*))
+
+(define/ctc-helper new-room-pos-ctc (second new-room-args/c*))
+
+(define/ctc-helper new-room-ctc-reset!? (third new-room-args/c*))
 
 (define/contract
  N
@@ -310,10 +359,10 @@
  (configurable-ctc
   (max
    (->i
-    ((grid grid?)
-     (pos (grid) (and/c array-coord? (within-grid/c grid)))
-     (height index/c)
-     (width index/c)
+    ((grid try-add-rectangle-grid-ctc)
+     (pos try-add-rectangle-pos-ctc)
+     (height size>2/c)
+     (width size>2/c)
      (direction direction?))
     (result
      (pos height width direction)
@@ -325,7 +374,10 @@
         (and/c array-coord? (coord-within-box/c pos height width direction))
         cell%/c)
        any/c
-       any/c)))))
+       any/c)))
+    #:post
+    ()
+    (try-add-rectangle-ctc-reset!?)))
   (types
    (-> grid? array-coord? index/c index/c direction? (or-#f/c any-room?))))
  (match-define (vector x y) pos)
@@ -395,28 +447,20 @@
 
 (define/contract
  (random-direction)
- (configurable-ctc
-  (max (-> (curryr member (list left right up down))))
-  (types (-> direction?)))
+ (configurable-ctc (max (-> direction?)) (types (-> direction?)))
  (random-from (list left right up down)))
 
 (define/contract
  (horizontal? dir)
  (configurable-ctc
-  (max
-   (->i
-    ((dir direction?))
-    (result (dir) (if (member dir (list left right)) #t #f))))
+  (max (-> direction? boolean?))
   (types (-> direction? boolean?)))
  (or (eq? dir right) (eq? dir left)))
 
 (define/contract
  (vertical? dir)
  (configurable-ctc
-  (max
-   (->i
-    ((dir direction?))
-    (result (dir) (if (member dir (list up down)) #t #f))))
+  (max (-> direction? boolean?))
   (types (-> direction? boolean?)))
  (or (eq? dir up) (eq? dir down)))
 
@@ -425,9 +469,7 @@
  (configurable-ctc
   (max
    (->i
-    ((grid grid?)
-     (pos (grid) (and/c array-coord? (within-grid/c grid)))
-     (dir direction?))
+    ((grid new-room-grid-ctc) (pos new-room-pos-ctc) (dir direction?))
     (result
      (pos dir)
      (or-#f/c
@@ -449,7 +491,7 @@
  (configurable-ctc
   (max
    (->i
-    ((grid grid?) (pos array-coord?) (dir direction?))
+    ((grid new-corridor-grid-ctc) (pos new-corridor-pos-ctc) (dir direction?))
     (result
      (pos dir)
      (let* ((h? (horizontal? dir)) (h (if h? 3 8)) (w (if h? 10 3)))
@@ -488,7 +530,7 @@
  (configurable-ctc
   (max
    (->i
-    ((encounters (listof exact-nonnegative-integer?)))
+    ((encounters (listof exact-nonnegative-integer?/tiny-gen)))
     (result (encounters) (and/c grid? (room-count>=/c (length encounters))))))
   (types (-> (listof exact-nonnegative-integer?) grid?)))
  (define n-rooms (max (length encounters) (random-between 6 9)))
@@ -617,11 +659,6 @@
    res)))
 
 (define/contract
- (hash-clear! h)
- (configurable-ctc (max any/c) (types any/c))
- (void))
-
-(define/contract
  (smooth-walls grid)
  (configurable-ctc (max (-> grid? grid?)) (types (-> grid? grid?)))
  (for*
@@ -727,7 +764,7 @@
 
 (define/contract
  (main)
- (configurable-ctc (max any/c) (types any/c))
+ (configurable-ctc (max (-> void)) (types (-> void)))
  (for
   ((_i (in-range LOOPS)))
   (show-grid (smooth-walls (generate-dungeon (range N))))

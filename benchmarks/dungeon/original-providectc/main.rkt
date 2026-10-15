@@ -7,7 +7,9 @@
   "../base/un-types.rkt"
   racket/match
   racket/contract
-  (only-in "../../../ctcs/common.rkt" make-dependent-contract or-#f/c)
+  (only-in "../../../ctcs/common.rkt"
+  make-dependent-contract or-#f/c
+  exact-nonnegative-integer?/tiny-gen)
   "../../../ctcs/precision-config.rkt"
   "../../../ctcs/configurable.rkt"
 )
@@ -58,6 +60,7 @@
 ;;   within-grid?
   within-grid/c
   direction?
+  generate-pos-within-grid
 ))
 (require/configurable-contract "grid.rkt" within-grid? build-array array-set! show-grid grid-width grid-height grid-ref down up right left )
 (require (only-in "utils.rkt"
@@ -67,7 +70,7 @@
 ;;   reset!
   random-result-between/c
 ))
-(require/configurable-contract "utils.rkt" reset! #;random random-from random-between )
+(require/configurable-contract "utils.rkt" reset! random random-from random-between )
 
  (provide/configurable-contract
   [N ([max exact-nonnegative-integer?]
@@ -84,11 +87,10 @@
                    [types exact-nonnegative-integer?])]
   [dungeon-width ([max exact-nonnegative-integer?]
                   [types exact-nonnegative-integer?])]
-  [try-add-rectangle ([max (->i ([grid grid?]
-                                 [pos (grid) (and/c array-coord?
-                                                    (within-grid/c grid))]
-                                 [height index/c]
-                                 [width index/c]
+  [try-add-rectangle ([max (->i ([grid try-add-rectangle-grid-ctc]
+                                 [pos try-add-rectangle-pos-ctc]
+                                 [height size>2/c]
+                                 [width size>2/c]
                                  [direction direction?])
                                 [result (pos height width direction)
                                         (or-#f/c
@@ -105,7 +107,8 @@
                                           ;; refined (note that they still have the default
                                           ;; room contract, see definition of room-with/c)
                                           any/c
-                                          any/c))])]
+                                          any/c))]
+                                #:post () (try-add-rectangle-ctc-reset!?))]
                       [types (grid? array-coord? index/c index/c direction?
                                     . -> .
                                     (or-#f/c any-room?))])]
@@ -119,21 +122,14 @@
                               (is-a? (grid-ref grid pos)
                                      poss-cell%))))]
                 [types (grid? any-room? . -> . void?)])]
-  [random-direction ([max (-> (curryr member (list left right up down)))]
+  [random-direction ([max (-> direction?)]
                      [types (-> direction?)])]
-  [horizontal? ([max (->i ([dir direction?])
-                          [result (dir) (if (member dir (list left right))
-                                            #t
-                                            #f)])]
+  [horizontal? ([max (direction? . -> . boolean?)]
                 [types (direction? . -> . boolean?)])]
-  [vertical? ([max (->i ([dir direction?])
-                        [result (dir) (if (member dir (list up down))
-                                          #t
-                                          #f)])]
+  [vertical? ([max (direction? . -> . boolean?)]
               [types (direction? . -> . boolean?)])]
-  [new-room ([max (->i ([grid grid?]
-                        [pos (grid) (and/c array-coord?
-                                           (within-grid/c grid))]
+  [new-room ([max (->i ([grid new-room-grid-ctc]
+                        [pos new-room-pos-ctc]
                         [dir direction?])
                        [result (pos dir)
                                (or-#f/c
@@ -150,8 +146,8 @@
                                  any/c
                                  any/c))])]
              [types (grid? array-coord? direction? . -> . (or-#f/c any-room?))])]
-  [new-corridor ([max (->i ([grid grid?]
-                            [pos array-coord?]
+  [new-corridor ([max (->i ([grid new-corridor-grid-ctc]
+                            [pos new-corridor-pos-ctc]
                             [dir direction?])
                            [result (pos dir)
                                    (let* ([h? (horizontal? dir)]
@@ -172,7 +168,7 @@
                                        any/c
                                        any/c)))])]
                  [types (grid? array-coord? direction? . -> . (or-#f/c any-room?))])]
-  [generate-dungeon ([max (->i ([encounters (listof exact-nonnegative-integer?)])
+  [generate-dungeon ([max (->i ([encounters (listof exact-nonnegative-integer?/tiny-gen)])
                                [result
                                 (encounters)
                                 (and/c grid?
@@ -186,16 +182,14 @@
                                                              (is-a? c empty-cell%)
                                                              (is-a? c door%))))]
                     [types (grid? array-coord? . -> . boolean?)])]
-  [hash-clear! ([max any/c]
-                [types any/c])]
   [smooth-walls ([max (grid? . -> . grid?)]
                  [types (grid? . -> . grid?)])]
   [smooth-single-wall ([max ((valid-grid-for-cache/c) array-coord? . -> . void?)]
                        [types (grid? array-coord? . -> . void?)])]
   [LOOPS ([max exact-nonnegative-integer?]
           [types exact-nonnegative-integer?])]
-  [main ([max any/c]
-         [types any/c])])
+  [main ([max (-> void)]
+         [types (-> void)])])
 
 ;; =============================================================================
 ;(define-type Poss->Cells (Listof (Pairof Pos Cell%)))
@@ -302,6 +296,30 @@
 (define/ctc-helper commit-room-grid-ctc (first commit-room-args/c*))
 (define/ctc-helper commit-room-room-ctc (second commit-room-args/c*))
 (define/ctc-helper commit-room-ctc-reset!? (third commit-room-args/c*))
+
+(define/ctc-helper try-add-rectangle-args/c*
+  (make-dependent-contract grid?
+                           (lambda (grid) (and/c array-coord? (within-grid/c grid)))
+                           generate-pos-within-grid))
+(define/ctc-helper try-add-rectangle-grid-ctc (first try-add-rectangle-args/c*))
+(define/ctc-helper try-add-rectangle-pos-ctc (second try-add-rectangle-args/c*))
+(define/ctc-helper try-add-rectangle-ctc-reset!? (third try-add-rectangle-args/c*))
+
+(define/ctc-helper new-corridor-args/c*
+  (make-dependent-contract grid?
+                           (lambda (grid) (and/c array-coord? (within-grid/c grid)))
+                           generate-pos-within-grid))
+(define/ctc-helper new-corridor-grid-ctc (first new-corridor-args/c*))
+(define/ctc-helper new-corridor-pos-ctc (second new-corridor-args/c*))
+(define/ctc-helper new-corridor-ctc-reset!? (third new-corridor-args/c*))
+
+(define/ctc-helper new-room-args/c*
+  (make-dependent-contract grid?
+                           (lambda (grid) (and/c array-coord? (within-grid/c grid)))
+                           generate-pos-within-grid))
+(define/ctc-helper new-room-grid-ctc (first new-room-args/c*))
+(define/ctc-helper new-room-pos-ctc (second new-room-args/c*))
+(define/ctc-helper new-room-ctc-reset!? (third new-room-args/c*))
 
 
 ;; -----------------------------------------------------------------------------
@@ -645,9 +663,6 @@
          (define res (or (is-a? c empty-cell%) (is-a? c door%)))
          (hash-set! free-cache pos res)
          res]))
-
-(define (hash-clear! h)
-  (void))
 
 ;; wall smoothing, for aesthetic reasons
 (define (smooth-walls grid)

@@ -22,10 +22,10 @@
                     void?
                     #:post (equal? (unbox r*) orig))]
           [types (-> void?)])]
- [random ([max (->i ([n exact-nonnegative-integer?])
+ [random ([max (->i ([n exact-positive-integer?])
                     [result (n) (and/c exact-nonnegative-integer?
                                        (</c n))])]
-          [types (any/c . -> . exact-nonnegative-integer?)])]
+          [types (any/c . -> . exact-positive-integer?)])]
  [article ([max (->* (boolean? boolean?)
                      [#:an? boolean?]
                      (apply or/c (list+titlecases "the" "an" "a")))]
