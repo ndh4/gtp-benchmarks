@@ -1,6 +1,7 @@
 #lang racket
 
-(require "../../../ctcs/configurable.rkt")
+(require "../../../ctcs/configurable.rkt"
+         "../../../ctcs/precision-config.rkt")
 
 ;; i/o format and functions for reading/writing accounts
 

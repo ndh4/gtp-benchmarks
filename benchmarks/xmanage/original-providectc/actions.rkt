@@ -10,7 +10,7 @@
 (define (action/c x/c)
   (list/c x/c (-> any)))
 
-(define FIXME/c any/c)
+(define/ctc-helper FIXME/c any/c)
 
 (provide
  (rename-out [to-html to-html/t]))
