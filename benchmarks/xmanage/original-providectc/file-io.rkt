@@ -1,5 +1,7 @@
 #lang racket
 
+(require "../../../ctcs/configurable.rkt")
+
 ;; i/o format and functions for reading/writing accounts
 
 (define balanced-account/c
@@ -10,13 +12,14 @@
           (= (transactions->balance (account-history a))
              (account-balance a))))))
 
-(provide
- (contract-out
+(provide/configurable-contract
   [account-reader
-   (-> balanced-account/c)]
+   ([types (-> account?)]
+    [max (-> balanced-account/c)])]
   
   [account-writer
-   (-> balanced-account/c any)]))
+   ([types (-> account? void?)]
+    [max (-> balanced-account/c void?)])])
 
 (module+ examples
   (provide (all-defined-out)))
@@ -27,7 +30,8 @@
 
 (module+ examples
   (require (submod "data.rkt" examples))
-  (provide (all-defined-out)))
+  (provide (all-defined-out))
+  (current-seconds/maybe-fake (thunk 1784630918)))
 
 (module+ test
   (require (submod ".." examples))

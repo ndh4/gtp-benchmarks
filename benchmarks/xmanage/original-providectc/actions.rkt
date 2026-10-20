@@ -1,40 +1,54 @@
 #lang racket
 
+(require "../../../ctcs/configurable.rkt"
+         "../../../ctcs/precision-config.rkt")
+
 ;; the actions that can be performed on an account
 
 ;; the result plus action setup makes unit testing convenient and effective
-;; but is useless for the actual script. 
+;; but is useless for the actual script.
 (define (action/c x/c)
   (list/c x/c (-> any)))
 
+(define FIXME/c any/c)
+
 (provide
- (rename-out [to-html to-html/t])
+ (rename-out [to-html to-html/t]))
 
- (contract-out
-  [name->path
-   (->* (string?) (#:kind string?) path?)]
+(provide/configurable-contract
+ [name->path
+   ([max FIXME/c]
+    [types (->* (string?) (#:kind string?) path?)])]
 
-  [write 
-   (-> account? (-> void?))]
+  [write
+   ([max FIXME/c]
+    [types (-> account? (-> void?))])]
 
   [update
-   (-> account? my-date? account?)]
+   ([max FIXME/c]
+    [types (-> account? my-date? account?)])]
 
   [new-account/2
-   (-> procedure? string? (action/c account?))]
+   ([max FIXME/c]
+    [types (-> procedure? string? (action/c account?))])]
   [deposit
-   ;; consumes command-line arguments to deposit amount 
-   (->* (account? my-date? string?) () #:rest (listof string?) (action/c account?))]
+   ;; consumes command-line arguments to deposit amount
+   ([max FIXME/c]
+    [types (->* (account? my-date? string?) () #:rest (listof string?) (action/c account?))])]
   [withdraw
    ;; consumes commad-line arguments to withdraw amount
-   (->* (account? my-date? string?) () #:rest (listof string?) (action/c account?))]
+   ([max FIXME/c]
+    [types (->* (account? my-date? string?) () #:rest (listof string?) (action/c account?))])]
   [write-check
    ;; consumes commad-line arguments to record a check at amount
-   (->* (account? my-date? string?) () #:rest (listof string?) (action/c account?))]
+   ([max FIXME/c]
+    [types (->* (account? my-date? string?) () #:rest (listof string?) (action/c account?))])]
   [show-balance
-   (->* (account? my-date?) () #:rest any/c (action/c amount?))]
+   ([max FIXME/c]
+    [types (->* (account? my-date?) () #:rest any/c (action/c amount?))])]
   [to-html
-   (->* (account? my-date?) () #:rest any/c (action/c any/c))]))
+   ([max FIXME/c]
+    [types (->* (account? my-date?) () #:rest any/c (action/c any/c))])])
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "date.rkt")
@@ -47,7 +61,8 @@
 (module+ test
   (require (submod ".."))
   (require (submod "file-io.rkt" examples))
-  (require rackunit))
+  (require rackunit)
+  (current-seconds/maybe-fake (thunk 1784630918)))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;                                                   
@@ -65,19 +80,17 @@
 ;                                       ;  ;        
 ;                                        ;;         
 
-(define HOME (find-system-path 'home-dir))
-
 (define (name->path name #:kind (proper-or-html #false))
   (define file-name (if proper-or-html (~a name "." proper-or-html) (~a "." name ".act")))
-  (build-path HOME "Private" "Accounts" "Xmanage" file-name))
+  (build-path file-name))
 
 (define [(write account)]
   (define file-name (name->path (account-name account)))
   (with-output-to-file file-name #:exists 'replace (λ () (account-writer account))))
 
 (module+ test
-  (check-equal? (name->path "name") (build-path HOME "Private" "Accounts" "Xmanage" ".name.act"))
-  (check-equal? (name->path "n" #:kind "h") (build-path HOME "Private" "Accounts" "Xmanage" "n.h"))
+  (check-equal? (name->path "name") (build-path ".name.act"))
+  (check-equal? (name->path "n" #:kind "h") (build-path "n.h"))
   
   (let ([file-name (name->path (account-name checking))])
     (dynamic-wind
@@ -209,7 +222,7 @@
 
 (define (update account action-date)
   (define last-date (account-balance-date account))
-  (when (next-month last-date action-date)
+  (when (next-month? last-date action-date)
     (define-values (balance history)
       (for/fold ([balance (account-balance account)]
                  [history (account-history account)])
@@ -223,11 +236,12 @@
   account)
 
 (module+ test
-  (let () ;; test update 
+  (let () ;; test update
     (define Acopied  (struct-copy account A+100chk))
     (define nextdate '(2026 8 20))
     (define exp (account "checking" '() 100  nextdate (account-recents A+100chk) 0))
-    (check-equal? (update Acopied nextdate) exp "update: check return")
+    (define imperative-result (update Acopied nextdate))
+    (check-equal? imperative-result exp "update: check return")
     (check-equal? Acopied exp "update: check effect")))
 
 

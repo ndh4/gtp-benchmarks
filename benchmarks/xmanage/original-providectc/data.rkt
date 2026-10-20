@@ -1,45 +1,57 @@
 #lang racket
 
+(require "../../../ctcs/configurable.rkt"
+         "../../../ctcs/precision-config.rkt")
+
+(define/ctc-helper FIXME/c any/c)
+
 ;; the basic data representation of an account
 
 (define string-amount
   (and/c string? (flat-named-contract 'amount (λ (x) (regexp-match #px"\\d*\\.\\d\\d" x)))))
 
-(provide
- (contract-out
+(provide/configurable-contract
 
   (struct account
-    ([name         string?]
-     [recents      (listof dw?)]
-     [balance      amount?]
-     [balance-date my-date?]
-     [history      (listof dw?)]
-     [check-no     natural?]))
+    ([name         ([types string?] [max string?])]
+     [recents      ([types (listof dw?)]
+                    [max (listof dw?)])]
+     [balance      ([types amount?] [max amount?])]
+     [balance-date ([types my-date?] [max my-date?])]
+     [history      ([types (listof dw?)]
+                    [max (listof dw?)])]
+     [check-no     ([types natural?] [max natural?])]))
 
   (struct dw
-    ([comment string?]
-     [date    my-date?]
-     [amount  amount?]))
+    ([comment ([types string?] [max string?])]
+     [date    ([types my-date?] [max my-date?])]
+     [amount  ([types amount?] [max amount?])]))
   
-  (transactions->balance
-   (-> (listof dw?) amount?))
+  [transactions->balance
+   ([types (-> (listof dw?) amount?)]
+    [max FIXME/c])]
 
   [transactions->running-balance
-    (->i ([dws (listof dw?)]
-          [balance amount?]
-          [op (-> amount? amount? amount?)])
+    ([types (-> (listof dw?) amount? (-> amount? amount? amount?)
+                (listof (list/c dw? amount?)))]
+     [max (->i ([dws (listof dw?)]
+                [balance amount?]
+                [op (-> amount? amount? amount?)])
          (r (dws) (and (listof (list/c dw? amount?))
-                       (λ (r) (equal? dws (reverse (map first r)))))))]
+                       (λ (r) (equal? dws (reverse (map first r)))))))])]
 
   [amount?
-   (-> any/c boolean?)]
+   ([max FIXME/c]
+    [types (-> any/c boolean?)])]
 
   [amount->decimal-string
-   (-> rational? string-amount)]
+   ([max FIXME/c]
+    [types (-> rational? string-amount)])]
 
-  (align
-   (-> (and/c string? shorter-than-COMMENT-MAX)
-       (and/c string? (compose (=/c COMMENT-MAX) string-length))))))
+  [align
+   ([types (-> string? string?)]
+    [max (-> (and/c string? shorter-than-COMMENT-MAX)
+             (and/c string? (compose (=/c COMMENT-MAX) string-length)))])])
 
 (provide
  ;; match expander

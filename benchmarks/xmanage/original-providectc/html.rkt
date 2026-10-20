@@ -1,10 +1,16 @@
 #lang racket
 
+(require "../../../ctcs/configurable.rkt"
+         "../../../ctcs/precision-config.rkt")
+
+(define/ctc-helper FIXME/c any/c)
+
 ;; turn an account into an HTML page 
 
-(provide
- (contract-out
-  (account-to-html (-> account? xexpr?))))
+(provide/configurable-contract
+  [account-to-html
+    ([types (-> account? xexpr?)]
+     [max FIXME/c])])
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "date.rkt")
