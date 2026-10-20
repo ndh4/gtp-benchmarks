@@ -1,13 +1,26 @@
 #lang racket
 
+(require "../../../ctcs/configurable.rkt"
+         "../../../ctcs/precision-config.rkt")
+
 ;; a simple data representation of dates
 
-(provide #; Date today my-date? next-month? current-seconds/maybe-fake)
+(provide/configurable-contract
+ [today ([max (-> my-date/c)]
+         [types (-> my-date/c)])]
+ [my-date? ([max (-> my-date/c #t)]
+            [types (-> any/c boolean?)])]
+ [next-month? ([max (-> my-date/c my-date/c boolean?)]
+               [types (-> my-date/c my-date/c boolean?)])])
 
-(define current-seconds/maybe-fake
+(provide my-date/c current-seconds/maybe-fake)
+
+(define/ctc-helper current-seconds/maybe-fake
   (make-parameter current-seconds))
 
-#; {type Date = [List Natural Natural Natural]}
+(define/ctc-helper my-date/c (list/c natural-number/c
+                                     natural-number/c
+                                     natural-number/c))
 
 (define (my-date? x)
   (match x
@@ -15,13 +28,11 @@
      #true]
     [_
      (error 'my-date "date expected, found ~a" x)]))
-  
-#; { -> Date}
+
 (define (today)
   (let ([d (seconds->date ((current-seconds/maybe-fake)))])
     (list (date-year d) (date-month d) (date-day d))))
 
-#; {Date Date -> Date}
 (define (next-month? date1 date2)
   (match-define [list _year1 month1 _day1] date1)
   (match-define [list _year2 month2 _day2] date2)
