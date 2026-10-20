@@ -7,37 +7,42 @@
 
 ;; the basic data representation of an account
 
-(define string-amount
+(define string-amount/c
   (and/c string? (flat-named-contract 'amount (λ (x) (regexp-match #px"\\d*\\.\\d\\d" x)))))
+
+(define/ctc-helper amount/c (and/c rational? exact?))
 
 (provide/configurable-contract
 
   (struct account
     ([name         ([types string?] [max string?])]
-     [recents      ([types (listof dw?)]
-                    [max (listof dw?)])]
-     [balance      ([types amount?] [max amount?])]
-     [balance-date ([types my-date?] [max my-date?])]
-     [history      ([types (listof dw?)]
-                    [max (listof dw?)])]
+     [recents      ([types (listof dw/c)]
+                    [max (listof dw/c)])]
+     [balance      ([types amount/c] [max amount/c])]
+     [balance-date ([types my-date/c] [max my-date/c])]
+     [history      ([types (listof dw/c)]
+                    [max (listof dw/c)])]
      [check-no     ([types natural?] [max natural?])]))
 
   (struct dw
     ([comment ([types string?] [max string?])]
-     [date    ([types my-date?] [max my-date?])]
-     [amount  ([types amount?] [max amount?])]))
+     [date    ([types my-date/c] [max my-date/c])]
+     [amount  ([types amount/c] [max amount/c])]))
   
   [transactions->balance
-   ([types (-> (listof dw?) amount?)]
-    [max FIXME/c])]
+   ([types (-> (listof dw/c) amount/c)]
+    [max (->i ([dw* (listof dw/c)])
+              [result (dw*)
+               (and/c amount/c
+                      (lambda (res) (zero? (for/fold ([accum res]) ([h dw*]) (- accum (dw-amount h))))))])])]
 
   [transactions->running-balance
-    ([types (-> (listof dw?) amount? (-> amount? amount? amount?)
-                (listof (list/c dw? amount?)))]
-     [max (->i ([dws (listof dw?)]
-                [balance amount?]
-                [op (-> amount? amount? amount?)])
-         (r (dws) (and (listof (list/c dw? amount?))
+    ([types (-> (listof dw/c) amount/c (-> amount/c amount/c amount/c)
+                (listof (list/c dw/c amount/c)))]
+     [max (->i ([dws (listof dw/c)]
+                [balance amount/c]
+                [op (-> amount/c amount/c amount/c)])
+         (r (dws) (and (listof (list/c dw/c amount/c))
                        (λ (r) (equal? dws (reverse (map first r)))))))])]
 
   [amount?
@@ -46,7 +51,7 @@
 
   [amount->decimal-string
    ([max FIXME/c]
-    [types (-> rational? string-amount)])]
+    [types (-> rational? string-amount/c)])]
 
   [align
    ([types (-> string? string?)]
@@ -57,7 +62,8 @@
  ;; match expander
  amount>
 
- argv-amount>)
+ argv-amount>
+ account/c)
 
 (module+ examples
   (provide checking0))
@@ -83,7 +89,7 @@
 ;    ;;;; ;  ;  ;  ;;;    ;;;;  ;   ;    ;;;   ;;;  
 ;                                                   
 ;                                                   
-;                                                   
+;
 
 (define (amount? x)
   (rational? x))
@@ -135,12 +141,22 @@
 ;    ;;;;   ;;;;   ;;;;   ;;;    ;;;;  ;   ;    ;;;   ;;;  
 ;                                                          
 ;                                                          
-;                                                          
-  
-(struct account (name recents balance balance-date history check-no) #:transparent #:mutable)
+;
+
 (struct dw (comment date amount) #:transparent #:mutable)
-#; {type Account = (account String [Listof T] Rational Date [Listof T] Natural)}
 #; {type DW      = (dw String Date PositiveRational)}
+
+(define/ctc-helper dw/c
+  (configurable-ctc [types (struct/c dw string? my-date/c amount/c)]
+                    [max   (struct/c dw string? my-date/c amount/c)]))
+
+(struct account (name recents balance balance-date history check-no) #:transparent #:mutable)
+#; {type Account = (account String [Listof T] Rational Date [Listof T] Natural)}
+
+(define/ctc-helper account/c
+  (configurable-ctc [types (struct/c account string? (listof dw/c) amount/c my-date/c (listof dw/c) natural?)]
+                    [max   (struct/c account string? (listof dw/c) amount/c my-date/c (listof dw/c) natural?)]))
+
 
 (module+ examples
   (define [checking0 (first-check-no 0)]

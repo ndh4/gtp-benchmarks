@@ -70,7 +70,7 @@
  (new-account/2 exit-for-testing name #:last-check (last 0))
  (configurable-ctc
   (max FIXME/c)
-  (types (-> procedure? string? (action/c account?))))
+  (types (-> procedure? string? (action/c account/c))))
  (define a (account name '() 0 (today) '() last))
  (define (effect)
    (define file-name (name->path name))
@@ -96,11 +96,11 @@
   (max FIXME/c)
   (types
    (->*
-    (account? my-date? string?)
+    (account/c my-date/c string?)
     ()
     #:rest
     (listof string?)
-    (action/c account?))))
+    (action/c account/c))))
  (make-d/w +))
 
 (define/contract
@@ -109,11 +109,11 @@
   (max FIXME/c)
   (types
    (->*
-    (account? my-date? string?)
+    (account/c my-date/c string?)
     ()
     #:rest
     (listof string?)
-    (action/c account?))))
+    (action/c account/c))))
  (make-d/w -))
 
 (define/contract
@@ -122,11 +122,11 @@
   (max FIXME/c)
   (types
    (->*
-    (account? my-date? string?)
+    (account/c my-date/c string?)
     ()
     #:rest
     (listof string?)
-    (action/c account?))))
+    (action/c account/c))))
  (match-define
   (list the-check bump)
   (create-check account (string-join purpose)))
@@ -147,13 +147,13 @@
  (show-balance a _date . _others)
  (configurable-ctc
   (max FIXME/c)
-  (types (->* (account? my-date?) () #:rest any/c (action/c amount?))))
+  (types (->* (account/c my-date/c) () #:rest any/c (action/c amount?))))
  (define b (+ (transactions->balance (account-recents a)) (account-balance a)))
  (list b (λ () (printf "Current balance: ~a\n" (amount->decimal-string b)))))
 
 (define/contract
  (update account action-date)
- (configurable-ctc (max FIXME/c) (types (-> account? my-date? account?)))
+ (configurable-ctc (max FIXME/c) (types (-> account/c my-date/c account/c)))
  (define last-date (account-balance-date account))
  (when (next-month? last-date action-date)
    (define-values
@@ -183,7 +183,7 @@
  (to-html a my-dste #:open (open "open") . _other)
  (configurable-ctc
   (max FIXME/c)
-  (types (->* (account? my-date?) () #:rest any/c (action/c any/c))))
+  (types (->* (account/c my-date/c) () #:rest any/c (action/c any/c))))
  (define page:xml (xexpr->xml (account-to-html a)))
  (define file (name->path (account-name a) #:kind 'html))
  (list

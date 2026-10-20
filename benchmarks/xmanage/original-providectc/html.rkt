@@ -9,7 +9,7 @@
 
 (provide/configurable-contract
   [account-to-html
-    ([types (-> account? xexpr?)]
+    ([types (-> account/c xexpr?)]
      [max FIXME/c])])
 
 ;; ---------------------------------------------------------------------------------------------------

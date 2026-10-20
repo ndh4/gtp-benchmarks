@@ -6,7 +6,7 @@
 ;; i/o format and functions for reading/writing accounts
 
 (define balanced-account/c
-  (and account?
+  (and account/c
        (flat-named-contract
         "current balance equals sum of transactions"
         (λ (a)
@@ -15,11 +15,11 @@
 
 (provide/configurable-contract
   [account-reader
-   ([types (-> account?)]
+   ([types (-> account/c)]
     [max (-> balanced-account/c)])]
   
   [account-writer
-   ([types (-> account? void?)]
+   ([types (-> account/c void?)]
     [max (-> balanced-account/c void?)])])
 
 (module+ examples

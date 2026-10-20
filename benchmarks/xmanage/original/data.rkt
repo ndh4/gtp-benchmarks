@@ -4,10 +4,12 @@
 
 (define/ctc-helper FIXME/c any/c)
 
-(define string-amount
+(define string-amount/c
   (and/c
    string?
    (flat-named-contract 'amount (λ (x) (regexp-match #px"\\d*\\.\\d\\d" x)))))
+
+(define/ctc-helper amount/c (and/c rational? exact?))
 
 (provide (struct-out account)
          (struct-out dw)
@@ -17,7 +19,7 @@
          amount->decimal-string
          align)
 
-(provide amount> argv-amount>)
+(provide amount> argv-amount> account/c)
 
 (module+ examples (provide checking0))
 
@@ -62,7 +64,7 @@
 
 (define/contract
  (amount->decimal-string a)
- (configurable-ctc (max FIXME/c) (types (-> rational? string-amount)))
+ (configurable-ctc (max FIXME/c) (types (-> rational? string-amount/c)))
  (~r a #:precision '(= 2)))
 
 (module+
@@ -73,23 +75,51 @@
  (check-equal? (amount->decimal-string 43.0) "43.00"))
 
 (struct/contract
+ dw
+ ((comment (configurable-ctc (types string?) (max string?)))
+  (date (configurable-ctc (types my-date/c) (max my-date/c)))
+  (amount (configurable-ctc (types amount/c) (max amount/c))))
+ #:transparent
+ #:mutable)
+
+(define/ctc-helper
+ dw/c
+ (configurable-ctc
+  (types (struct/c dw string? my-date/c amount/c))
+  (max (struct/c dw string? my-date/c amount/c))))
+
+(struct/contract
  account
  ((name (configurable-ctc (types string?) (max string?)))
-  (recents (configurable-ctc (types (listof dw?)) (max (listof dw?))))
-  (balance (configurable-ctc (types amount?) (max amount?)))
-  (balance-date (configurable-ctc (types my-date?) (max my-date?)))
-  (history (configurable-ctc (types (listof dw?)) (max (listof dw?))))
+  (recents (configurable-ctc (types (listof dw/c)) (max (listof dw/c))))
+  (balance (configurable-ctc (types amount/c) (max amount/c)))
+  (balance-date (configurable-ctc (types my-date/c) (max my-date/c)))
+  (history (configurable-ctc (types (listof dw/c)) (max (listof dw/c))))
   (check-no (configurable-ctc (types natural?) (max natural?))))
  #:transparent
  #:mutable)
 
-(struct/contract
- dw
- ((comment (configurable-ctc (types string?) (max string?)))
-  (date (configurable-ctc (types my-date?) (max my-date?)))
-  (amount (configurable-ctc (types amount?) (max amount?))))
- #:transparent
- #:mutable)
+(define/ctc-helper
+ account/c
+ (configurable-ctc
+  (types
+   (struct/c
+    account
+    string?
+    (listof dw/c)
+    amount/c
+    my-date/c
+    (listof dw/c)
+    natural?))
+  (max
+   (struct/c
+    account
+    string?
+    (listof dw/c)
+    amount/c
+    my-date/c
+    (listof dw/c)
+    natural?))))
 
 (module+
  examples
@@ -101,7 +131,18 @@
 
 (define/contract
  (transactions->balance dw*)
- (configurable-ctc (types (-> (listof dw?) amount?)) (max FIXME/c))
+ (configurable-ctc
+  (types (-> (listof dw/c) amount/c))
+  (max
+   (->i
+    ((dw* (listof dw/c)))
+    (result
+     (dw*)
+     (and/c
+      amount/c
+      (lambda (res)
+        (zero?
+         (for/fold ((accum res)) ((h dw*)) (- accum (dw-amount h))))))))))
  (for/sum ((h dw*)) (dw-amount h)))
 
 (define/contract
@@ -109,16 +150,18 @@
  (configurable-ctc
   (types
    (->
-    (listof dw?)
-    amount?
-    (-> amount? amount? amount?)
-    (listof (list/c dw? amount?))))
+    (listof dw/c)
+    amount/c
+    (-> amount/c amount/c amount/c)
+    (listof (list/c dw/c amount/c))))
   (max
    (->i
-    ((dws (listof dw?)) (balance amount?) (op (-> amount? amount? amount?)))
+    ((dws (listof dw/c))
+     (balance amount/c)
+     (op (-> amount/c amount/c amount/c)))
     (r
      (dws)
-     (and (listof (list/c dw? amount?))
+     (and (listof (list/c dw/c amount/c))
           (λ (r) (equal? dws (reverse (map first r)))))))))
  (for/fold
   ((balance current) (r '()) #:result r)

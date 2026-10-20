@@ -22,33 +22,33 @@
 
   [write
    ([max FIXME/c]
-    [types (-> account? (-> void?))])]
+    [types (-> account/c (-> void?))])]
 
   [update
    ([max FIXME/c]
-    [types (-> account? my-date? account?)])]
+    [types (-> account/c my-date/c account/c)])]
 
   [new-account/2
    ([max FIXME/c]
-    [types (-> procedure? string? (action/c account?))])]
+    [types (-> procedure? string? (action/c account/c))])]
   [deposit
    ;; consumes command-line arguments to deposit amount
    ([max FIXME/c]
-    [types (->* (account? my-date? string?) () #:rest (listof string?) (action/c account?))])]
+    [types (->* (account/c my-date/c string?) () #:rest (listof string?) (action/c account/c))])]
   [withdraw
    ;; consumes commad-line arguments to withdraw amount
    ([max FIXME/c]
-    [types (->* (account? my-date? string?) () #:rest (listof string?) (action/c account?))])]
+    [types (->* (account/c my-date/c string?) () #:rest (listof string?) (action/c account/c))])]
   [write-check
    ;; consumes commad-line arguments to record a check at amount
    ([max FIXME/c]
-    [types (->* (account? my-date? string?) () #:rest (listof string?) (action/c account?))])]
+    [types (->* (account/c my-date/c string?) () #:rest (listof string?) (action/c account/c))])]
   [show-balance
    ([max FIXME/c]
-    [types (->* (account? my-date?) () #:rest any/c (action/c amount?))])]
+    [types (->* (account/c my-date/c) () #:rest any/c (action/c amount?))])]
   [to-html
    ([max FIXME/c]
-    [types (->* (account? my-date?) () #:rest any/c (action/c any/c))])])
+    [types (->* (account/c my-date/c) () #:rest any/c (action/c any/c))])])
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "date.rkt")

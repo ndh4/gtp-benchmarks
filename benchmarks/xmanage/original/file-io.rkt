@@ -3,7 +3,7 @@
 (require "../../../ctcs/configurable.rkt" "../../../ctcs/precision-config.rkt")
 
 (define balanced-account/c
-  (and account?
+  (and account/c
        (flat-named-contract
         "current balance equals sum of transactions"
         (λ (a)
@@ -78,7 +78,7 @@
 
 (define/contract
  (account-reader)
- (configurable-ctc (types (-> account?)) (max (-> balanced-account/c)))
+ (configurable-ctc (types (-> account/c)) (max (-> balanced-account/c)))
  (A->account (read) (read)))
 
 (define (A->account x last-check#)
@@ -128,7 +128,7 @@
 (define/contract
  (account-writer x)
  (configurable-ctc
-  (types (-> account? void?))
+  (types (-> account/c void?))
   (max (-> balanced-account/c void?)))
  (pretty-write (account->A x))
  (display (account-check-no x))

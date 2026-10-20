@@ -24,7 +24,7 @@
 
 (define/contract
  (account-to-html a)
- (configurable-ctc (types (-> account? xexpr?)) (max FIXME/c))
+ (configurable-ctc (types (-> account/c xexpr?)) (max FIXME/c))
  (define title (~a COMPLETE (account-name a)))
  (define date (date-to-html (account-balance-date a)))
  (define b (account-balance a))
