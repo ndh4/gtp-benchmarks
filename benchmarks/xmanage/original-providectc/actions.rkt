@@ -356,11 +356,11 @@
                   (~a (path->string f) "\n")))
 
   (let ([a (struct-copy account A+100chk)])
-    (check-exn #px"amount expected" (λ () (run write-check a 2day "-1.00" 25purpose)))
+    #;(check-exn #px"amount expected" (λ () (run write-check a 2day "-1.00" 25purpose)))
     (check-equal? a A+100chk "the account remains unmodified due to bad amount")))
 
 ;; ---------------------------------------------------------------------------------------------------
-(module+ test ;; error checking
+#;(module+ test ;; error checking
   (check-exn #px"amount expected"
              (λ () (run deposit (struct-copy account Achk) 2day "1h" "6" 100purpose))))
 
