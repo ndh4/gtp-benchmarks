@@ -34,7 +34,7 @@
 (define/contract
  (amount? x)
  (configurable-ctc (max FIXME/c) (types (-> any/c boolean?)))
- (rational? x))
+ (and (rational? x) (exact? x)))
 
 (define-match-expander
  amount>

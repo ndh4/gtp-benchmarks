@@ -92,7 +92,7 @@
 ;
 
 (define (amount? x)
-  (rational? x))
+  (and (rational? x) (exact? x)))
 
 (define-match-expander amount>
   (λ (stx)
