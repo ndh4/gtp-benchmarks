@@ -11,24 +11,11 @@
                      racket/set
                      racket/syntax))
 
+;; --- ALL COMPILE-TIME STATE, HELPERS, AND CLASSES UNIFIED IN PHASE 1 ---
 (begin-for-syntax
   (define files-with-provide-configurable (mutable-set))
   (define enabled-ctc-levels '(none types max))
-
-  (define-syntax-class ctc-map-clause
-    #:attributes [level ctc]
-    (pattern [level:id ctc:expr]
-             #:when (member (syntax->datum #'level) enabled-ctc-levels)))
-
-  (define-syntax-class ctc-map
-    #:attributes [[clause 1] map]
-    (pattern {clause:ctc-map-clause ...}
-             ;; ctc-map? := (hash/c id? syntax?)
-             #:attr map (hash-set (for/hash ([level (in-list (attribute clause.level))]
-                                             [ctc (in-list (attribute clause.ctc))])
-                                    (values (syntax->datum level) ctc))
-                                  'none #'any/c)))
-
+  
   (define-logger configurable-ctcs)
 
   (define ((lower-ctc-map ctx) m)
@@ -42,29 +29,102 @@
                            @~a{no ctc level configured for mod @;
                                @(syntax-source stx), @;
                                defaulting to none})
-                          'none))))
+                          'none)))
 
+  (define-syntax-class ctc-map-clause
+    #:attributes [level ctc]
+    (pattern [level:id ctc:expr])
+    (pattern (level:id ctc:expr)))
+
+  (define-syntax-class ctc-map
+    #:attributes [raw-hash]
+    (pattern {clause:ctc-map-clause ...}
+             #:attr raw-hash (hash-set (for/hash ([lvl (in-list (attribute clause.level))]
+                                                  [ctc (in-list (attribute clause.ctc))])
+                                         (values (syntax->datum lvl) ctc))
+                                       'none #'any/c))
+    (pattern (clause:ctc-map-clause ...)
+             #:attr raw-hash (hash-set (for/hash ([lvl (in-list (attribute clause.level))]
+                                                  [ctc (in-list (attribute clause.ctc))])
+                                         (values (syntax->datum lvl) ctc))
+                                       'none #'any/c)))
+
+  (define-syntax-class struct-field-clause
+    #:attributes [field raw-hash]
+    (pattern [field:id cmap:ctc-map]
+             #:attr raw-hash (attribute cmap.raw-hash))
+    (pattern (field:id cmap:ctc-map)
+             #:attr raw-hash (attribute cmap.raw-hash)))
+
+  (define-syntax-class provision-spec
+    #:attributes [export-builder lowered-maps-syntax]
+    ;; Normal values or functions
+    (pattern [name:id cmap:ctc-map]
+             #:attr export-builder
+             (λ (level) #`(provide (contract-out [name #,(hash-ref (attribute cmap.raw-hash) level)])))
+             #:attr lowered-maps-syntax
+             (λ (ctx) (list #`'name ((lower-ctc-map ctx) (attribute cmap.raw-hash)))))
+    (pattern (name:id cmap:ctc-map)
+             #:attr export-builder
+             (λ (level) #`(provide (contract-out [name #,(hash-ref (attribute cmap.raw-hash) level)])))
+             #:attr lowered-maps-syntax
+             (λ (ctx) (list #`'name ((lower-ctc-map ctx) (attribute cmap.raw-hash)))))
+  
+    ;; Struct definitions
+    (pattern [struct struct-id:id (fields:struct-field-clause ...)]
+             #:attr export-builder
+             (λ (level)
+               (if (eq? level 'none)
+                   #`(provide (struct-out struct-id))
+                   #`(provide (contract-out [struct struct-id (#,@(for/list ([f-hash (in-list (attribute fields.raw-hash))])
+                                                                    (hash-ref f-hash level)))]))))
+             #:attr lowered-maps-syntax
+             (λ (ctx)
+               (append* 
+                (for/list ([f-id (in-list (attribute fields.field))]
+                           [f-hash (in-list (attribute fields.raw-hash))])
+                  (define accessor-name (format-id ctx "~a-~a" #'struct-id f-id))
+                  (list #`'#,accessor-name ((lower-ctc-map ctx) f-hash))))))
+    (pattern (struct struct-id:id (fields:struct-field-clause ...))
+             #:attr export-builder
+             (λ (level)
+               (if (eq? level 'none)
+                   #`(provide (struct-out struct-id))
+                   #`(provide (contract-out [struct struct-id (#,@(for/list ([f-hash (in-list (attribute fields.raw-hash))])
+                                                                    (hash-ref f-hash level)))]))))
+             #:attr lowered-maps-syntax
+             (λ (ctx)
+               (append* 
+                (for/list ([f-id (in-list (attribute fields.field))]
+                           [f-hash (in-list (attribute fields.raw-hash))])
+                  (define accessor-name (format-id ctx "~a-~a" #'struct-id f-id))
+                  (list #`'#,accessor-name ((lower-ctc-map ctx) f-hash)))))))) ; Exactly 8 closing parens
+
+;; --- TRANSFORMERS ---
 (define-syntax (provide/configurable-contract stx)
   (syntax-parse stx
-    [(_ [name:id cmap:ctc-map] ...)
+    [(_ spec:provision-spec ...)
      #:do [(define current-level (contract-level-for-expansion-context-of this-syntax))
            (define filename (syntax-source stx))
            (define first-provide-in-this-module? (not (set-member? files-with-provide-configurable filename)))
            (when first-provide-in-this-module?
              (set-add! files-with-provide-configurable filename))]
-     #:with [ctc ...] (for/list ([m (in-list (attribute cmap.map))])
-                        (hash-ref m current-level))
-     #:with [ctc-map-stx ...] (map (lower-ctc-map #'here) (attribute cmap.map))
+     
+     #:with (compiled-export ...) (for/list ([builder (in-list (attribute spec.export-builder))])
+                                    (builder current-level))
+     
+     #:with [flattened-map-entries ...] (append* (for/list ([lower-func (in-list (attribute spec.lowered-maps-syntax))])
+                                                    (lower-func #'here)))
      #:with syntax-for-contract-maps-id (datum->syntax this-syntax 'contract-maps this-syntax this-syntax)
      #:with [maybe-define/provide-contract-maps ...] (if first-provide-in-this-module?
                                                           #'{(provide syntax-for-contract-maps-id)
                                                              (define syntax-for-contract-maps-id (make-hash))}
                                                           #'{})
      #'(begin
-         (provide (contract-out [name ctc] ...))
+         compiled-export ...
          (module+ syntax-for-contract-maps-id
            maybe-define/provide-contract-maps ...
-           (hash-set*! syntax-for-contract-maps-id {~@ 'name ctc-map-stx} ...)))]))
+           (hash-set*! syntax-for-contract-maps-id flattened-map-entries ...)))]))
 
 (define-simple-macro (require/configurable-contract mod:str name:id ...)
   #:do [(define current-level (contract-level-for-expansion-context-of this-syntax))]
