@@ -33,17 +33,11 @@
 
   (define-syntax-class ctc-map-clause
     #:attributes [level ctc]
-    (pattern [level:id ctc:expr])
-    (pattern (level:id ctc:expr)))
+    (pattern [level:id ctc:expr]))
 
   (define-syntax-class ctc-map
     #:attributes [raw-hash]
     (pattern {clause:ctc-map-clause ...}
-             #:attr raw-hash (hash-set (for/hash ([lvl (in-list (attribute clause.level))]
-                                                  [ctc (in-list (attribute clause.ctc))])
-                                         (values (syntax->datum lvl) ctc))
-                                       'none #'any/c))
-    (pattern (clause:ctc-map-clause ...)
              #:attr raw-hash (hash-set (for/hash ([lvl (in-list (attribute clause.level))]
                                                   [ctc (in-list (attribute clause.ctc))])
                                          (values (syntax->datum lvl) ctc))
@@ -52,19 +46,12 @@
   (define-syntax-class struct-field-clause
     #:attributes [field raw-hash]
     (pattern [field:id cmap:ctc-map]
-             #:attr raw-hash (attribute cmap.raw-hash))
-    (pattern (field:id cmap:ctc-map)
              #:attr raw-hash (attribute cmap.raw-hash)))
 
   (define-syntax-class provision-spec
     #:attributes [export-builder lowered-maps-syntax]
     ;; Normal values or functions
     (pattern [name:id cmap:ctc-map]
-             #:attr export-builder
-             (λ (level) #`(provide (contract-out [name #,(hash-ref (attribute cmap.raw-hash) level)])))
-             #:attr lowered-maps-syntax
-             (λ (ctx) (list #`'name ((lower-ctc-map ctx) (attribute cmap.raw-hash)))))
-    (pattern (name:id cmap:ctc-map)
              #:attr export-builder
              (λ (level) #`(provide (contract-out [name #,(hash-ref (attribute cmap.raw-hash) level)])))
              #:attr lowered-maps-syntax
@@ -84,21 +71,7 @@
                 (for/list ([f-id (in-list (attribute fields.field))]
                            [f-hash (in-list (attribute fields.raw-hash))])
                   (define accessor-name (format-id ctx "~a-~a" #'struct-id f-id))
-                  (list #`'#,accessor-name ((lower-ctc-map ctx) f-hash))))))
-    (pattern (struct struct-id:id (fields:struct-field-clause ...))
-             #:attr export-builder
-             (λ (level)
-               (if (eq? level 'none)
-                   #`(provide (struct-out struct-id))
-                   #`(provide (contract-out [struct struct-id (#,@(for/list ([f-hash (in-list (attribute fields.raw-hash))])
-                                                                    (hash-ref f-hash level)))]))))
-             #:attr lowered-maps-syntax
-             (λ (ctx)
-               (append* 
-                (for/list ([f-id (in-list (attribute fields.field))]
-                           [f-hash (in-list (attribute fields.raw-hash))])
-                  (define accessor-name (format-id ctx "~a-~a" #'struct-id f-id))
-                  (list #`'#,accessor-name ((lower-ctc-map ctx) f-hash)))))))) ; Exactly 8 closing parens
+                  (list #`'#,accessor-name ((lower-ctc-map ctx) f-hash))))))))
 
 ;; --- TRANSFORMERS ---
 (define-syntax (provide/configurable-contract stx)
