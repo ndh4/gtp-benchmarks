@@ -2,22 +2,58 @@
 
 (require "../../../ctcs/configurable.rkt" "../../../ctcs/precision-config.rkt")
 
-(define balanced-account/c
-  (and account/c
-       (flat-named-contract
-        "current balance equals sum of transactions"
-        (λ (a)
-          (=
-           (transactions->balance (account-history a))
-           (account-balance a))))))
+(require (only-in "date.rkt" my-date/c current-seconds/maybe-fake))
 
-(provide account-reader account-writer)
+(require (only-in
+          "data.rkt"
+          account/c
+          account?
+          account
+          account-name
+          account-history
+          account-balance
+          account-recents
+          account-balance-date
+          account-check-no
+          amount/c
+          string-amount/c
+          amount>
+          dw/c
+          dw
+          dw-comment
+          dw-date
+          dw-amount))
+
+(require (only-in "date.rkt" my-date?))
+
+(require (only-in
+          "data.rkt"
+          transactions->balance
+          amount?
+          amount->decimal-string
+          align))
+
+(define/ctc-helper
+ balanced-account/c
+ (and account/c
+      (flat-named-contract
+       "current balance equals sum of transactions"
+       (λ (a)
+         (=
+          (transactions->balance (account-history a))
+          (account-balance a))))))
+
+(define/ctc-helper
+ raw-dw/c
+ (list/c string? my-date/c (or/c amount/c string-amount/c)))
+
+(define/ctc-helper
+ raw-dw/tc
+ (list/c string? my-date/c (or/c amount/c string?)))
+
+(provide account-reader account-writer A->account list*->dw list->dw)
 
 (module+ examples (provide (all-defined-out)))
-
-(require "date.rkt")
-
-(require "data.rkt")
 
 (module+
  examples
@@ -78,45 +114,76 @@
 
 (define/contract
  (account-reader)
- (configurable-ctc (types (-> account/c)) (max (-> balanced-account/c)))
+ (configurable-ctc
+  (types (-> any/c))
+  (max
+   (->i
+    ()
+    #:pre
+    ()
+    (not (eof-object? (peek-char (current-input-port))))
+    (_ any/c))))
  (A->account (read) (read)))
 
-(define (A->account x last-check#)
-  (parameterize
-   ((read-decimal-as-inexact #f))
-   (match
-    x
-    ((list
-      (? string? name)
-      (app list*->dw recents)
-      (amount> balance)
-      (? my-date? date)
-      (app list*->dw history))
-     (define expected-balance (transactions->balance history))
-     (unless (= expected-balance balance)
-       (error
-        'account-reader
-        "~a history does not add up to balance, found ~a vs ~a (delta = ~a)"
-        name
-        (exact->inexact balance)
-        (exact->inexact expected-balance)
-        (exact->inexact (- balance expected-balance))))
-     (account name recents balance date history last-check#))
-    (_
-     (error 'A->account "A expression expected, found ~a ~a" x last-check#)))))
-
-(define (list*->dw x)
-  (unless (list? x) (error 'list*->dw "[listof DWList] expected, found ~a" x))
-  (map list->dw x))
-
-(define (list->dw xy)
+(define/contract
+ (A->account x last-check#)
+ (configurable-ctc
+  (types
+   (->
+    (list/c string? (listof raw-dw/tc) string? my-date/c (listof raw-dw/tc))
+    natural-number/c
+    account/c))
+  (max
+   (->
+    (list/c
+     string?
+     (listof raw-dw/c)
+     string-amount/c
+     my-date/c
+     (listof raw-dw/c))
+    natural-number/c
+    account/c)))
+ (parameterize
+  ((read-decimal-as-inexact #f))
   (match
-   xy
-   ((list (? string? comment) (? my-date? date) (? amount? amount))
-    (dw comment date amount))
-   ((list (? string? comment) (? my-date? date) (amount> amount))
-    (dw comment date amount))
-   (_ (error 'list->dw "DWList expected, found ~a" xy))))
+   x
+   ((list
+     (? string? name)
+     (app list*->dw recents)
+     (amount> balance)
+     (? my-date? date)
+     (app list*->dw history))
+    (define expected-balance (transactions->balance history))
+    (unless (= expected-balance balance)
+      (error
+       'account-reader
+       "~a history does not add up to balance, found ~a vs ~a (delta = ~a)"
+       name
+       (exact->inexact balance)
+       (exact->inexact expected-balance)
+       (exact->inexact (- balance expected-balance))))
+    (account name recents balance date history last-check#))
+   (_
+    (error 'A->account "A expression expected, found ~a ~a" x last-check#)))))
+
+(define/contract
+ (list*->dw x)
+ (configurable-ctc
+  (types (-> (listof raw-dw/tc) (listof dw/c)))
+  (max (-> (listof raw-dw/c) (listof dw/c))))
+ (unless (list? x) (error 'list*->dw "[listof DWList] expected, found ~a" x))
+ (map list->dw x))
+
+(define/contract
+ (list->dw xy)
+ (configurable-ctc (types (-> raw-dw/tc dw/c)) (max (-> raw-dw/c dw/c)))
+ (match
+  xy
+  ((list (? string? comment) (? my-date? date) (? amount? amount))
+   (dw comment date amount))
+  ((list (? string? comment) (? my-date? date) (amount> amount))
+   (dw comment date amount))
+  (_ (error 'list->dw "DWList expected, found ~a" xy))))
 
 (module+
  test

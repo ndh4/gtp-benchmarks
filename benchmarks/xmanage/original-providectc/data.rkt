@@ -4,30 +4,20 @@
          "../../../ctcs/precision-config.rkt")
 
 (define/ctc-helper FIXME/c any/c)
+(require (only-in "date.rkt" my-date/c))
 
 ;; the basic data representation of an account
 
-(define string-amount/c
+(define/ctc-helper string-amount/c
   (and/c string? (flat-named-contract 'amount (λ (x) (regexp-match #px"\\d*\\.\\d\\d" x)))))
 
 (define/ctc-helper amount/c (and/c rational? exact?))
 
+(provide (struct-out account)
+         (struct-out dw))
+
+
 (provide/configurable-contract
-
-  (struct account
-    ([name         ([types string?] [max string?])]
-     [recents      ([types (listof dw/c)]
-                    [max (listof dw/c)])]
-     [balance      ([types amount/c] [max amount/c])]
-     [balance-date ([types my-date/c] [max my-date/c])]
-     [history      ([types (listof dw/c)]
-                    [max (listof dw/c)])]
-     [check-no     ([types natural?] [max natural?])]))
-
-  (struct dw
-    ([comment ([types string?] [max string?])]
-     [date    ([types my-date/c] [max my-date/c])]
-     [amount  ([types amount/c] [max amount/c])]))
   
   [transactions->balance
    ([types (-> (listof dw/c) amount/c)]
@@ -51,7 +41,7 @@
 
   [amount->decimal-string
    ([max FIXME/c]
-    [types (-> rational? string-amount/c)])]
+    [types (-> amount/c string-amount/c)])]
 
   [align
    ([types (-> string? string?)]
@@ -59,17 +49,19 @@
              (and/c string? (compose (=/c COMMENT-MAX) string-length)))])])
 
 (provide
- ;; match expander
+ ;; match expanders
  amount>
-
  argv-amount>
- account/c)
+ amount/c
+ string-amount/c
+ account/c
+ dw/c)
 
 (module+ examples
   (provide checking0))
 
 ;; -------------------------------------------------------------------------------------------------
-(require "date.rkt")
+(require/configurable-contract "date.rkt" today)
 
 (module+ test
   (require (submod ".."))
@@ -154,8 +146,8 @@
 #; {type Account = (account String [Listof T] Rational Date [Listof T] Natural)}
 
 (define/ctc-helper account/c
-  (configurable-ctc [types (struct/c account string? (listof dw/c) amount/c my-date/c (listof dw/c) natural?)]
-                    [max   (struct/c account string? (listof dw/c) amount/c my-date/c (listof dw/c) natural?)]))
+  (configurable-ctc [types (struct/c account string? (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c)]
+                    [max   (struct/c account string? (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c)]))
 
 
 (module+ examples

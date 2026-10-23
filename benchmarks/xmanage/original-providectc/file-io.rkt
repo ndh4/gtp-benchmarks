@@ -3,9 +3,19 @@
 (require "../../../ctcs/configurable.rkt"
          "../../../ctcs/precision-config.rkt")
 
+(require (only-in "date.rkt" my-date/c current-seconds/maybe-fake))
+(require (only-in "data.rkt" account/c account? account account-name account-history account-balance account-recents account-balance-date account-check-no
+                             amount/c string-amount/c amount>
+                             dw/c dw dw-comment dw-date dw-amount))
+
+(require/configurable-contract "date.rkt" my-date?)
+(require/configurable-contract "data.rkt" transactions->balance
+       amount? amount->decimal-string
+       align)
+
 ;; i/o format and functions for reading/writing accounts
 
-(define balanced-account/c
+(define/ctc-helper balanced-account/c
   (and account/c
        (flat-named-contract
         "current balance equals sum of transactions"
@@ -13,21 +23,39 @@
           (= (transactions->balance (account-history a))
              (account-balance a))))))
 
+(define/ctc-helper raw-dw/c
+  (list/c string? my-date/c (or/c amount/c string-amount/c)))
+
+(define/ctc-helper raw-dw/tc
+  (list/c string? my-date/c (or/c amount/c string?)))
+
 (provide/configurable-contract
   [account-reader
-   ([types (-> account/c)]
-    [max (-> balanced-account/c)])]
+   ([types (-> any/c)]
+    [max (->i () #:pre () (not (eof-object? (peek-char (current-input-port))))
+              [_ any/c])])]
   
   [account-writer
    ([types (-> account/c void?)]
-    [max (-> balanced-account/c void?)])])
+    [max (-> balanced-account/c void?)])]
+
+  [A->account
+   ([types (-> (list/c string? (listof raw-dw/tc) string? my-date/c (listof raw-dw/tc)) natural-number/c account/c)]
+    [max   (-> (list/c string? (listof raw-dw/c) string-amount/c my-date/c (listof raw-dw/c)) natural-number/c account/c)])]
+
+  [list*->dw
+   ([types (-> (listof raw-dw/tc) (listof dw/c))]
+    [max   (-> (listof raw-dw/c) (listof dw/c))])]
+
+  [list->dw
+   ([types (-> raw-dw/tc dw/c)]
+    [max   (-> raw-dw/c dw/c)])])
 
 (module+ examples
   (provide (all-defined-out)))
 
 ;; -------------------------------------------------------------------------------------------------
-(require "date.rkt")
-(require "data.rkt")
+
 
 (module+ examples
   (require (submod "data.rkt" examples))
@@ -117,8 +145,7 @@
 ;; EFFECT may raise exceptions due to ill-formed file content
 (define (account-reader)
   (A->account (read) (read)))
- 
-#; {S-expression S-expression -> Account}
+
 (define (A->account x last-check#)
   (parameterize ([read-decimal-as-inexact #false])
     (match x
@@ -134,16 +161,16 @@
                 (exact->inexact balance)
                 (exact->inexact expected-balance)
                 (exact->inexact (- balance expected-balance))))
-       (account name recents  balance date history last-check#)]
+       (account name recents balance date history last-check#)]
       [_ (error 'A->account "A expression expected, found ~a ~a" x last-check#)])))
 
-#; {S-expression -> [Listof DW]}
+#; {(Listof (List String Date (U AmountAsString Amount))) -> [Listof DW]}
 (define (list*->dw x)
   (unless (list? x)
     (error 'list*->dw "[listof DWList] expected, found ~a" x))
   (map list->dw x))
 
-#; {(List String Date String) -> DW}
+#; {(List String Date (U AmountAsString Amount)) -> DW}
 (define (list->dw xy)
   (match xy
     [(list (? string? comment) (? my-date? date) (? amount? amount))

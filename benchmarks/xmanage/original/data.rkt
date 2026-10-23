@@ -4,26 +4,29 @@
 
 (define/ctc-helper FIXME/c any/c)
 
-(define string-amount/c
-  (and/c
-   string?
-   (flat-named-contract 'amount (λ (x) (regexp-match #px"\\d*\\.\\d\\d" x)))))
+(require (only-in "date.rkt" my-date/c))
+
+(define/ctc-helper
+ string-amount/c
+ (and/c
+  string?
+  (flat-named-contract 'amount (λ (x) (regexp-match #px"\\d*\\.\\d\\d" x)))))
 
 (define/ctc-helper amount/c (and/c rational? exact?))
 
-(provide (struct-out account)
-         (struct-out dw)
-         transactions->balance
+(provide (struct-out account) (struct-out dw))
+
+(provide transactions->balance
          transactions->running-balance
          amount?
          amount->decimal-string
          align)
 
-(provide amount> argv-amount> account/c)
+(provide amount> argv-amount> amount/c string-amount/c account/c dw/c)
 
 (module+ examples (provide checking0))
 
-(require "date.rkt")
+(require (only-in "date.rkt" today))
 
 (module+
  test
@@ -64,7 +67,7 @@
 
 (define/contract
  (amount->decimal-string a)
- (configurable-ctc (max FIXME/c) (types (-> rational? string-amount/c)))
+ (configurable-ctc (max FIXME/c) (types (-> amount/c string-amount/c)))
  (~r a #:precision '(= 2)))
 
 (module+
@@ -74,13 +77,7 @@
  (check-equal? (amount->decimal-string 43.1) "43.10")
  (check-equal? (amount->decimal-string 43.0) "43.00"))
 
-(struct/contract
- dw
- ((comment (configurable-ctc (types string?) (max string?)))
-  (date (configurable-ctc (types my-date/c) (max my-date/c)))
-  (amount (configurable-ctc (types amount/c) (max amount/c))))
- #:transparent
- #:mutable)
+(struct dw (comment date amount) #:transparent #:mutable)
 
 (define/ctc-helper
  dw/c
@@ -88,14 +85,9 @@
   (types (struct/c dw string? my-date/c amount/c))
   (max (struct/c dw string? my-date/c amount/c))))
 
-(struct/contract
+(struct
  account
- ((name (configurable-ctc (types string?) (max string?)))
-  (recents (configurable-ctc (types (listof dw/c)) (max (listof dw/c))))
-  (balance (configurable-ctc (types amount/c) (max amount/c)))
-  (balance-date (configurable-ctc (types my-date/c) (max my-date/c)))
-  (history (configurable-ctc (types (listof dw/c)) (max (listof dw/c))))
-  (check-no (configurable-ctc (types natural?) (max natural?))))
+ (name recents balance balance-date history check-no)
  #:transparent
  #:mutable)
 
@@ -110,7 +102,7 @@
     amount/c
     my-date/c
     (listof dw/c)
-    natural?))
+    natural-number/c))
   (max
    (struct/c
     account
@@ -119,7 +111,7 @@
     amount/c
     my-date/c
     (listof dw/c)
-    natural?))))
+    natural-number/c))))
 
 (module+
  examples
