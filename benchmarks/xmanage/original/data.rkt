@@ -5,14 +5,24 @@
 (require (only-in "date.rkt" my-date/c))
 
 (define/ctc-helper
+ (generate-amount-string fuel)
+ (define max-int (expt 10 fuel))
+ (thunk
+  (define int-part
+    (if (zero? (random 2)) "" (number->string (random max-int))))
+  (define dec-part (~r (random 100) #:min-width 2 #:pad-string "0"))
+  (string-append int-part "." dec-part)))
+
+(define/ctc-helper
  string-amount/c
- (and/c
-  string?
-  (flat-named-contract 'amount (λ (x) (regexp-match #px"\\d*\\.\\d\\d" x)))))
+ (flat-named-contract
+  'string-amount/c
+  (and/c string? #px"\\d*\\.\\d\\d")
+  generate-amount-string))
 
 (define/ctc-helper amount/c (and/c rational? exact?))
 
-(provide (struct-out account) (struct-out dw))
+(provide (struct-out account) (struct-out dw) string->number/2)
 
 (provide transactions->balance
          transactions->running-balance
@@ -53,7 +63,7 @@
 (define (string->number/2 amount)
   (when (regexp-match #px"\\.\\d\\d\\d" (~a amount))
     (eprintf "bad amount ~a\n" amount))
-  (string->number amount))
+  (parameterize ((read-decimal-as-inexact #f)) (string->number amount)))
 
 (module+
  test

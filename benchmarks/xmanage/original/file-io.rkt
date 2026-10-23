@@ -31,17 +31,8 @@
           transactions->balance
           amount?
           amount->decimal-string
+          string->number/2
           align))
-
-(define/ctc-helper
- balanced-account/c
- (and account/c
-      (flat-named-contract
-       "current balance equals sum of transactions"
-       (λ (a)
-         (=
-          (transactions->balance (account-history a))
-          (account-balance a))))))
 
 (define/ctc-helper
  raw-dw/c
@@ -50,6 +41,31 @@
 (define/ctc-helper
  raw-dw/tc
  (list/c string? my-date/c (or/c amount/c string?)))
+
+(define/ctc-helper
+ balanced-account/c
+ (and/c
+  account/c
+  (flat-named-contract
+   "current balance equals sum of transactions"
+   (λ (a)
+     (= (transactions->balance (account-history a)) (account-balance a))))))
+
+(define/ctc-helper
+ balanced-A/c
+ (and/c
+  (list/c
+   string?
+   (listof raw-dw/c)
+   string-amount/c
+   my-date/c
+   (listof raw-dw/c))
+  (flat-named-contract
+   "current balance equals sum of transactions"
+   (λ (a)
+     (=
+      (transactions->balance (list*->dw (fifth a)))
+      (string->number/2 (third a)))))))
 
 (provide account-reader account-writer A->account list*->dw list->dw)
 
@@ -133,16 +149,7 @@
     (list/c string? (listof raw-dw/tc) string? my-date/c (listof raw-dw/tc))
     natural-number/c
     account/c))
-  (max
-   (->
-    (list/c
-     string?
-     (listof raw-dw/c)
-     string-amount/c
-     my-date/c
-     (listof raw-dw/c))
-    natural-number/c
-    account/c)))
+  (max (-> balanced-A/c natural-number/c account/c)))
  (parameterize
   ((read-decimal-as-inexact #f))
   (match
