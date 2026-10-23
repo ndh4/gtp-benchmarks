@@ -2,8 +2,6 @@
 
 (require "../../../ctcs/configurable.rkt" "../../../ctcs/precision-config.rkt")
 
-(define/ctc-helper FIXME/c any/c)
-
 (require (only-in "date.rkt" my-date/c))
 
 (define/ctc-helper
@@ -36,7 +34,10 @@
 
 (define/contract
  (amount? x)
- (configurable-ctc (max FIXME/c) (types (-> any/c boolean?)))
+ (configurable-ctc
+  (max
+   (->i ((obj any/c)) (res (obj) ((flat-contract-predicate amount/c) obj))))
+  (types (-> any/c boolean?)))
  (and (rational? x) (exact? x)))
 
 (define-match-expander
@@ -67,7 +68,9 @@
 
 (define/contract
  (amount->decimal-string a)
- (configurable-ctc (max FIXME/c) (types (-> amount/c string-amount/c)))
+ (configurable-ctc
+  (max (-> amount/c string-amount/c))
+  (types (-> amount/c string-amount/c)))
  (~r a #:precision '(= 2)))
 
 (module+

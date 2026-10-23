@@ -3,7 +3,6 @@
 (require "../../../ctcs/configurable.rkt"
          "../../../ctcs/precision-config.rkt")
 
-(define/ctc-helper FIXME/c any/c)
 (require (only-in "date.rkt" my-date/c))
 
 ;; the basic data representation of an account
@@ -36,11 +35,12 @@
                        (λ (r) (equal? dws (reverse (map first r)))))))])]
 
   [amount?
-   ([max FIXME/c]
+   ([max (->i ([obj any/c])
+               [res (obj) ((flat-contract-predicate amount/c) obj)])]
     [types (-> any/c boolean?)])]
 
   [amount->decimal-string
-   ([max FIXME/c]
+   ([max (-> amount/c string-amount/c)]
     [types (-> amount/c string-amount/c)])]
 
   [align
