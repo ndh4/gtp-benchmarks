@@ -4,17 +4,54 @@
          "../../../ctcs/precision-config.rkt"
          "../../../ctcs/common.rkt")
 
-(define/ctc-helper (html-element/c name) (cons/c name list?))
+(define/ctc-helper attribute? (list/c symbol? string?))
+
+(define/ctc-helper sa? (list/c (listof attribute?) string?))
+
+(define/ctc-helper
+ my-xexpr/c
+ (flat-named-contract
+  'my-xexpr/c
+  (flat-rec-contract
+   my-xexpr
+   (or/c
+    string?
+    symbol?
+    (cons/c symbol? (listof my-xexpr))
+    (cons/c symbol? (cons/c (listof attribute?) (listof my-xexpr)))))
+  (lambda (fuel)
+    (define (random-sym)
+      (get-random-element '(tr th td html head table img left align bgcolor)))
+    (define (random-str)
+      (get-random-element
+       '("text" "pink" "left" "background-color:lightblue" "title")))
+    (define (generate f)
+      (if (<= f 0)
+        (if (zero? (random 2)) (random-str) (random-sym))
+        (case (random 4)
+          ((0) (random-str))
+          ((1) (random-sym))
+          ((2)
+           (cons
+            (random-sym)
+            (build-list (random 3) (lambda (_) (generate (sub1 f))))))
+          ((3)
+           (cons
+            (random-sym)
+            (cons
+             `((,(random-sym) ,(random-str)))
+             (build-list (random 2) (lambda (_) (generate (sub1 f))))))))))
+    (lambda () (generate fuel)))))
+
+(define/ctc-helper
+ (html-element/c name)
+ (and/c (cons/c name list?) my-xexpr/c))
 
 (define/ctc-helper tr? (html-element/c 'tr))
 
 (define/ctc-helper th? (html-element/c 'th))
 
 (define/ctc-helper td? (html-element/c 'td))
-
-(define/ctc-helper attribute? (list/c symbol? string?))
-
-(define/ctc-helper sa? (list/c (listof attribute?) string?))
 
 (define/ctc-helper
  purpose-to-html-args/c*
@@ -50,8 +87,6 @@
 
 (require "data.rkt")
 
-(require (only-in xml xexpr? xexpr->xml display-xml/content))
-
 (module+
  test
  (require (submod ".."))
@@ -64,7 +99,9 @@
 
 (define/contract
  (account-to-html a)
- (configurable-ctc (types (-> account/c xexpr?)) (max (-> account/c xexpr?)))
+ (configurable-ctc
+  (types (-> account/c my-xexpr/c))
+  (max (-> account/c my-xexpr/c)))
  (define title (~a COMPLETE (account-name a)))
  (define date (date-to-html (account-balance-date a)))
  (define b (account-balance a))
@@ -84,8 +121,8 @@
 (define/contract
  (assemble-page title date b recent:xexpr history:xexpr)
  (configurable-ctc
-  (types (-> string? string? string? xexpr? xexpr? xexpr?))
-  (max (-> string? string? string? xexpr? xexpr? xexpr?)))
+  (types (-> string? string? string? (listof tr?) (listof tr?) my-xexpr/c))
+  (max (-> string? string? string? (listof tr?) (listof tr?) my-xexpr/c)))
  `(html
    (head (title ,title))
    (body

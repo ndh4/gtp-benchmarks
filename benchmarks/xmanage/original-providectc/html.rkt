@@ -6,14 +6,43 @@
 
 ;; turn an account into an HTML page
 
+(define/ctc-helper attribute? (list/c symbol? string?))
+(define/ctc-helper sa? (list/c (listof attribute?) string?))
+
+(define/ctc-helper my-xexpr/c
+  (flat-named-contract
+    'my-xexpr/c
+    (flat-rec-contract
+     my-xexpr
+     (or/c string?
+           symbol?
+           (cons/c symbol? (listof my-xexpr))
+           (cons/c symbol?
+                   (cons/c (listof attribute?)
+                           (listof my-xexpr)))))
+    (lambda (fuel)
+      (define (random-sym)
+        (get-random-element '(tr th td html head table img left align bgcolor)))
+      (define (random-str)
+        (get-random-element '("text" "pink" "left" "background-color:lightblue" "title")))
+
+      (define (generate f)
+        (if (<= f 0)
+            (if (zero? (random 2)) (random-str) (random-sym))
+            (case (random 4)
+              [(0) (random-str)]
+              [(1) (random-sym)]
+              [(2) (cons (random-sym) (build-list (random 3) (lambda (_) (generate (sub1 f)))))]
+              [(3) (cons (random-sym) (cons `((,(random-sym) ,(random-str))) (build-list (random 2) (lambda (_) (generate (sub1 f))))))])))
+      (lambda ()
+        (generate fuel)))))
+
 (define/ctc-helper (html-element/c name)
-  (cons/c name list?))
+  (and/c (cons/c name list?) my-xexpr/c))
 
 (define/ctc-helper tr? (html-element/c 'tr))
 (define/ctc-helper th? (html-element/c 'th))
 (define/ctc-helper td? (html-element/c 'td))
-(define/ctc-helper attribute? (list/c symbol? string?))
-(define/ctc-helper sa? (list/c (listof attribute?) string?))
 
 (define/ctc-helper purpose-to-html-args/c*
   (make-dependent-contract (or/c #f (list/c string? string?))
@@ -26,12 +55,12 @@
 
 (provide/configurable-contract
   [account-to-html
-    ([types (-> account/c xexpr?)]
-     [max   (-> account/c xexpr?)])]
+    ([types (-> account/c my-xexpr/c)]
+     [max   (-> account/c my-xexpr/c)])]
 
   [assemble-page
-    ([types (-> string? string? string? xexpr? xexpr? xexpr?)]
-     [max   (-> string? string? string? xexpr? xexpr? xexpr?)])]
+    ([types (-> string? string? string? (listof tr?) (listof tr?) my-xexpr/c)]
+     [max   (-> string? string? string? (listof tr?) (listof tr?) my-xexpr/c)])]
 
   [assemble-separators
     ([types (-> string? string? (list/c tr? tr?))]
@@ -79,7 +108,6 @@
 ;; ---------------------------------------------------------------------------------------------------
 (require "date.rkt")
 (require "data.rkt")
-(require (only-in xml xexpr? xexpr->xml display-xml/content))
 
 (module+ test
   (require (submod ".."))
@@ -120,7 +148,7 @@
   (assemble-page title date (amount->decimal-string b) recent:xexpr history:xexpr))
 
 ;; ---------------------------------------------------------------------------------------------------
-#; {String String String Xexpr Xexpr -> Xexpr}
+#; {String String String [Listof TR] [Listof TR] -> Xexpr}
 (define (assemble-page title date b recent:xexpr history:xexpr)
   `(html
     (head
