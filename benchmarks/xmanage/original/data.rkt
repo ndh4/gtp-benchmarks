@@ -1,6 +1,8 @@
 #lang racket
 
-(require "../../../ctcs/configurable.rkt" "../../../ctcs/precision-config.rkt")
+(require "../../../ctcs/configurable.rkt"
+         "../../../ctcs/precision-config.rkt"
+         "../../../ctcs/common.rkt")
 
 (require (only-in "date.rkt" my-date/c))
 
@@ -96,7 +98,7 @@
  dw/c
  (configurable-ctc
   (types (struct/c dw string? my-date/c amount/c))
-  (max (struct/c dw string? my-date/c amount/c))))
+  (max (struct/c dw (min-len-string/c 1) my-date/c amount/c))))
 
 (struct
  account

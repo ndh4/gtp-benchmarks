@@ -1,7 +1,8 @@
 #lang racket
 
 (require "../../../ctcs/configurable.rkt"
-         "../../../ctcs/precision-config.rkt")
+         "../../../ctcs/precision-config.rkt"
+         "../../../ctcs/common.rkt")
 
 (require (only-in "date.rkt" my-date/c))
 
@@ -152,7 +153,7 @@
 
 (define/ctc-helper dw/c
   (configurable-ctc [types (struct/c dw string? my-date/c amount/c)]
-                    [max   (struct/c dw string? my-date/c amount/c)]))
+                    [max   (struct/c dw (min-len-string/c 1) my-date/c amount/c)]))
 
 (struct account (name recents balance balance-date history check-no) #:transparent #:mutable)
 #; {type Account = (account String [Listof T] Rational Date [Listof T] Natural)}

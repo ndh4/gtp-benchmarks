@@ -1,16 +1,80 @@
 #lang racket
 
 (require "../../../ctcs/configurable.rkt"
-         "../../../ctcs/precision-config.rkt")
+         "../../../ctcs/precision-config.rkt"
+         "../../../ctcs/common.rkt")
 
-(define/ctc-helper FIXME/c any/c)
+;; turn an account into an HTML page
 
-;; turn an account into an HTML page 
+(define/ctc-helper (html-element/c name)
+  (cons/c name list?))
+
+(define/ctc-helper tr? (html-element/c 'tr))
+(define/ctc-helper th? (html-element/c 'th))
+(define/ctc-helper td? (html-element/c 'td))
+(define/ctc-helper attribute? (list/c symbol? string?))
+(define/ctc-helper sa? (list/c (listof attribute?) string?))
+
+(define/ctc-helper purpose-to-html-args/c*
+  (make-dependent-contract (or/c #f (list/c string? string?))
+                           (lambda (check?)
+                             (min-len-string/c (if check? (add1 (string-length (second check?))) 1)))
+                           #:none-val 'none))
+(define/ctc-helper purpose-to-html-check?-ctc (first purpose-to-html-args/c*))
+(define/ctc-helper purpose-to-html-comment-ctc (second purpose-to-html-args/c*))
+(define/ctc-helper purpose-to-html-ctc-reset!? (third purpose-to-html-args/c*))
 
 (provide/configurable-contract
   [account-to-html
     ([types (-> account/c xexpr?)]
-     [max FIXME/c])])
+     [max   (-> account/c xexpr?)])]
+
+  [assemble-page
+    ([types (-> string? string? string? xexpr? xexpr? xexpr?)]
+     [max   (-> string? string? string? xexpr? xexpr? xexpr?)])]
+
+  [assemble-separators
+    ([types (-> string? string? (list/c tr? tr?))]
+     [max   (-> string? string? (list/c tr? tr?))])]
+
+  [headers
+    ([types (-> tr?)]
+     [max   (-> tr?)])]
+
+  [2-aligned-cells
+    ([types (-> string? string? (list/c th? th? th?))]
+     [max   (-> string? string? (list/c th? th? th?))])]
+
+  [transactions-to-html
+    ([types (-> (listof (list/c dw/c amount/c)) (listof tr?))]
+     [max   (-> (listof (list/c dw/c amount/c)) (listof tr?))])]
+
+  [auto-or-check-to-html
+    ([types (-> (or/c #f (list/c string? string?)) amount/c list?)]
+     [max   (-> (or/c #f (list/c string? string?)) amount/c (list/c (cons/c attribute? list?) string?))])]
+
+  [purpose-to-html
+    ([types (-> (or/c #f (list/c string? string?)) string? string?)]
+     [max   (->i ([check?  purpose-to-html-check?-ctc]
+                  [comment purpose-to-html-comment-ctc])
+                 [_ string?]
+                 #:post () (and (purpose-to-html-ctc-reset!?)))])]
+
+  [html-row
+    ([types (-> (listof attribute?) symbol? #:date sa? #:purpose sa? #:withdrawal sa? #:deposit sa? #:total sa? #:yes sa? #:check sa? tr?)]
+     [max   (-> (listof attribute?) symbol? #:date sa? #:purpose sa? #:withdrawal sa? #:deposit sa? #:total sa? #:yes sa? #:check sa? tr?)])]
+
+  [date-to-html
+    ([types (-> my-date/c string?)]
+     [max   (-> my-date/c string?)])]
+
+  [check-mark
+    ([types (list/c 'img (listof (list/c symbol? string?)))]
+     [max   (list/c 'img (listof (list/c symbol? string?)))])]
+
+  [make-td
+    ([types (-> (or/c 'left 'center 'right) (->* (any/c) (any/c) list?))]
+     [max   (-> (or/c 'left 'center 'right) (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?)))])])
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "date.rkt")
@@ -90,7 +154,7 @@
             #:yes        (td-center  ""              44)))
 
 ;; ---------------------------------------------------------------------------------------------------
-#; {Striing String -> [List TH TH TH]}
+#; {String String -> [List TH TH TH]}
 (define (2-aligned-cells word other)
   `[(th ((align "left")) ,word)
     (th ((align "left")) "   ")
@@ -118,7 +182,7 @@
               #:yes        (td-center (if (regexp-match "^\\*" comment) check-mark "")))))
 
 ;; ---------------------------------------------------------------------------------------------------
-#; {(U False [List String String] Amount -> [List [List TD-Attribute String]])}
+#; {(U False [List String String]) Amount -> [List [List TD-Attribute String]]}
 (define (auto-or-check-to-html check? amount)
   (td-right (if check? (second check?) (if (< amount 0) "auto" " "))))
 

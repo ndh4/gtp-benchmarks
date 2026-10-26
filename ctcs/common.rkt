@@ -240,14 +240,14 @@
    'action/c
    (lambda (x) (action) #t)))
 
-(define (make-dependent-contract ctc1 ctc2 [custom-second-gen #f])
+(define (make-dependent-contract ctc1 ctc2 [custom-second-gen #f] #:none-val [none-val #f])
   (define base-ctc (coerce-contract 'make-dependent-contract ctc1))
 
-  (define predicate-store (box #f))
-  (define generator-store (box #f))
+  (define predicate-store (box none-val))
+  (define generator-store (box none-val))
 
-  (define (reset-predicate-store! . _)
-    (set-box! predicate-store #f)
+  (define (reset-predicate-store!? . _)
+    (set-box! predicate-store none-val)
     #t)
 
   (define dependent-first-ctc
@@ -275,7 +275,7 @@
      (λ (blame)
        (λ (val neg-party)
          (match (unbox predicate-store)
-           [#f (raise-blame-error blame #:missing-party neg-party val
+           [(== none-val) (raise-blame-error blame #:missing-party neg-party val
                                   "dependent contract lifecycle out of order")]
            [stored-val
             (define dynamic-ctc2 (coerce-contract 'make-dependent-contract (ctc2 stored-val)))
@@ -285,10 +285,10 @@
      (λ (fuel)
        (λ ()
          (match (unbox generator-store)
-           [#f (error 'make-dependent-contract "generator lifecycle out of order")]
+           [(== none-val) (error 'make-dependent-contract "generator lifecycle out of order")]
            [stored-val
             ;; Clear the store state immediately
-            (set-box! generator-store #f)
+            (set-box! generator-store none-val)
             (cond
               ;; If a custom sampling macro/function is provided, bypass blind generation
               [custom-second-gen
@@ -297,7 +297,7 @@
                (define dynamic-ctc2 (coerce-contract 'make-dependent-contract (ctc2 stored-val)))
                (contract-random-generate dynamic-ctc2 fuel)])])))))
 
-  (list dependent-first-ctc dependent-second-ctc reset-predicate-store!))
+  (list dependent-first-ctc dependent-second-ctc reset-predicate-store!?))
 
 (define (contract-with-generator base-contract custom-gen-proc)
   (let ([ctc (coerce-contract 'contract-with-generator base-contract)])
@@ -365,3 +365,14 @@
          (define cols (add1 (random 5)))
          (build-vector rows (lambda (_)
                               (build-vector cols (lambda (_) (element-thunk))))))))))
+
+(define (min-len-string/c min-len)
+  (flat-named-contract
+   (string->symbol (format "(min-len-string/c ~a)" min-len))
+   (lambda (s) (and (string? s) (>= (string-length s) min-len)))
+   (lambda (fuel)
+     (define char-gen (contract-random-generate/choose char? fuel))
+     (thunk
+       (list->string
+         (for/list ([i (in-range (+ min-len (random 10)))])
+           (char-gen)))))))
