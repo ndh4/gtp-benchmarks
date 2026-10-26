@@ -30,12 +30,14 @@
         (with-handlers ([exn:fail? (lambda (e) (printf "[Reached error~n-------------~n~a]~n" (exn-message e)))])
           (void (make-module-evaluator wiretap-runner)))))))
 
-(for* ([contract-level contract-levels]
+
+
+(for ([contract-level contract-levels]
        [benchmark benchmarks])
   (printf "Running wiretap on \"~a\" with contract level \"~a\", ~as time limit, and ~aMB memory limit...~n"
            benchmark contract-level TIME_LIMIT_SECONDS MEMORY_LIMIT_MB)
   (run-wiretap-on-benchmark #:benchmark benchmark #:contract-level contract-level))
 
-#;(run-one-wiretap #:run-dir "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks/kcfa/wiretap-max"
-                 #:runner (string->path "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks/kcfa/wiretap-max/ai_TAP_explore.rkt")
-                 #:out-dir "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/wiretap-scratch-results")
+#;(run-one-wiretap #:run-dir "/Users/nhejduk/Research-Local/teco-parent/gtp-benchmarks/benchmarks/xmanage/wiretap-max"
+                 #:runner (string->path "/Users/nhejduk/Research-Local/teco-parent/gtp-benchmarks/benchmarks/xmanage/wiretap-max/data_TAP_transactions->balance.rkt")
+                 #:out-dir "/Users/nhejduk/Research-Local/teco-parent/gtp-benchmarks/wiretap-scratch-results")

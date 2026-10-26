@@ -7,7 +7,7 @@
          MEMORY_LIMIT_MB)
 
 (define path-to-bench-dirs
-  "/Users/nhejduk/Documents/Research-Cloud/teco-parent/gtp-benchmarks/benchmarks")
+  "/Users/nhejduk/Research-Local/teco-parent/gtp-benchmarks/benchmarks")
 
 (define benchmarks
   '(
@@ -17,11 +17,13 @@
 ;    "snake"
 ;    "kcfa"
 ;    "dungeon"
-    "forth"
+;    "forth"
+;    "abm_test"
+    "xmanage"
     )
   )
 
-(define contract-levels '(max types))
+(define contract-levels '(max #;types))
 
 (define TIME_LIMIT_SECONDS 300)
 (define MEMORY_LIMIT_MB 6000)

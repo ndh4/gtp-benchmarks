@@ -1,6 +1,7 @@
 #lang racket
 
-(require "params.rkt")
+(require "params.rkt"
+         "../../contracts-and-testing/bex/util/enumerate-random-tests-v2.rkt")
 
 (define (create-wiretap-files-whole-benchmark #:benchmark benchmark #:contract-level contract-level)
   (define base-dir (build-path path-to-bench-dirs benchmark))
@@ -28,14 +29,6 @@
              (pretty-write expr out)
              '())))))))
 
-(define (reader-loop #:in in #:initial-accum-val initial-accum-val #:on-expr on-expr)
-  (let loop ([accum initial-accum-val])
-    (define expr (read in))
-    (cond [(eof-object? expr)
-           accum]
-          [else
-           (loop (on-expr #:expr expr #:accum accum))])))
-
 (define (rw-hashlang-and-ctc-level #:in in #:out out #:ctc-level contract-level)
   (displayln (read-line in) out)
   (newline out)
@@ -46,25 +39,6 @@
   (define contracted-identifiers (find-contracted-identifiers in-file))
   (for ([identifier contracted-identifiers])
     (create-wiretap-file #:identifier identifier #:in-file in-file #:out-dir out-dir #:ctc-level contract-level)))
-
-(define (find-contracted-identifiers file)
-  (call-with-input-file file
-    (lambda (in)
-      (read-line in) ;; Ignore hashlang declaration
-      (reader-loop
-       #:in in
-       #:initial-accum-val '()
-       #:on-expr
-       (lambda (#:expr expr #:accum accum)
-         (match expr
-           [(list* 'define/contract (cons (? symbol? id) _) _ _)
-            ;; ^ Match shorthand function definitions: (define (id args ...) body ...)
-            (cons id accum)]
-           [else
-            (when (string-contains? (~a expr) "define/contract")
-              (printf "!Possible missed contract(s): ~a~n~n" expr))
-            accum]))))))
-
 
 (define (sanitize identifier)
   (for/fold ([str (~a identifier)])
@@ -100,7 +74,8 @@
                 (pretty-write expr out)])
              '()))
           (fprintf out "~a~n" "(eprintf \"(begin-random-tests)~n~n\")")
-          (pretty-write (make-exercise identifier) out))))))
+          (pretty-write (make-exercise identifier) out)
+          (fprintf out "~a~n" "(eprintf \"(done)~n~n\")"))))))
 
 (define (make-exercise identifier)
   `(for ([fuel (in-range 10)])

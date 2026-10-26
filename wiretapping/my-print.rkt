@@ -13,20 +13,21 @@
 (struct call (proc-name proc-kws kw-args pos-args)
   #:prefab)
 
-(define (bug-arg arg)
-  (match arg
-    [(? procedure?)
+(define (bug-arg arg) arg
+  #;(match arg
+    #;[(? procedure?)
      (define io-table (make-hash))
-     (chaperone-procedure
+     (impersonate-procedure
       arg
       (make-keyword-procedure
        (λ (kws kw-args . args)
          (define results-printer
            (λ results
+             (define bugged-results (map bug-arg results))
              (hash-set! io-table
                         (list kws kw-args args)
-                        results)
-             (apply values results)))
+                        bugged-results)
+             (apply values bugged-results)))
          (if (null? kws)
              (apply values results-printer args)
              (apply values results-printer kw-args args))))
@@ -62,20 +63,6 @@
     [(? box?)
      (define boxer (if (immutable? arg) box-immutable box))
      (boxer (bug-arg (unbox arg)))]
-
-; Cases not explicitly handled:
-;    [(or (? symbol?) (? boolean?) (? number?) (? char?))
-;     ...]
-;    [(? string?)
-;     ...]
-;    [(? bytes?)
-;     ...]
-;    [(? object?)
-;     ...]
-;    [(? void?)
-;     ...]
-;    [(? class?)
-;     ...]
     [else arg]))
 
 (define (my-construct-print name elem-stream port)
@@ -233,4 +220,4 @@
     [(? class?)
      (display (object-name obj) port)]
     [else
-     (fprintf port "#<Unknown: ~a>" obj)]))
+     (fprintf port "(\"(Unknown: ~a)\"" obj)]))
