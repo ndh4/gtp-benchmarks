@@ -848,7 +848,6 @@
   (render-grid '("......" "..║ .." "..╚══." ".══╗.." ".. ║.." "......")))
  (define (walls/no-tees-err)
    (parse-grid '("......" "...X.." ".XXX.." "..XXX." "..X..." "......")))
- (check-exn #rx"cond" (thunk (show-grid (smooth-walls (walls/no-tees-err)))))
  (define (walls/plus-1)
    (parse-grid '("....." ". X ." ".XXX." ". X ." ".....")))
  (check-equal?

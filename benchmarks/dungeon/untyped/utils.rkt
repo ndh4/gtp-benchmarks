@@ -3,7 +3,11 @@
 (require (only-in racket/list first permutations)
          (only-in racket/file file->value)
          racket/contract
-         (only-in "../../../ctcs/common.rkt" memberof/c permutationof/c)
+         (only-in
+          "../../../ctcs/common.rkt"
+          make-dependent-contract
+          memberof/c
+          permutationof/c)
          "../../../ctcs/precision-config.rkt"
          "../../../ctcs/configurable.rkt"
          "../base/random-number-table.rkt")
@@ -21,6 +25,20 @@
 
 (provide random-result-between/c)
 
+(define/ctc-helper
+ bounds-args/c*
+ (make-dependent-contract
+  exact-nonnegative-integer?
+  (lambda (arg1) (and/c exact-nonnegative-integer? (>/c arg1)))
+  (lambda (arg1 fuel)
+    (+ arg1 1 (contract-random-generate exact-nonnegative-integer? fuel)))))
+
+(define/ctc-helper random-between-min-ctc (first bounds-args/c*))
+
+(define/ctc-helper random-between-max-ctc (second bounds-args/c*))
+
+(define/ctc-helper random-between-ctc-reset!? (third bounds-args/c*))
+
 (define/contract r* (configurable-ctc (max any/c) (types any/c)) (box orig))
 
 (define/contract
@@ -35,10 +53,13 @@
  (configurable-ctc
   (max
    (->i
-    ((n exact-nonnegative-integer?))
+    ((n exact-positive-integer?))
     (result (n) (and/c exact-nonnegative-integer? (</c n)))))
-  (types (-> any/c exact-nonnegative-integer?)))
- (begin0 (modulo (car (unbox r*)) n) (set-box! r* (cdr (unbox r*)))))
+  (types (-> any/c exact-positive-integer?)))
+ (begin0
+   (modulo (car (unbox r*)) n)
+   (set-box! r* (cdr (unbox r*)))
+   (when (empty? (unbox r*)) (reset!))))
 
 (define/ctc-helper
  (list+titlecases . los)
@@ -66,9 +87,11 @@
  (configurable-ctc
   (max
    (->i
-    ((min exact-nonnegative-integer?)
-     (max (min) (and/c exact-nonnegative-integer? (>/c min))))
-    (result (min max) (random-result-between/c min max))))
+    ((min random-between-min-ctc) (max random-between-max-ctc))
+    (result (min max) (random-result-between/c min max))
+    #:post
+    ()
+    (and (random-between-ctc-reset!?))))
   (types
    (->
     exact-nonnegative-integer?
@@ -93,7 +116,7 @@
 (define/contract
  (random-from l)
  (configurable-ctc
-  (max (->i ((l (listof any/c))) (result (l) (memberof/c l))))
+  (max (->i ((l (and/c (listof any/c) cons?))) (result (l) (memberof/c l))))
   (types (-> (listof any/c) any/c)))
  (first (shuffle l)))
 

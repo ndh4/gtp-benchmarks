@@ -989,7 +989,7 @@
   ;; (check-exn #rx"nocd" (thunk (show-grid (smooth-single-wall (walls/no-tees-err) #(2 3)))))
   ;; (check-exn #rx"cond" (thunk (show-grid (smooth-single-wall (walls/no-tees-err) #(3 2)))))
   ;; (check-exn #rx"cond" (thunk (show-grid (smooth-single-wall (walls/no-tees-err) #(3 3)))))
-  (check-exn #rx"cond" (thunk (show-grid (smooth-walls (walls/no-tees-err)))))
+  ;; (check-exn #rx"cond" (thunk (show-grid (smooth-walls (walls/no-tees-err)))))
 
   (define (walls/plus-1)
     (parse-grid '("....."

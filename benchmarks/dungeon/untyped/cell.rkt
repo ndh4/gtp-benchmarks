@@ -3,7 +3,11 @@
 (require racket/class
          "../base/un-types.rkt"
          racket/contract
-         (only-in "../../../ctcs/common.rkt" class/c*)
+         (only-in
+          "../../../ctcs/common.rkt"
+          class/c*
+          get-random-element
+          class-ctc->instance-ctc)
          "../../../ctcs/configurable.rkt"
          "../../../ctcs/precision-config.rkt")
 
@@ -27,27 +31,83 @@
          horizontal-door%
          other-horizontal-door%)
 
-(provide cell%? cell%/c class-equal?)
+(provide cell%? cell%/c class-equal? registered-char?)
 
 (define/ctc-helper (not-equal? x y) (not (equal? x y)))
 
+(struct
+ cell-contract
+ (base)
+ #:property
+ prop:contract
+ (build-contract-property
+  #:name
+  (lambda (c) (contract-name (cell-contract-base c)))
+  #:first-order
+  (lambda (c) class?)
+  #:late-neg-projection
+  (lambda (c) (contract-late-neg-projection (cell-contract-base c)))
+  #:generate
+  (lambda (c)
+    (lambda (fuel)
+      (thunk
+       (get-random-element
+        (list
+         cell%
+         empty-cell%
+         void-cell%
+         wall%
+         pillar%
+         vertical-wall%
+         horizontal-wall%
+         four-corner-wall%
+         north-east-wall%
+         north-west-wall%
+         south-east-wall%
+         south-west-wall%
+         north-tee-wall%
+         south-tee-wall%
+         east-tee-wall%
+         west-tee-wall%
+         door%
+         vertical-door%
+         other-vertical-door%
+         horizontal-door%
+         other-horizontal-door%)))))))
+
 (define-syntax-rule/ctc-helper
  (make-cell%/c-with self-id show-char free?/occupant-comparer)
- (class/c*
-  (init-field/all (items list?) (occupant any/c))
-  (all (open (->m void?)) (close (->m void?)) (free? (->m boolean?)))
-  (inherit+super (show (->i ((self-id any/c)) (result (self-id) show-char))))
-  (override (show (->m char?)))
-  (free?
-   (->i
-    ((self-id any/c))
-    (result
-     (self-id)
-     (curry free?/occupant-comparer (get-field occupant self-id)))))))
+ (let* ((underlying-class/c
+         (class/c*
+          (init-field/all (items list?) (occupant any/c))
+          (all (open (->m void?)) (close (->m void?)) (free? (->m boolean?)))
+          (inherit+super
+           (show (->i ((self-id any/c)) (result (self-id) show-char))))
+          (override (show (->m char?)))
+          (free?
+           (->i
+            ((self-id any/c))
+            (result
+             (self-id)
+             (curry free?/occupant-comparer (get-field occupant self-id)))))))
+        (resulting-cell-contract (cell-contract underlying-class/c)))
+   resulting-cell-contract))
 
 (define/ctc-helper cell%/c (make-cell%/c-with self any/c (λ x #t)))
 
-(define/ctc-helper cell%? (instanceof/c cell%/c))
+(define/ctc-helper
+ cell%?
+ (let ((base-ctc (instanceof/c (cell-contract-base cell%/c))))
+   (make-contract
+    #:name
+    'cell%?
+    #:first-order
+    (contract-first-order base-ctc)
+    #:late-neg-projection
+    (contract-late-neg-projection base-ctc)
+    #:generate
+    (lambda (fuel)
+      (lambda () (new (get-random-element (dict-values chars->cell%s))))))))
 
 (define/contract
  cell%
@@ -65,6 +125,13 @@
  chars->cell%s
  (configurable-ctc (max (hash/c char? cell%/c)) (types hash?))
  (make-hash))
+
+(define/ctc-helper
+ registered-char?
+ (flat-named-contract
+  'registered-char?
+  (lambda (c) (and (char? c) (dict-has-key? chars->cell%s c)))
+  (lambda (fuel) (lambda () (get-random-element (dict-keys chars->cell%s))))))
 
 (define/ctc-helper
  (class-equal? a% b%)
@@ -88,7 +155,7 @@
  (configurable-ctc
   (max
    (->i
-    ((char (and/c char? (curry dict-has-key? chars->cell%s))))
+    ((char registered-char?))
     (result
      (char)
      (and/c cell%/c (curry class-equal? (dict-ref chars->cell%s char))))))

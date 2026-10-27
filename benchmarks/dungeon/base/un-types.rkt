@@ -8,6 +8,7 @@
   index?
   index/c
   size/c
+  size>2/c
   assert
 )
 
@@ -39,3 +40,9 @@
     'index/c
     (and/c exact-nonnegative-integer? (>/c 0) (</c 9999999))
     (lambda (fuel) (thunk (add1 (generate-small-eni 5 3000))))))
+
+(define/ctc-helper size>2/c
+  (flat-named-contract
+    'size>2/c
+    (and/c exact-nonnegative-integer? (>/c 2) (</c 9999999))
+    (lambda (fuel) (thunk (+ 3 (generate-small-eni 5 3000))))))
