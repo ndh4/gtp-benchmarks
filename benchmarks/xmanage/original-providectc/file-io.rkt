@@ -4,9 +4,13 @@
          "../../../ctcs/precision-config.rkt")
 
 (require (only-in "date.rkt" my-date/c current-seconds/maybe-fake))
-(require (only-in "data.rkt" account/c account? account account-name account-history account-balance account-recents account-balance-date account-check-no
+(require (only-in "data.rkt" account/c account? account account-name
+                             account-history
+                             account-balance account-recents
+                             account-balance-date account-check-no
                              amount/c string-amount/c amount>
-                             dw/c dw dw-comment dw-date dw-amount))
+                             dw/c dw dw-comment dw-date dw-amount
+                             pathable-string/c))
 
 (require/configurable-contract "date.rkt" my-date?)
 (require/configurable-contract "data.rkt" transactions->balance
@@ -30,12 +34,14 @@
                (account-balance a))))))
 
 (define/ctc-helper balanced-A/c
-  (and/c (list/c string? (listof raw-dw/c) string-amount/c my-date/c (listof raw-dw/c))
+  (and/c (list/c pathable-string/c (listof raw-dw/c) string-amount/c my-date/c (listof raw-dw/c))
          (flat-named-contract
           "current balance equals sum of transactions"
           (λ (a)
             (= (transactions->balance (list*->dw (fifth a)))
                (string->number/2 (third a)))))))
+
+(provide balanced-account/c)
 
 (provide/configurable-contract
   [account-reader

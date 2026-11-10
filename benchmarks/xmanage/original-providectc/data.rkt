@@ -23,9 +23,51 @@
 
 (define/ctc-helper amount/c (and/c rational? exact?))
 
+(define/ctc-helper (valid-bmp-integer? n)
+  (and (>= n 0)
+       (<= n #xFFFF)
+       (not (<= #xD800 n #xDFFF)))) ; Skip surrogate pair gap
+
+(define/ctc-helper (ascii-file-safe-char? c)
+  (define n (char->integer c))
+  (and (>= n #x0020)          ; Start at space (skips all C0 control codes like null)
+       (<= n #x007E)          ; End at tilde ~ (skips DEL and C1 control codes)
+       (not (char=? c #\/))   ; No Unix forward slash
+       (not (char=? c #\\)))) ; No Windows backward slash
+
+(define bmp-char?
+  (flat-named-contract
+   'bmp-char?
+   ascii-file-safe-char?
+   (lambda (fuel)
+     (lambda ()
+       (let loop ()
+         ;; Generate safely within the printable ASCII integer range (32 to 126)
+         (define n (+ 32 (random 95)))
+         (define c (integer->char n))
+         (if (ascii-file-safe-char? c)
+             c
+             (loop)))))))
+
+(define bmp-string?
+  (flat-named-contract
+    'bmp-string?
+    (lambda (s) (and (string? s) (for/and ([c (in-string s)]) (bmp-char? c))))
+    (lambda (fuel)
+      (define charlist-gen (contract-random-generate/choose (listof bmp-char?) fuel))
+      (lambda ()
+        (define s (list->string (charlist-gen)))
+        (if (member s '("" "." ".."))
+            "safe_default_name.txt"
+            s)))))
+
+(define/ctc-helper pathable-string/c
+  (and/c bmp-string? (string-len/c 60) path-string?))
+
 (provide (struct-out account)
          (struct-out dw)
-         string->number/2)
+         string->number/2
+         pathable-string/c)
 
 
 (provide/configurable-contract
@@ -159,8 +201,8 @@
 #; {type Account = (account String [Listof T] Rational Date [Listof T] Natural)}
 
 (define/ctc-helper account/c
-  (configurable-ctc [types (struct/c account string? (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c)]
-                    [max   (struct/c account string? (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c)]))
+  (configurable-ctc [types (struct/c account pathable-string/c (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c)]
+                    [max   (struct/c account pathable-string/c (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c)]))
 
 
 (module+ examples

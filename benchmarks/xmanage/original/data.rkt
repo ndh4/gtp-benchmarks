@@ -24,7 +24,45 @@
 
 (define/ctc-helper amount/c (and/c rational? exact?))
 
-(provide (struct-out account) (struct-out dw) string->number/2)
+(define/ctc-helper
+ (valid-bmp-integer? n)
+ (and (>= n 0) (<= n 65535) (not (<= 55296 n 57343))))
+
+(define/ctc-helper
+ (ascii-file-safe-char? c)
+ (define n (char->integer c))
+ (and (>= n 32) (<= n 126) (not (char=? c #\/)) (not (char=? c #\\))))
+
+(define bmp-char?
+  (flat-named-contract
+   'bmp-char?
+   ascii-file-safe-char?
+   (lambda (fuel)
+     (lambda ()
+       (let loop ()
+         (define n (+ 32 (random 95)))
+         (define c (integer->char n))
+         (if (ascii-file-safe-char? c) c (loop)))))))
+
+(define bmp-string?
+  (flat-named-contract
+   'bmp-string?
+   (lambda (s) (and (string? s) (for/and ((c (in-string s))) (bmp-char? c))))
+   (lambda (fuel)
+     (define charlist-gen
+       (contract-random-generate/choose (listof bmp-char?) fuel))
+     (lambda ()
+       (define s (list->string (charlist-gen)))
+       (if (member s '("" "." "..")) "safe_default_name.txt" s)))))
+
+(define/ctc-helper
+ pathable-string/c
+ (and/c bmp-string? (string-len/c 60) path-string?))
+
+(provide (struct-out account)
+         (struct-out dw)
+         string->number/2
+         pathable-string/c)
 
 (provide transactions->balance
          transactions->running-balance
@@ -112,7 +150,7 @@
   (types
    (struct/c
     account
-    string?
+    pathable-string/c
     (listof dw/c)
     amount/c
     my-date/c
@@ -121,7 +159,7 @@
   (max
    (struct/c
     account
-    string?
+    pathable-string/c
     (listof dw/c)
     amount/c
     my-date/c

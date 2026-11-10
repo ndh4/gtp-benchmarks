@@ -40,19 +40,23 @@
 (define/contract
  (name->path name #:kind (proper-or-html #f))
  (configurable-ctc
-  (max FIXME/c)
+  (max (->* (string?) (#:kind string?) path?))
   (types (->* (string?) (#:kind string?) path?)))
  (define file-name
    (if proper-or-html (~a name "." proper-or-html) (~a "." name ".act")))
  (build-path file-name))
 
-(define ((write account))
-  (define file-name (name->path (account-name account)))
-  (with-output-to-file
-   file-name
-   #:exists
-   'replace
-   (λ () (account-writer account))))
+(define/contract
+ ((write account))
+ (configurable-ctc
+  (max (-> balanced-account/c (-> void?)))
+  (types (-> account/c (-> void?))))
+ (define file-name (name->path (account-name account)))
+ (with-output-to-file
+  file-name
+  #:exists
+  'replace
+  (λ () (account-writer account))))
 
 (module+
  test
@@ -93,7 +97,13 @@
 (define/contract
  deposit
  (configurable-ctc
-  (max FIXME/c)
+  (max
+   (->*
+    (account/c my-date/c string?)
+    ()
+    #:rest
+    (listof string?)
+    (action/c account/c)))
   (types
    (->*
     (account/c my-date/c string?)
@@ -106,7 +116,13 @@
 (define/contract
  withdraw
  (configurable-ctc
-  (max FIXME/c)
+  (max
+   (->*
+    (account/c my-date/c string?)
+    ()
+    #:rest
+    (listof string?)
+    (action/c account/c)))
   (types
    (->*
     (account/c my-date/c string?)
@@ -119,7 +135,13 @@
 (define/contract
  (write-check account date amount . purpose)
  (configurable-ctc
-  (max FIXME/c)
+  (max
+   (->*
+    (account/c my-date/c string?)
+    ()
+    #:rest
+    (listof string?)
+    (action/c account/c)))
   (types
    (->*
     (account/c my-date/c string?)
@@ -146,14 +168,16 @@
 (define/contract
  (show-balance a _date . _others)
  (configurable-ctc
-  (max FIXME/c)
+  (max (->* (account/c my-date/c) () #:rest any/c (action/c amount?)))
   (types (->* (account/c my-date/c) () #:rest any/c (action/c amount?))))
  (define b (+ (transactions->balance (account-recents a)) (account-balance a)))
  (list b (λ () (printf "Current balance: ~a\n" (amount->decimal-string b)))))
 
 (define/contract
  (update account action-date)
- (configurable-ctc (max FIXME/c) (types (-> account/c my-date/c account/c)))
+ (configurable-ctc
+  (max (-> account/c my-date/c account/c))
+  (types (-> account/c my-date/c account/c)))
  (define last-date (account-balance-date account))
  (when (next-month? last-date action-date)
    (define-values
@@ -182,7 +206,7 @@
 (define/contract
  (to-html a my-dste #:open (open "open") . _other)
  (configurable-ctc
-  (max FIXME/c)
+  (max (->* (account/c my-date/c) () #:rest any/c (action/c any/c)))
   (types (->* (account/c my-date/c) () #:rest any/c (action/c any/c))))
  (define page:xml (xexpr->xml (account-to-html a)))
  (define file (name->path (account-name a) #:kind 'html))

@@ -22,7 +22,8 @@
           dw
           dw-comment
           dw-date
-          dw-amount))
+          dw-amount
+          pathable-string/c))
 
 (require (only-in "date.rkt" my-date?))
 
@@ -55,7 +56,7 @@
  balanced-A/c
  (and/c
   (list/c
-   string?
+   pathable-string/c
    (listof raw-dw/c)
    string-amount/c
    my-date/c
@@ -66,6 +67,8 @@
      (=
       (transactions->balance (list*->dw (fifth a)))
       (string->number/2 (third a)))))))
+
+(provide balanced-account/c)
 
 (provide account-reader account-writer A->account list*->dw list->dw)
 

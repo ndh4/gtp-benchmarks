@@ -322,10 +322,17 @@
   (max (list/c 'img (listof (list/c symbol? string?)))))
  `(img ((src ,CHECKMARK) (width "22") (alt "yes"))))
 
-(define ((make-td where) content (w #f))
-  (if (boolean? w)
-    `(((align ,(~a where))) ,content)
-    `(((align ,(~a where)) (width ,(~a w))) ,content)))
+(define/contract
+ ((make-td where) content (w #f))
+ (configurable-ctc
+  (types (-> (or/c 'left 'center 'right) (->* (any/c) (any/c) list?)))
+  (max
+   (->
+    (or/c 'left 'center 'right)
+    (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?)))))
+ (if (boolean? w)
+   `(((align ,(~a where))) ,content)
+   `(((align ,(~a where)) (width ,(~a w))) ,content)))
 
 (define td-left (make-td 'left))
 
