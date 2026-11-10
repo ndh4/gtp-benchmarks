@@ -57,6 +57,10 @@
    ([types (-> (list/c string? (listof raw-dw/tc) string? my-date/c (listof raw-dw/tc)) (listof (list/c string? amount/c)) natural-number/c account/c)]
     [max   (-> balanced-A/c natural-number/c (listof (list/c string? amount/c)) account/c)])]
 
+  [special>
+   ([max   (-> any/c (listof (list/c string? amount/c)))]
+    [types (-> any/c (listof (list/c string? amount/c)))])]
+
   [list*->dw
    ([types (-> (listof raw-dw/tc) (listof dw/c))]
     [max   (-> (listof raw-dw/c) (listof dw/c))])]

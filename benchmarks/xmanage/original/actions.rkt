@@ -11,6 +11,8 @@
 (provide name->path
          write
          update
+         monthly-deductions
+         move-forward
          new-account/2
          deposit
          withdraw
@@ -184,23 +186,31 @@
    (move-forward account action-date))
  account)
 
-(define (monthly-deductions account action-date)
-  (for
-   ((d (account-special account)))
-   (define nu-dw (dw (first d) action-date (second d)))
-   (set-account-recents! account (cons nu-dw (account-recents account)))))
+(define/contract
+ (monthly-deductions account action-date)
+ (configurable-ctc
+  (max (-> account/c my-date/c void?))
+  (types (-> account/c my-date/c void?)))
+ (for
+  ((d (account-special account)))
+  (define nu-dw (dw (first d) action-date (second d)))
+  (set-account-recents! account (cons nu-dw (account-recents account)))))
 
-(define (move-forward account action-date)
-  (define-values
-   (balance history)
-   (for/fold
-    ((balance (account-balance account)) (history (account-history account)))
-    ((r (account-recents account)))
-    (values (+ (dw-amount r) balance) (cons r history))))
-  (set-account-recents! account '())
-  (set-account-history! account history)
-  (set-account-balance-date! account action-date)
-  (set-account-balance! account balance))
+(define/contract
+ (move-forward account action-date)
+ (configurable-ctc
+  (max (-> account/c my-date/c void?))
+  (types (-> account/c my-date/c void?)))
+ (define-values
+  (balance history)
+  (for/fold
+   ((balance (account-balance account)) (history (account-history account)))
+   ((r (account-recents account)))
+   (values (+ (dw-amount r) balance) (cons r history))))
+ (set-account-recents! account '())
+ (set-account-history! account history)
+ (set-account-balance-date! account action-date)
+ (set-account-balance! account balance))
 
 (module+
  test

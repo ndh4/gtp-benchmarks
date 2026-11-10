@@ -71,7 +71,7 @@
 
 (provide balanced-account/c)
 
-(provide account-reader account-writer A->account list*->dw list->dw)
+(provide account-reader account-writer A->account special> list*->dw list->dw)
 
 (module+ examples (provide (all-defined-out)))
 
@@ -150,11 +150,15 @@
    (A->account maybe-trans last-check#)
    (A->account maybe-trans last-check# (special> maybe-special))))
 
-(define (special> m)
-  (match
-   m
-   ((? list?) (map (λ (x) (list (first x) (amount> (second x)))) m))
-   (_ '())))
+(define/contract
+ (special> m)
+ (configurable-ctc
+  (max (-> any/c (listof (list/c string? amount/c))))
+  (types (-> any/c (listof (list/c string? amount/c)))))
+ (match
+  m
+  ((? list?) (map (λ (x) (list (first x) (amount> (second x)))) m))
+  (_ '())))
 
 (define/contract
  (A->account x last-check# (special '()))

@@ -28,6 +28,14 @@
    ([max   (-> account/c my-date/c account/c)]
     [types (-> account/c my-date/c account/c)])]
 
+  [monthly-deductions
+   ([max   (-> account/c my-date/c void?)]
+    [types (-> account/c my-date/c void?)])]
+
+  [move-forward
+   ([max   (-> account/c my-date/c void?)]
+    [types (-> account/c my-date/c void?)])]
+
   [new-account/2
    ([max FIXME/c]
     [types (-> procedure? string? (action/c account/c))])]
