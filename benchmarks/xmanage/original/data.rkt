@@ -90,15 +90,34 @@
   (types (-> any/c boolean?)))
  (and (rational? x) (exact? x)))
 
+(module+ test (check-true (amount? 0)))
+
 (define-match-expander
  amount>
- (λ (stx) (syntax-case stx () ((_ x) #'(app string->number/2 (? amount? x))))))
+ (λ (stx) (syntax-case stx () ((_ x) #'(app string->number/2 (? amount? x)))))
+ (λ (stx)
+   (syntax-case stx ()
+     ((_ expr)
+      #'(cond
+         ((number? expr) (inexact->exact expr))
+         ((string->number/2 expr)
+          (λ (x)
+            (if (amount? x) x (error 'amount> "amount expected, given ~s" x))))
+         (else (error 'amount> "amount expected, given ~s" expr)))))))
 
 (define-match-expander
  argv-amount>
  (λ (stx)
    (syntax-case stx ()
-     ((_ x) #'(app string->number/2 (and (? amount?) (? (>=/c 0) x)))))))
+     ((_ x)
+      #'(app
+         string->number/2
+         (and (? amount?) (? (lambda (x) (>= x 0)) x)))))))
+
+(module+
+ test
+ (match "159.20" ((argv-amount> x) (check-false (inexact? x) "argv match")))
+ (match "0." ((argv-amount> x) (check-true (= x 0)))))
 
 (define (string->number/2 amount)
   (when (regexp-match #px"\\.\\d\\d\\d" (~a amount))
@@ -107,7 +126,7 @@
 
 (module+
  test
- (check-equal? (string->number/2 "1.23") 1.23)
+ (check-equal? (string->number/2 "1.23") 123/100)
  (check-match
   (with-output-to-string
    (λ ()
@@ -140,7 +159,7 @@
 
 (struct
  account
- (name recents balance balance-date history check-no)
+ (name recents balance balance-date history check-no special)
  #:transparent
  #:mutable)
 
@@ -155,7 +174,8 @@
     amount/c
     my-date/c
     (listof dw/c)
-    natural-number/c))
+    natural-number/c
+    (listof (list/c string? amount/c))))
   (max
    (struct/c
     account
@@ -164,15 +184,16 @@
     amount/c
     my-date/c
     (listof dw/c)
-    natural-number/c))))
+    natural-number/c
+    (listof (list/c string? amount/c))))))
 
 (module+
  examples
  (define (checking0 (first-check-no 0))
-   (account "checking" '() 0 (today) '() first-check-no)))
+   (account "checking" '() 0 (today) '() first-check-no '())))
 
 (define (new-account name #:first-check# (last 0))
-  (account name '() 0 (today) '() last))
+  (account name '() 0 (today) '() last '()))
 
 (define/contract
  (transactions->balance dw*)
@@ -255,8 +276,8 @@
  (check-equal? (checking0) (new-account "checking"))
  (define dw0 (dw "test" (today) 10))
  (check-equal?
-  (transactions->running-balance (list dw0) 10.0 -)
-  (list (list dw0 0.0))
+  (transactions->running-balance (list dw0) 10 -)
+  (list (list dw0 0))
   "running balance: an account w/o initial deposit")
  (check-equal?
   (transactions->balance (list dw0))

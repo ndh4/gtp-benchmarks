@@ -75,7 +75,7 @@
  (configurable-ctc
   (max FIXME/c)
   (types (-> procedure? string? (action/c account/c))))
- (define a (account name '() 0 (today) '() last))
+ (define a (account name '() 0 (today) '() last '()))
  (define (effect)
    (define file-name (name->path name))
    (when (file-exists? file-name) (printf ALREADY-EXISTS) (exit-for-testing 1))
@@ -180,25 +180,35 @@
   (types (-> account/c my-date/c account/c)))
  (define last-date (account-balance-date account))
  (when (next-month? last-date action-date)
-   (define-values
-    (balance history)
-    (for/fold
-     ((balance (account-balance account)) (history (account-history account)))
-     ((r (account-recents account)))
-     (values (+ (dw-amount r) balance) (cons r history))))
-   (set-account-recents! account '())
-   (set-account-history! account history)
-   (set-account-balance-date! account action-date)
-   (set-account-balance! account balance))
+   (monthly-deductions account action-date)
+   (move-forward account action-date))
  account)
+
+(define (monthly-deductions account action-date)
+  (for
+   ((d (account-special account)))
+   (define nu-dw (dw (first d) action-date (second d)))
+   (set-account-recents! account (cons nu-dw (account-recents account)))))
+
+(define (move-forward account action-date)
+  (define-values
+   (balance history)
+   (for/fold
+    ((balance (account-balance account)) (history (account-history account)))
+    ((r (account-recents account)))
+    (values (+ (dw-amount r) balance) (cons r history))))
+  (set-account-recents! account '())
+  (set-account-history! account history)
+  (set-account-balance-date! account action-date)
+  (set-account-balance! account balance))
 
 (module+
  test
  (let ()
    (define Acopied (struct-copy account A+100chk))
-   (define nextdate '(2026 8 20))
+   (define nextdate '(2026 11 4))
    (define exp
-     (account "checking" '() 100 nextdate (account-recents A+100chk) 0))
+     (account "checking" '() 100 nextdate (account-recents A+100chk) 0 '()))
    (define imperative-result (update Acopied nextdate))
    (check-equal? imperative-result exp "update: check return")
    (check-equal? Acopied exp "update: check effect")))
@@ -260,7 +270,7 @@
 
 (module+
  test
- (define 2day '(2026 6 6))
+ (define 2day '(2026 10 4))
  (check-equal?
   (run deposit (struct-copy account Achk) 2day "100" 100purpose)
   A+100chk)

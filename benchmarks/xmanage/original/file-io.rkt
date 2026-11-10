@@ -15,6 +15,7 @@
           account-recents
           account-balance-date
           account-check-no
+          account-special
           amount/c
           string-amount/c
           amount>
@@ -95,13 +96,13 @@
    (match
     A
     ((list name recents balance date history)
-     (define dw (list (align msg) '(2026 6 6) d))
+     (define dw (list (align msg) '(2026 10 4) d))
      (list name (cons dw recents) balance date history))))
  (define (one-recent-minus-100 A)
    (match
     A
     ((list name recents balance date history)
-     (define dw (list (align 50purpose) '(2026 6 6) "-50.00"))
+     (define dw (list (align 50purpose) '(2026 10 4) "-50.00"))
      (list name (cons dw recents) balance date history))))
  (define (Achecking0 (x 0)) (account->A (checking0 x)))
  (define checking (checking0))
@@ -142,17 +143,34 @@
     ()
     (not (eof-object? (peek-char (current-input-port))))
     (_ any/c))))
- (A->account (read) (read)))
+ (define maybe-trans (read))
+ (define last-check# (read))
+ (define maybe-special (read))
+ (if (eof-object? maybe-special)
+   (A->account maybe-trans last-check#)
+   (A->account maybe-trans last-check# (special> maybe-special))))
+
+(define (special> m)
+  (match
+   m
+   ((? list?) (map (λ (x) (list (first x) (amount> (second x)))) m))
+   (_ '())))
 
 (define/contract
- (A->account x last-check#)
+ (A->account x last-check# (special '()))
  (configurable-ctc
   (types
    (->
     (list/c string? (listof raw-dw/tc) string? my-date/c (listof raw-dw/tc))
+    (listof (list/c string? amount/c))
     natural-number/c
     account/c))
-  (max (-> balanced-A/c natural-number/c account/c)))
+  (max
+   (->
+    balanced-A/c
+    natural-number/c
+    (listof (list/c string? amount/c))
+    account/c)))
  (parameterize
   ((read-decimal-as-inexact #f))
   (match
@@ -172,9 +190,25 @@
        (exact->inexact balance)
        (exact->inexact expected-balance)
        (exact->inexact (- balance expected-balance))))
-    (account name recents balance date history last-check#))
+    (account name recents balance date history last-check# special))
+   ((list name recents balance date history)
+    (unless (string? name)
+      (error 'A->account "name of account (string) expected, found ~s" name))
+    (unless (list*->dw recents)
+      (error 'A->account "recent DWs expected, found ~s" recents))
+    (unless (amount? balance)
+      (error 'A->account "balance expected, found ~s" balance))
+    (unless (my-date? date)
+      (error 'A->account "my kind of data expected, found ~s" date))
+    (unless (list*->dw history)
+      (error 'A->account "historic DWs expected, found ~s" history)))
    (_
-    (error 'A->account "A expression expected, found ~a ~a" x last-check#)))))
+    (error
+     'A->account
+     "A expression expected, found ~a ~a ~a"
+     x
+     last-check#
+     special)))))
 
 (define/contract
  (list*->dw x)
@@ -198,8 +232,8 @@
 (module+
  test
  (check-equal?
-  (list->dw (list "a" '(2026 6 6) -100))
-  (dw "a" '(2026 6 6) -100)
+  (list->dw (list "a" '(2026 10 4) -100))
+  (dw "a" '(2026 10 4) -100)
   "coverage 1"))
 
 (define/contract
@@ -209,7 +243,9 @@
   (max (-> balanced-account/c void?)))
  (pretty-write (account->A x))
  (display (account-check-no x))
- (display "; last check written"))
+ (display "; last check written")
+ (newline)
+ (pretty-write (account-special x)))
 
 (define (account->A x)
   (list
