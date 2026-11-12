@@ -42,7 +42,7 @@
 (define/contract
  (name->path name #:kind (proper-or-html #f))
  (configurable-ctc
-  (max (->* (string?) (#:kind string?) path?))
+  (max (->* (pathable-string/c) (#:kind (or/c pathable-string/c #f)) path?))
   (types (->* (string?) (#:kind string?) path?)))
  (define file-name
    (if proper-or-html (~a name "." proper-or-html) (~a "." name ".act")))

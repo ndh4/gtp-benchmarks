@@ -185,7 +185,7 @@
     my-date/c
     (listof dw/c)
     natural-number/c
-    (listof (list/c string? amount/c))))))
+    (listof (list/c (min-len-string/c 1) amount/c))))))
 
 (module+
  examples

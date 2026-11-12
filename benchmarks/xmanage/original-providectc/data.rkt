@@ -221,7 +221,7 @@
 
 (define/ctc-helper account/c
   (configurable-ctc [types (struct/c account pathable-string/c (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c (listof (list/c string? amount/c)))]
-                    [max   (struct/c account pathable-string/c (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c (listof (list/c string? amount/c)))]))
+                    [max   (struct/c account pathable-string/c (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c (listof (list/c (min-len-string/c 1) amount/c)))]))
 
 
 (module+ examples

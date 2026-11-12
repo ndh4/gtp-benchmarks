@@ -17,7 +17,7 @@
 
 (provide/configurable-contract
  [name->path
-   ([max   (->* (string?) (#:kind string?) path?)]
+   ([max   (->* (pathable-string/c) (#:kind (or/c pathable-string/c #f)) path?)]
     [types (->* (string?) (#:kind string?) path?)])]
 
   [write
@@ -243,7 +243,7 @@
 #; {Account Date -> Void}
 (define (monthly-deductions account action-date)
   (for ([d (account-special account)])
-    (define nu-dw (dw (first d) action-date  (second d)))
+    (define nu-dw (dw (first d) action-date (second d)))
     (set-account-recents! account (cons nu-dw (account-recents account)))))
 
 #;{Account Date -> Void}
