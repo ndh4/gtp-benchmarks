@@ -4,8 +4,6 @@
 
 (define (action/c x/c) (list/c x/c (-> any)))
 
-(define/ctc-helper FIXME/c any/c)
-
 (provide (rename-out (to-html to-html/t)))
 
 (provide name->path
@@ -75,7 +73,8 @@
 (define/contract
  (new-account/2 exit-for-testing name #:last-check (last 0))
  (configurable-ctc
-  (max FIXME/c)
+  (max
+   (-> (-> natural-number/c none/c) pathable-string/c (action/c account/c)))
   (types (-> procedure? string? (action/c account/c))))
  (define a (account name '() 0 (today) '() last '()))
  (define (effect)

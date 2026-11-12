@@ -10,8 +10,6 @@
 (define (action/c x/c)
   (list/c x/c (-> any)))
 
-(define/ctc-helper FIXME/c any/c)
-
 (provide
  (rename-out [to-html to-html/t]))
 
@@ -37,7 +35,7 @@
     [types (-> account/c my-date/c void?)])]
 
   [new-account/2
-   ([max FIXME/c]
+   ([max (-> (-> natural-number/c none/c) pathable-string/c (action/c account/c))]
     [types (-> procedure? string? (action/c account/c))])]
 
   [deposit
