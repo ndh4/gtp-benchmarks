@@ -68,6 +68,12 @@
                [(list* 'define/contract (cons (== identifier) args) ctc body)
                 (pretty-write
                  `(define/contract ,(cons identifier args) (add-arg-recorder ,ctc) ,@body) out)]
+               [(list* 'define/contract (cons (cons (== identifier) args-one) args-two) ctc body)
+                (pretty-write
+                  `(define/contract ,(cons (cons identifier args-one) args-two) (add-arg-recorder ,ctc) ,@body) out)]
+               [(list* 'define/contract (== identifier) ctc body)
+                (pretty-write
+                 `(define/contract ,identifier (add-arg-recorder ,ctc) ,@body) out)]
                [(list* 'module+ 'test _)
                 (void)]
                [_
