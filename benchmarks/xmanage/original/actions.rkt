@@ -1,6 +1,8 @@
 #lang racket
 
-(require "../../../ctcs/configurable.rkt" "../../../ctcs/precision-config.rkt")
+(require "../../../ctcs/configurable.rkt"
+         "../../../ctcs/precision-config.rkt"
+         "../../../ctcs/common.rkt")
 
 (define (action/c x/c) (list/c x/c (-> any)))
 
@@ -36,6 +38,30 @@
  (require (submod "file-io.rkt" examples))
  (require rackunit)
  (current-seconds/maybe-fake (thunk 1784630918)))
+
+(define (valid-short-string-list? lst)
+  (< (+ (length lst) (for/sum ((s (in-list lst))) (string-length s))) 30))
+
+(define (generate-short-string-list fuel)
+  (thunk
+   (let loop ((remaining-budget (random 30)) (acc '()))
+     (if (<= remaining-budget 0)
+       (reverse acc)
+       (let* ((max-str-len (sub1 remaining-budget))
+              (str-len (random (add1 max-str-len)))
+              (str
+               (build-string
+                str-len
+                (λ (_) (integer->char (+ 97 (random 26)))))))
+         (loop (- remaining-budget (add1 str-len)) (cons str acc)))))))
+
+(define short-string-list/c
+  (and/c
+   (listof string?)
+   (flat-named-contract
+    'total-length-less-than-30
+    valid-short-string-list?
+    generate-short-string-list)))
 
 (define/contract
  (name->path name #:kind (proper-or-html #f))
@@ -99,11 +125,9 @@
  deposit
  (configurable-ctc
   (max
-   (->*
-    (account/c my-date/c string?)
-    ()
-    #:rest
-    (listof string?)
+   (arrow*-with-exercise
+    (list balanced-account/c my-date/c string-amount/c)
+    short-string-list/c
     (action/c account/c)))
   (types
    (->*

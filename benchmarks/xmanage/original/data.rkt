@@ -238,10 +238,11 @@
 
 (define COMMENT-MAX 30)
 
-(define shorter-than-COMMENT-MAX
-  (flat-named-contract
-   "short purpose comment"
-   (λ (s) (<= (string-length s) COMMENT-MAX))))
+(define/ctc-helper
+ shorter-than-COMMENT-MAX
+ (flat-named-contract
+  "short purpose comment"
+  (λ (s) (<= (string-length s) COMMENT-MAX))))
 
 (define/contract
  (align purpose (x ""))

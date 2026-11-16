@@ -376,3 +376,50 @@
        (list->string
          (for/list ([i (in-range (+ min-len (random 10)))])
            (char-gen)))))))
+
+(struct arrow*-with-exercise-ctc (plain-arrow* args rest res)
+  #:property prop:chaperone-contract
+  (build-chaperone-contract-property
+   #:name (λ (_) 'arrow*-with-exercise)
+
+   #:first-order
+   (λ (c) (contract-first-order (arrow*-with-exercise-ctc-plain-arrow* c)))
+
+   #:late-neg-projection
+   (λ (c)
+     (define plain-proj (contract-late-neg-projection (arrow*-with-exercise-ctc-plain-arrow* c)))
+     (λ (blame)
+       (define proj-with-blame (plain-proj blame))
+       (λ (val neg-party)
+         (chaperone-procedure (proj-with-blame val neg-party)
+                              #f
+                              impersonator-prop:contracted c
+                              impersonator-prop:blame (blame-add-missing-party blame neg-party)))))
+
+   #:exercise
+   (λ (c)
+     (match-define (arrow*-with-exercise-ctc _ args-ctc rest-ctc res-ctc) c)
+     (define env (contract-random-generate-get-current-environment))
+     (λ (fuel)
+       (define arg-gens (for/list ([ctc (in-list args-ctc)])
+                          (contract-random-generate/choose ctc fuel)))
+       (define rest-gen (contract-random-generate/choose rest-ctc fuel))
+       (if (and rest-gen (andmap values arg-gens))
+           (values (λ (f)
+                     (define args (for/list ([g (in-list arg-gens)]) (g)))
+                     (define res (apply apply f (append args (list (rest-gen)))))
+                     (contract-random-generate-stash env res-ctc res))
+                   (list res-ctc))
+           (values void '()))))))
+
+(define (arrow*-with-exercise arg-ctc* rest-ctc result-ctc)
+  (define (coerce c) (coerce-contract 'arrow*-with-exercise c))
+  (define c-args (map coerce arg-ctc*))
+  (define c-rest (coerce rest-ctc))
+  (define c-res  (coerce result-ctc))
+
+  (arrow*-with-exercise-ctc
+   (dynamic->* #:mandatory-domain-contracts c-args
+               #:rest-contract c-rest
+               #:range-contracts (list c-res))
+   c-args c-rest c-res))

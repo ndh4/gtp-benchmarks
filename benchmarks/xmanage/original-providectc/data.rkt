@@ -263,7 +263,7 @@
 (define COMMENT-MAX 30)
 
 #; {String -> Boolean}
-(define shorter-than-COMMENT-MAX
+(define/ctc-helper shorter-than-COMMENT-MAX
   (flat-named-contract "short purpose comment" (λ (s) (<= (string-length s) COMMENT-MAX))))
 
 #; {String CheckNoString -> String}
