@@ -4,7 +4,13 @@
          "../../../ctcs/precision-config.rkt"
          "../../../ctcs/common.rkt")
 
-(define (action/c x/c) (list/c x/c (-> any)))
+(define/ctc-helper (action/c x/c) (list/c x/c (-> any)))
+
+(define/ctc-helper
+ exit/c
+ (contract-with-generator
+  (-> natural-number/c none/c)
+  (λ (fuel) (get-random-element (list (λ (x) (control k x)))))))
 
 (provide (rename-out (to-html to-html/t)))
 
@@ -39,34 +45,11 @@
  (require rackunit)
  (current-seconds/maybe-fake (thunk 1784630918)))
 
-(define (valid-short-string-list? lst)
-  (< (+ (length lst) (for/sum ((s (in-list lst))) (string-length s))) 30))
-
-(define (generate-short-string-list fuel)
-  (thunk
-   (let loop ((remaining-budget (random 30)) (acc '()))
-     (if (<= remaining-budget 0)
-       (reverse acc)
-       (let* ((max-str-len (sub1 remaining-budget))
-              (str-len (random (add1 max-str-len)))
-              (str
-               (build-string
-                str-len
-                (λ (_) (integer->char (+ 97 (random 26)))))))
-         (loop (- remaining-budget (add1 str-len)) (cons str acc)))))))
-
-(define short-string-list/c
-  (and/c
-   (listof string?)
-   (flat-named-contract
-    'total-length-less-than-30
-    valid-short-string-list?
-    generate-short-string-list)))
-
 (define/contract
  (name->path name #:kind (proper-or-html #f))
  (configurable-ctc
-  (max (->* (pathable-string/c) (#:kind (or/c pathable-string/c #f)) path?))
+  (max
+   (->* (pathable-string/c) (#:kind (or/c 'html pathable-string/c #f)) path?))
   (types (->* (string?) (#:kind string?) path?)))
  (define file-name
    (if proper-or-html (~a name "." proper-or-html) (~a "." name ".act")))
@@ -99,8 +82,7 @@
 (define/contract
  (new-account/2 exit-for-testing name #:last-check (last 0))
  (configurable-ctc
-  (max
-   (-> (-> natural-number/c none/c) pathable-string/c (action/c account/c)))
+  (max (-> exit/c pathable-string/c (action/c account/c)))
   (types (-> procedure? string? (action/c account/c))))
  (define a (account name '() 0 (today) '() last '()))
  (define (effect)
@@ -127,7 +109,7 @@
   (max
    (arrow*-with-exercise
     (list balanced-account/c my-date/c string-amount/c)
-    short-string-list/c
+    (listof string?)
     (action/c account/c)))
   (types
    (->*
@@ -142,10 +124,8 @@
  withdraw
  (configurable-ctc
   (max
-   (->*
-    (account/c my-date/c string?)
-    ()
-    #:rest
+   (arrow*-with-exercise
+    (list balanced-account/c my-date/c string-amount/c)
     (listof string?)
     (action/c account/c)))
   (types
@@ -161,10 +141,8 @@
  (write-check account date amount . purpose)
  (configurable-ctc
   (max
-   (->*
-    (account/c my-date/c string?)
-    ()
-    #:rest
+   (arrow*-with-exercise
+    (list balanced-account/c my-date/c string-amount/c)
     (listof string?)
     (action/c account/c)))
   (types
@@ -193,7 +171,11 @@
 (define/contract
  (show-balance a _date . _others)
  (configurable-ctc
-  (max (->* (account/c my-date/c) () #:rest any/c (action/c amount?)))
+  (max
+   (arrow*-with-exercise
+    (list account/c my-date/c)
+    (listof any/c)
+    (action/c amount?)))
   (types (->* (account/c my-date/c) () #:rest any/c (action/c amount?))))
  (define b (+ (transactions->balance (account-recents a)) (account-balance a)))
  (list b (λ () (printf "Current balance: ~a\n" (amount->decimal-string b)))))
@@ -249,7 +231,11 @@
 (define/contract
  (to-html a my-dste #:open (open "open") . _other)
  (configurable-ctc
-  (max (->* (account/c my-date/c) () #:rest any/c (action/c any/c)))
+  (max
+   (arrow*-with-exercise
+    (list account/c my-date/c)
+    (listof any/c)
+    (action/c any/c)))
   (types (->* (account/c my-date/c) () #:rest any/c (action/c any/c))))
  (define page:xml (xexpr->xml (account-to-html a)))
  (define file (name->path (account-name a) #:kind 'html))

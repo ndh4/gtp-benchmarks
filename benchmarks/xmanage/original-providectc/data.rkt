@@ -99,7 +99,7 @@
 
   [align
    ([types (-> string? string?)]
-    [max (-> (and/c string? shorter-than-COMMENT-MAX)
+    [max (-> string?
              (and/c string? (compose (=/c COMMENT-MAX) string-length)))])])
 
 (provide
@@ -152,6 +152,7 @@
       [(_ expr) #'(cond
                     [(number? expr) (inexact->exact expr)]
                     [(string->number/2 expr)
+                     =>
                      (λ (x)
                        (if (amount? x)
                      x

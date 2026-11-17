@@ -58,7 +58,7 @@
     [max   (-> balanced-A/c natural-number/c (listof (list/c string? amount/c)) account/c)])]
 
   [special>
-   ([max   (-> any/c (listof (list/c string? amount/c)))]
+   ([max   (-> (or/c (not/c list?) (listof (list/c string? (or/c amount/c string-amount/c)))) (listof (list/c string? amount/c)))]
     [types (-> any/c (listof (list/c string? amount/c)))])]
 
   [list*->dw

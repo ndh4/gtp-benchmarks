@@ -101,6 +101,7 @@
       #'(cond
          ((number? expr) (inexact->exact expr))
          ((string->number/2 expr)
+          =>
           (λ (x)
             (if (amount? x) x (error 'amount> "amount expected, given ~s" x))))
          (else (error 'amount> "amount expected, given ~s" expr)))))))
@@ -248,10 +249,7 @@
  (align purpose (x ""))
  (configurable-ctc
   (types (-> string? string?))
-  (max
-   (->
-    (and/c string? shorter-than-COMMENT-MAX)
-    (and/c string? (compose (=/c COMMENT-MAX) string-length)))))
+  (max (-> string? (and/c string? (compose (=/c COMMENT-MAX) string-length)))))
  (~a
   " "
   x

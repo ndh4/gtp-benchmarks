@@ -8,15 +8,22 @@
 
 ;; the result plus action setup makes unit testing convenient and effective
 ;; but is useless for the actual script.
-(define (action/c x/c)
+(define/ctc-helper (action/c x/c)
   (list/c x/c (-> any)))
+
+(define/ctc-helper exit/c
+  (contract-with-generator
+    (-> natural-number/c none/c)
+    (λ (fuel)
+      (get-random-element
+        (list (λ (x) (control k x)))))))
 
 (provide
  (rename-out [to-html to-html/t]))
 
 (provide/configurable-contract
  [name->path
-   ([max   (->* (pathable-string/c) (#:kind (or/c pathable-string/c #f)) path?)]
+   ([max   (->* (pathable-string/c) (#:kind (or/c 'html pathable-string/c #f)) path?)]
     [types (->* (string?) (#:kind string?) path?)])]
 
   [write
@@ -35,31 +42,31 @@
    ([max   (-> account/c my-date/c void?)]
     [types (-> account/c my-date/c void?)])]
 
-  [new-account/2 ;; FIXME
-   ([max (-> (-> natural-number/c none/c) pathable-string/c (action/c account/c))]
+  [new-account/2
+   ([max (-> exit/c pathable-string/c (action/c account/c))]
     [types (-> procedure? string? (action/c account/c))])]
 
-  [deposit ;; FIXME
+  [deposit
    ;; consumes command-line arguments to deposit amount
-   ([max (arrow*-with-exercise (list balanced-account/c my-date/c string-amount/c) short-string-list/c #;(list/c (and/c string? shorter-than-COMMENT-MAX)) (action/c account/c))]
+   ([max (arrow*-with-exercise (list balanced-account/c my-date/c string-amount/c) (listof string?) (action/c account/c))]
     [types (->* (account/c my-date/c string?) () #:rest (listof string?) (action/c account/c))])]
 
-  [withdraw ;; FIXME
+  [withdraw
    ;; consumes commad-line arguments to withdraw amount
-   ([max (->* (account/c my-date/c string?) () #:rest (listof string?) (action/c account/c))]
+   ([max (arrow*-with-exercise (list balanced-account/c my-date/c string-amount/c) (listof string?) (action/c account/c))]
     [types (->* (account/c my-date/c string?) () #:rest (listof string?) (action/c account/c))])]
 
-  [write-check ;; FIXME
+  [write-check
    ;; consumes commad-line arguments to record a check at amount
-   ([max (->* (account/c my-date/c string?) () #:rest (listof string?) (action/c account/c))]
+   ([max (arrow*-with-exercise (list balanced-account/c my-date/c string-amount/c) (listof string?) (action/c account/c))]
     [types (->* (account/c my-date/c string?) () #:rest (listof string?) (action/c account/c))])]
 
-  [show-balance ;; FIXME
-   ([max (->* (account/c my-date/c) () #:rest any/c (action/c amount?))]
+  [show-balance
+   ([max (arrow*-with-exercise (list account/c my-date/c) (listof any/c) (action/c amount?))]
     [types (->* (account/c my-date/c) () #:rest any/c (action/c amount?))])]
 
-  [to-html ;; FIXME
-   ([max (->* (account/c my-date/c) () #:rest any/c (action/c any/c))]
+  [to-html
+   ([max (arrow*-with-exercise (list account/c my-date/c) (listof any/c) (action/c any/c))]
     [types (->* (account/c my-date/c) () #:rest any/c (action/c any/c))])])
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -75,33 +82,6 @@
   (require (submod "file-io.rkt" examples))
   (require rackunit)
   (current-seconds/maybe-fake (thunk 1784630918)))
-
-(define (valid-short-string-list? lst)
-  (< (+ (length lst)
-        (for/sum ([s (in-list lst)])
-          (string-length s)))
-     30))
-
-(define (generate-short-string-list fuel)
-  (thunk
-    (let loop ([remaining-budget (random 30)]
-               [acc '()])
-      ;; Each new string costs 1 (for the list element) + its character length
-      (if (<= remaining-budget 0)
-          (reverse acc)
-          (let* ([max-str-len (sub1 remaining-budget)]
-                 [str-len (random (add1 max-str-len))]
-                 [str (build-string str-len
-                                    (λ (_) (integer->char (+ 97 (random 26)))))])
-            (loop (- remaining-budget (add1 str-len))
-                  (cons str acc)))))))
-
-(define short-string-list/c
-  (and/c (listof string?)
-         (flat-named-contract
-          'total-length-less-than-30
-          valid-short-string-list?
-          generate-short-string-list)))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;                                                   
