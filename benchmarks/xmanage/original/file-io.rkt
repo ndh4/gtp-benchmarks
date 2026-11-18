@@ -24,7 +24,8 @@
           dw-comment
           dw-date
           dw-amount
-          pathable-string/c))
+          pathable-string/c
+          balanced-account/c))
 
 (require (only-in "date.rkt" my-date?))
 
@@ -45,15 +46,6 @@
  (list/c string? my-date/c (or/c amount/c string?)))
 
 (define/ctc-helper
- balanced-account/c
- (and/c
-  account/c
-  (flat-named-contract
-   "current balance equals sum of transactions"
-   (λ (a)
-     (= (transactions->balance (account-history a)) (account-balance a))))))
-
-(define/ctc-helper
  balanced-A/c
  (and/c
   (list/c
@@ -69,9 +61,14 @@
       (transactions->balance (list*->dw (fifth a)))
       (string->number/2 (third a)))))))
 
-(provide balanced-account/c)
-
-(provide account-reader account-writer A->account special> list*->dw list->dw)
+(provide account-reader
+         account-writer
+         A->account
+         special>
+         list*->dw
+         list->dw
+         dw->list
+         account->A)
 
 (module+ examples (provide (all-defined-out)))
 
@@ -179,7 +176,7 @@
     balanced-A/c
     natural-number/c
     (listof (list/c string? amount/c))
-    account/c)))
+    balanced-account/c)))
  (parameterize
   ((read-decimal-as-inexact #f))
   (match
@@ -256,16 +253,33 @@
  (newline)
  (pretty-write (account-special x)))
 
-(define (account->A x)
-  (list
-   (account-name x)
-   (map dw->list (account-recents x))
-   (amount->decimal-string (account-balance x))
-   (account-balance-date x)
-   (map dw->list (account-history x))))
+(define/contract
+ (account->A x)
+ (configurable-ctc
+  (types
+   (->
+    account/c
+    (list/c string? (listof raw-dw/tc) string? my-date/c (listof raw-dw/tc))))
+  (max
+   (->
+    account/c
+    (list/c
+     pathable-string/c
+     (listof raw-dw/c)
+     string-amount/c
+     my-date/c
+     (listof raw-dw/c)))))
+ (list
+  (account-name x)
+  (map dw->list (account-recents x))
+  (amount->decimal-string (account-balance x))
+  (account-balance-date x)
+  (map dw->list (account-history x))))
 
-(define (dw->list dw)
-  (list (dw-comment dw) (dw-date dw) (amount->decimal-string (dw-amount dw))))
+(define/contract
+ (dw->list dw)
+ (configurable-ctc (types (-> dw/c raw-dw/tc)) (max (-> dw/c raw-dw/c)))
+ (list (dw-comment dw) (dw-date dw) (amount->decimal-string (dw-amount dw))))
 
 (module+
  test

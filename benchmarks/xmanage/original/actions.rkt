@@ -23,6 +23,7 @@
          deposit
          withdraw
          write-check
+         create-check
          show-balance
          to-html)
 
@@ -160,13 +161,17 @@
    (printf "Check No. ~a Today: ~a~n" (account-check-no account) (today)))
  (list account+ (λ () (bump) (do) (ackn))))
 
-(define (create-check acc purpose)
-  (define x (+ (account-check-no acc) 1))
-  (define !
-    (if (equal? (string-trim purpose) "")
-      (λ () (eprintf "warning: the purpose statement is missing\n"))
-      void))
-  (list (~a x " " purpose) (lambda () (!) (set-account-check-no! acc x))))
+(define/contract
+ (create-check acc purpose)
+ (configurable-ctc
+  (max (-> account/c string? (action/c string?)))
+  (types (-> account/c string? (action/c string?))))
+ (define x (+ (account-check-no acc) 1))
+ (define !
+   (if (equal? (string-trim purpose) "")
+     (λ () (eprintf "warning: the purpose statement is missing\n"))
+     void))
+ (list (~a x " " purpose) (lambda () (!) (set-account-check-no! acc x))))
 
 (define/contract
  (show-balance a _date . _others)

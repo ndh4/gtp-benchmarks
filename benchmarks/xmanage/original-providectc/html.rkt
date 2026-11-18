@@ -103,7 +103,19 @@
 
   [make-td
     ([types (-> (or/c 'left 'center 'right) (->* (any/c) (any/c) list?))]
-     [max   (-> (or/c 'left 'center 'right) (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?)))])])
+     [max   (-> (or/c 'left 'center 'right) (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?)))])]
+
+  [td-left
+    ([types (->* (any/c) (any/c) list?)]
+     [max   (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?))])]
+
+  [td-center
+    ([types (->* (any/c) (any/c) list?)]
+     [max   (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?))])]
+
+  [td-right
+    ([types (->* (any/c) (any/c) list?)]
+     [max   (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?))])])
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "date.rkt")

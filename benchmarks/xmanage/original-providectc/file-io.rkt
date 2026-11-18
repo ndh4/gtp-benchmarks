@@ -10,7 +10,7 @@
                              account-check-no account-special
                              amount/c string-amount/c amount>
                              dw/c dw dw-comment dw-date dw-amount
-                             pathable-string/c))
+                             pathable-string/c balanced-account/c))
 
 (require/configurable-contract "date.rkt" my-date?)
 (require/configurable-contract "data.rkt" transactions->balance
@@ -25,14 +25,6 @@
 (define/ctc-helper raw-dw/tc
   (list/c string? my-date/c (or/c amount/c string?)))
 
-(define/ctc-helper balanced-account/c
-  (and/c account/c
-         (flat-named-contract
-          "current balance equals sum of transactions"
-          (λ (a)
-            (= (transactions->balance (account-history a))
-               (account-balance a))))))
-
 (define/ctc-helper balanced-A/c
   (and/c (list/c pathable-string/c (listof raw-dw/c) string-amount/c my-date/c (listof raw-dw/c))
          (flat-named-contract
@@ -40,8 +32,6 @@
           (λ (a)
             (= (transactions->balance (list*->dw (fifth a)))
                (string->number/2 (third a)))))))
-
-(provide balanced-account/c)
 
 (provide/configurable-contract
   [account-reader
@@ -55,7 +45,7 @@
 
   [A->account
    ([types (-> (list/c string? (listof raw-dw/tc) string? my-date/c (listof raw-dw/tc)) (listof (list/c string? amount/c)) natural-number/c account/c)]
-    [max   (-> balanced-A/c natural-number/c (listof (list/c string? amount/c)) account/c)])]
+    [max   (-> balanced-A/c natural-number/c (listof (list/c string? amount/c)) balanced-account/c)])]
 
   [special>
    ([max   (-> (or/c (not/c list?) (listof (list/c string? (or/c amount/c string-amount/c)))) (listof (list/c string? amount/c)))]
@@ -67,7 +57,15 @@
 
   [list->dw
    ([types (-> raw-dw/tc dw/c)]
-    [max   (-> raw-dw/c dw/c)])])
+    [max   (-> raw-dw/c dw/c)])]
+
+  [dw->list
+   ([types (-> dw/c raw-dw/tc)]
+    [max   (-> dw/c raw-dw/c)])]
+
+  [account->A
+   ([types (-> account/c (list/c string? (listof raw-dw/tc) string? my-date/c (listof raw-dw/tc)))]
+    [max   (-> account/c (list/c pathable-string/c (listof raw-dw/c) string-amount/c my-date/c (listof raw-dw/c)))])])
 
 (module+ examples
   (provide (all-defined-out)))

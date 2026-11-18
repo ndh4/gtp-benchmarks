@@ -33,44 +33,51 @@
  (define n (char->integer c))
  (and (>= n 32) (<= n 126) (not (char=? c #\/)) (not (char=? c #\\))))
 
-(define bmp-char?
-  (flat-named-contract
-   'bmp-char?
-   ascii-file-safe-char?
-   (lambda (fuel)
-     (lambda ()
-       (let loop ()
-         (define n (+ 32 (random 95)))
-         (define c (integer->char n))
-         (if (ascii-file-safe-char? c) c (loop)))))))
+(define/ctc-helper
+ bmp-char?
+ (flat-named-contract
+  'bmp-char?
+  ascii-file-safe-char?
+  (lambda (fuel)
+    (lambda ()
+      (let loop ()
+        (define n (+ 32 (random 95)))
+        (define c (integer->char n))
+        (if (ascii-file-safe-char? c) c (loop)))))))
 
-(define bmp-string?
-  (flat-named-contract
-   'bmp-string?
-   (lambda (s) (and (string? s) (for/and ((c (in-string s))) (bmp-char? c))))
-   (lambda (fuel)
-     (define charlist-gen
-       (contract-random-generate/choose (listof bmp-char?) fuel))
-     (lambda ()
-       (define s (list->string (charlist-gen)))
-       (if (member s '("" "." "..")) "safe_default_name.txt" s)))))
+(define/ctc-helper
+ bmp-string?
+ (flat-named-contract
+  'bmp-string?
+  (lambda (s) (and (string? s) (for/and ((c (in-string s))) (bmp-char? c))))
+  (lambda (fuel)
+    (define charlist-gen
+      (contract-random-generate/choose (listof bmp-char?) fuel))
+    (lambda ()
+      (define s (list->string (charlist-gen)))
+      (if (member s '("" "." "..")) "safe_default_name.txt" s)))))
 
 (define/ctc-helper
  pathable-string/c
  (and/c bmp-string? (string-len/c 60) path-string?))
 
-(provide (struct-out account)
-         (struct-out dw)
-         string->number/2
-         pathable-string/c)
+(provide (struct-out account) (struct-out dw) pathable-string/c)
 
 (provide transactions->balance
          transactions->running-balance
          amount?
          amount->decimal-string
-         align)
+         string->number/2
+         align
+         new-account)
 
-(provide amount> argv-amount> amount/c string-amount/c account/c dw/c)
+(provide amount>
+         argv-amount>
+         amount/c
+         string-amount/c
+         account/c
+         dw/c
+         balanced-account/c)
 
 (module+ examples (provide checking0))
 
@@ -120,10 +127,14 @@
  (match "159.20" ((argv-amount> x) (check-false (inexact? x) "argv match")))
  (match "0." ((argv-amount> x) (check-true (= x 0)))))
 
-(define (string->number/2 amount)
-  (when (regexp-match #px"\\.\\d\\d\\d" (~a amount))
-    (eprintf "bad amount ~a\n" amount))
-  (parameterize ((read-decimal-as-inexact #f)) (string->number amount)))
+(define/contract
+ (string->number/2 amount)
+ (configurable-ctc
+  (max (-> string-amount/c amount/c))
+  (types (-> string-amount/c amount/c)))
+ (when (regexp-match #px"\\.\\d\\d\\d" (~a amount))
+   (eprintf "bad amount ~a\n" amount))
+ (parameterize ((read-decimal-as-inexact #f)) (string->number amount)))
 
 (module+
  test
@@ -188,13 +199,30 @@
     natural-number/c
     (listof (list/c (min-len-string/c 1) amount/c))))))
 
+(define/ctc-helper
+ balanced-account/c
+ (and/c
+  account/c
+  (flat-named-contract
+   "current balance equals sum of transactions"
+   (λ (a)
+     (= (transactions->balance (account-history a)) (account-balance a))))))
+
 (module+
  examples
  (define (checking0 (first-check-no 0))
    (account "checking" '() 0 (today) '() first-check-no '())))
 
-(define (new-account name #:first-check# (last 0))
-  (account name '() 0 (today) '() last '()))
+(define/contract
+ (new-account name #:first-check# (last 0))
+ (configurable-ctc
+  (types (->* (string?) (#:first-check# natural-number/c) account/c))
+  (max
+   (->*
+    (pathable-string/c)
+    (#:first-check# natural-number/c)
+    balanced-account/c)))
+ (account name '() 0 (today) '() last '()))
 
 (define/contract
  (transactions->balance dw*)

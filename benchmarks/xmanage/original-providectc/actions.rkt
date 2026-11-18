@@ -61,6 +61,11 @@
    ([max (arrow*-with-exercise (list balanced-account/c my-date/c string-amount/c) (listof string?) (action/c account/c))]
     [types (->* (account/c my-date/c string?) () #:rest (listof string?) (action/c account/c))])]
 
+  [create-check
+   ;; consumes commad-line arguments to record a check at amount
+   ([max (-> account/c string? (action/c string?))]
+    [types (-> account/c string? (action/c string?))])]
+
   [show-balance
    ([max (arrow*-with-exercise (list account/c my-date/c) (listof any/c) (action/c amount?))]
     [types (->* (account/c my-date/c) () #:rest any/c (action/c amount?))])]
@@ -317,7 +322,7 @@
 ;                                     
 ;                                     
 
-(module+ test 
+(module+ test
   #; {String -> Account}
   ;; EFFECT run the effect of making a new account 
   (define (run-new-account/2 name)

@@ -35,7 +35,7 @@
        (not (char=? c #\/))   ; No Unix forward slash
        (not (char=? c #\\)))) ; No Windows backward slash
 
-(define bmp-char?
+(define/ctc-helper bmp-char?
   (flat-named-contract
    'bmp-char?
    ascii-file-safe-char?
@@ -49,7 +49,7 @@
              c
              (loop)))))))
 
-(define bmp-string?
+(define/ctc-helper bmp-string?
   (flat-named-contract
     'bmp-string?
     (lambda (s) (and (string? s) (for/and ([c (in-string s)]) (bmp-char? c))))
@@ -66,7 +66,6 @@
 
 (provide (struct-out account)
          (struct-out dw)
-         string->number/2
          pathable-string/c)
 
 
@@ -97,10 +96,18 @@
    ([max (-> amount/c string-amount/c)]
     [types (-> amount/c string-amount/c)])]
 
+  [string->number/2
+   ([max (-> string-amount/c amount/c)]
+    [types (-> string-amount/c amount/c)])]
+
   [align
    ([types (-> string? string?)]
     [max (-> string?
-             (and/c string? (compose (=/c COMMENT-MAX) string-length)))])])
+             (and/c string? (compose (=/c COMMENT-MAX) string-length)))])]
+
+  [new-account
+   ([types (->* (string?) (#:first-check# natural-number/c) account/c)]
+    [max (->* (pathable-string/c) (#:first-check# natural-number/c) balanced-account/c)])])
 
 (provide
  ;; match expanders
@@ -109,7 +116,8 @@
  amount/c
  string-amount/c
  account/c
- dw/c)
+ dw/c
+ balanced-account/c)
 
 (module+ examples
   (provide checking0))
@@ -224,6 +232,13 @@
   (configurable-ctc [types (struct/c account pathable-string/c (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c (listof (list/c string? amount/c)))]
                     [max   (struct/c account pathable-string/c (listof dw/c) amount/c my-date/c (listof dw/c) natural-number/c (listof (list/c (min-len-string/c 1) amount/c)))]))
 
+(define/ctc-helper balanced-account/c
+  (and/c account/c
+         (flat-named-contract
+          "current balance equals sum of transactions"
+          (λ (a)
+            (= (transactions->balance (account-history a))
+               (account-balance a))))))
 
 (module+ examples
   (define [checking0 (first-check-no 0)]

@@ -81,7 +81,10 @@
          html-row
          date-to-html
          check-mark
-         make-td)
+         make-td
+         td-left
+         td-center
+         td-right)
 
 (require "date.rkt")
 
@@ -334,11 +337,26 @@
    `(((align ,(~a where))) ,content)
    `(((align ,(~a where)) (width ,(~a w))) ,content)))
 
-(define td-left (make-td 'left))
+(define/contract
+ td-left
+ (configurable-ctc
+  (types (->* (any/c) (any/c) list?))
+  (max (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?))))
+ (make-td 'left))
 
-(define td-center (make-td 'center))
+(define/contract
+ td-center
+ (configurable-ctc
+  (types (->* (any/c) (any/c) list?))
+  (max (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?))))
+ (make-td 'center))
 
-(define td-right (make-td 'right))
+(define/contract
+ td-right
+ (configurable-ctc
+  (types (->* (any/c) (any/c) list?))
+  (max (->* (any/c) (any/c) (cons/c (cons/c attribute? list?) list?))))
+ (make-td 'right))
 
 (module+
  test
