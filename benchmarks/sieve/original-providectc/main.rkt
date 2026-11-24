@@ -1,6 +1,6 @@
 #lang racket
 
-(require #;racket/contract
+(require racket/contract
          "../../../ctcs/precision-config.rkt"
          "../../../ctcs/common.rkt"
          "../../../ctcs/configurable.rkt"
@@ -10,22 +10,41 @@
                   simple-streamof
                   simple-stream/dc
                   simple-stream/dc*))
-(require/configurable-contract "streams.rkt" simple-stream-take simple-stream-get simple-stream-unfold make-simple-stream )
+(require/configurable-contract "streams.rkt" simple-stream-first simple-stream-take simple-stream-get simple-stream-unfold make-simple-stream )
 
 ;;--------------------------------------------------------------------------------------------------
 
 ;; ll: All these configurable-ctc forms are commented out (unnecessary atm) because
 ;; main provides nothing!
 
+(provide/configurable-contract
+  [count-from {[max (->i ([n integer?])
+                            [result (n)
+                                    (simple-stream/dc* (and/c integer? (=/c n))
+                                                       (λ (last)
+                                                         (and/c integer? (=/c (add1 last)))))])]
+               [types (-> number? (simple-streamof number?))]}]
+  [sift {[max (->i ([n natural?]
+                       [st (simple-streamof natural?)])
+                      [result (n)
+                              (simple-streamof (and/c natural?
+                                                      (not/c (divisible-by/c n))))])]
+         [types (-> natural? (simple-streamof natural?) (simple-streamof natural?))]}]
+  [sieve {[max (->i ([st (simple-streamof natural?)])
+                       [result (st)
+                               (let ([first (simple-stream-first st)])
+                                 (simple-stream/c (and/c natural? (=/c first))
+                                                  (-> (sieved-simple-stream-following/c first))))])]
+          [types (-> (simple-streamof natural?) (simple-streamof natural?))]}]
+  [primes {[max (simple-streamof (and/c natural? prime?))]
+           [types (simple-streamof natural?)]}]
+  [N-1 {[max (and/c natural? (=/c 20))]
+        [types natural?]}]
+  [main {[max   (-> void?)]
+         [types (-> void?)]}])
+
 ;; `count-from n` Build a stream of integers starting from `n` and iteratively adding 1
 (define (count-from n)
-  #;(configurable-ctc
-   [max (->i ([n integer?])
-             [result (n)
-                     (simple-stream/dc* (and/c integer? (=/c n))
-                                        (λ (last)
-                                          (and/c integer? (=/c (add1 last)))))])]
-   [types (-> number? (simple-streamof number?))])
   (make-simple-stream n (lambda () (count-from (add1 n)))))
 
 (define/ctc-helper ((divisible-by/c divisor) x)
@@ -34,13 +53,6 @@
 ;; `sift n st` Filter all elements in `st` that are multiples of `n`.
 ;; Return a new simple-stream.
 (define (sift n st)
-  #;(configurable-ctc
-   [max (->i ([n integer?]
-              [st (simple-streamof number?)])
-             [result (n)
-                     (simple-streamof (and/c number?
-                                             (not/c (divisible-by/c n))))])]
-   [types (-> integer? (simple-streamof number?) (simple-streamof number?))])
   (define-values (hd tl) (simple-stream-unfold st))
   (cond [(= 0 (modulo hd n)) (sift n tl)]
         [else (make-simple-stream hd (lambda () (sift n tl)))]))
@@ -55,34 +67,18 @@
 
 ;; `sieve st` Sieve of Eratosthenes
 (define (sieve st)
-  #;(configurable-ctc
-   [max (->i ([st (simple-streamof integer?)])
-             [result (st)
-                     (let ([first (simple-stream-first st)])
-                       (simple-stream/c (and/c integer? (=/c first))
-                                        (-> (sieved-simple-stream-following/c first))))])]
-   [types (-> (simple-streamof integer?) (simple-streamof integer?))])
   (define-values (hd tl) (simple-stream-unfold st))
   (make-simple-stream hd (lambda () (sieve (sift hd tl)))))
 
 ;; simple-stream of prime numbers
 (define primes
-  #;(configurable-ctc
-   [max (simple-streamof (and/c integer? prime?))]
-   [types (simple-streamof integer?)])
   (sieve (count-from 2)))
 
 (define N-1
-  #;(configurable-ctc
-   [max (and/c natural? (=/c 20))]
-   [types natural?])
   20)
 
 (define (main)
-  #;(-> void?)
   (void (simple-stream-get primes N-1)))
-
-#;(time (main))
 
 (module+ test
   (require rackunit)
